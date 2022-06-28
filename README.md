@@ -51,7 +51,7 @@ The repository contains 4 main folders.
 - `figures`: contains the figures used in the manuscripts as well as presentation.
 - `phd_thesis`: contains the source file of the PhD manuscript (`thesis.tex`), as well as the compiled version (`thesis.pdf`)
 - `private_defense`: contains the source file of the slides used in the private defense (`thesis_presentation.tex`), as well as the compiled version (`thesis_presentation.pdf`).
-- `public defense`: contains the slides used in the public defense, done in Keynote (`public_defense_presentation.key`), as well as the exported pdf file (`public_defense_presentation.pdf`). 
+- `public defense`: contains the pdf exported version of the slides used in the public defense originally done in Keynote.
 
 ## Building the files 
 Building was done from command line and was tested on both MacOS (Monterey) as well as Ubuntu 22.04, using a standard LaTeX installation on these systems. To build, call from their respective folders (i.e. from `phd_thesis` or `private_defense`)
