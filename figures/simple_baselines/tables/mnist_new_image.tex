@@ -1,0 +1,30 @@
+    \centering
+    \resizebox{\textwidth}{!}{\begin{tabular}{lll|ccc}
+    \toprule
+    Algorithm & Model & Architecture & PSNR [dB]$~(\uparrow)$  &SSIM $(\uparrow)$& Accuracy  $ [\%]~(\uparrow)$\\
+    \midrule
+    \multirow{2}{*}{VDS} 
+    & NC & ResUNet& $17.10$  & $0.76$ & $0.67$ \\
+    & WGAN & c-ResNet & $16.41$  & $0.76$ & $0.67$ \\    
+    \midrule
+    \multirow{2}{*}{VDS} 
+    & Recon. & ResUNet& $18.87\pm 2.31$  & $0.77\pm 0.05$ & $0.70\pm 0.21$ \\
+    & Recon. & c-ResNet & $18.85\pm 2.18$  & $0.70\pm 0.05$ & $0.75\pm 0.20$ \\        
+    \midrule
+    \multirow{4}{*}{LBC \cite{sanchez2019scalable}}
+     & NC &  ResUNet&$21.39 \pm 2.34$  & $0.90\pm 0.04$ & $0.92\pm 0.14$ \\
+     & NC &  c-ResNet&$20.33\pm 2.20$  & $0.88 \pm 0.04$ & $0.93 \pm 0.15$ \\
+     & WGAN & ResUNet& $20.29 \pm 2.09$  & $0.89 \pm 0.04$ & $0.90\pm 0.14$ \\
+     & WGAN & c-ResNet& $20.48 \pm 2.14$  & $0.89\pm 0.04$ & $0.92\pm 0.14$\\
+     
+    \midrule
+    \multirow{4}{*}{\begin{minipage}{1cm}GAS (Ours)\end{minipage}}
+     & NC & ResUNet& $\mathbf{40.15 \pm 15.78}$  & $\mathbf{0.94\pm 0.04}$ & $0.91 \pm 0.15$ \\
+     & NC & c-ResNet& $31.47 \pm 6.69$  & $0.93\pm 0.03$ & $\mathbf{0.93 \pm 0.14}$ \\       
+     & WGAN & ResUNet& $31.73\pm 9.10$  & $0.92 \pm 0.06$ & $0.88 \pm 0.17$ \\
+     & WGAN & c-ResNet& $\mathbf{35.81 \pm 10.34}$  & $\mathbf{0.96\pm 0.03}$ & $\mathbf{0.95\pm 0.13}$ \\    
+     
+     
+    \bottomrule
+    \end{tabular}}
+    \captionof{table}{Average test set AUC (one AUC per image) with standard deviation on MNIST, in image domain.}\label{tab:comp_mnist_i}    

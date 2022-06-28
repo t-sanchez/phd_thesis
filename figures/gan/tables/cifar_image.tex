@@ -1,0 +1,18 @@
+    \centering
+    \resizebox{\textwidth}{!}{\begin{tabular}{lll|ccc}
+    \toprule
+    Algorithm & Model & Architecture & PSNR [dB]$~(\uparrow)$  &SSIM $(\uparrow)$& Accuracy  $ [\%]~(\uparrow)$\\
+    \midrule
+    \multirow{2}{*}{VDS} 
+    & NC & ResUNet& $9.32\pm 0.70$  & $0.11\pm0.03$ & $0.10\pm 0.17$ \\
+    & WGAN & ResUNet & $8.72\pm 0.62$  & $0.09\pm 0.03$ & $0.10\pm 0.17$ \\    
+    \midrule
+    \multirow{2}{*}{VDS}  & Recon. & ResUNet& $6.73\pm 0.51$  & $0.09\pm 0.02$ & $0.11\pm0.17$  \\
+     & Recon. & c-ResNet& $ 11.79 \pm 0.72$  & $0.13 \pm 0.03$& $0.10\pm0.16$ \\
+    \midrule
+    \multirow{2}{*}{\begin{minipage}{1cm}GAS (Ours)\end{minipage}}
+     & NC & ResUNet& $14.36 \pm 1.89$  & $0.55\pm 0.08$ & $\mathbf{0.27 \pm 0.22}$ \\
+     & WGAN & ResUNet& $\mathbf{15.26\pm 2.34}$  & $\mathbf{0.57 \pm 0.09}$ & $0.21 \pm 0.18$ \\
+    \bottomrule
+    \end{tabular}}
+    \captionof{table}{Average test set AUC (one AUC per image) with standard deviation on CIFAR10, in image domain. This was computed on a subset of the test set.}\label{tab:comp_cifar_i}    

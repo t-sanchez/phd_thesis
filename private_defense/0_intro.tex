@@ -1,0 +1,604 @@
+%!TEX root = thesis_presentation.tex
+
+%\begin{frame}{Outline}
+    %    \tableofcontents
+    %\end{frame}
+    \begin{frame}
+        \centering
+        \includegraphics[width=\linewidth]{figs/mri_head}
+        {\scriptsize \textsc{Image credits.} \url{https://www.pearl-technology.ch/hubfs/MRT_Kopf_PearlFit-Multipad_ProBelt_1-1.png}}
+    \end{frame}
+
+    % \begin{frame}{Outline}
+    %     \begin{itemize}
+    %         \setlength\itemsep{\fill}
+    %         \item Introduction \pause
+    %         \begin{itemize}
+    %             \item MR physics\pause
+    %             \item Reconstruction \pause
+    %             \item Optimizing sampling masks\pause
+    %         \end{itemize}
+    %         \item Scaling up learning-based mask optimization\pause%Scalable Learning-based MRI\pause
+    %         \item Deep reinforcement learning for mask optimization \pause
+    %         \item GAN-based adaptive mask optimization\pause
+    %         \item Conclusion and insights
+    %     \end{itemize}
+    % \end{frame}
+
+    % Use starred version (e.g. \section*{Section name})
+    % to disable (sub)section page.
+    \section{Introduction}
+    \addtocounter{framenumber}{-1}
+
+    \begin{frame}{Magnetic Resonance Imaging}{Six essential facts}
+        \begin{columns}[totalwidth=\linewidth]
+            \column{0.55\linewidth}
+            \vbox to .6\textheight{
+            \begin{enumerate}
+                \item<2-> Measure the \textit{density} of hydrogen nuclei (proton)
+                \vfill\item<3-> Acquisition = multiple excitation-relaxation steps 
+                \vfill\item<4-> Yields a Fourier space ($\equiv$ \textit{k-space}) representation 
+                \vfill\item<5-> Acquisition is sequential and structured\\
+                \visible<8->{\footnotesize \textit{Cartesian} MRI = grid-like covering of \textit{k-space}}\\
+                \vfill\item<10-> \textbf{Slow} scan: $20$-$60$ min. \parencite{edelstein2010mri}
+                \vfill\item<11-> Go faster by \textit{undersampling}\visible<12->{, but introduces artifacts}
+                \visible<12->{\footnotesize Reconstruction methods can remove them}\\
+            \end{enumerate}}
+        
+        \column{0.4\linewidth}
+        \centering
+        \includegraphics<2>[width=\linewidth]{figs/mri_1}%
+        \includegraphics<3>[width=\linewidth]{figs/mri_3b}%
+        \includegraphics<4>[width=\linewidth]{figs/mri_4}%
+        \includegraphics<5>[width=\linewidth]{figs/mri_4a}%
+        \includegraphics<6>[width=\linewidth]{figs/mri_4b}%
+        \includegraphics<7>[width=\linewidth]{figs/mri_4c}%
+        \includegraphics<8>[width=\linewidth]{figs/mri_4d}%
+        \includegraphics<9-10>[width=\linewidth]{figs/mri_5a}%
+        \includegraphics<11->[width=\linewidth]{figs/mri_6}%
+    \end{columns}
+    \end{frame}
+   
+
+    
+    \begin{frame}{Magnetic Resonance Imaging}{Mathematical description}
+        \vspace{-0.8cm}
+        \begin{center}
+            \begin{minipage}{0.5\linewidth}
+                \begin{block}{Acquisition model}
+                    \vspace*{-\baselineskip}
+                    $$\yo = \Po\mF\vx + \boldsymbol{\epsilon} = \mA_\omega \vx + \boldsymbol{\epsilon}$$
+                    where $\vx\in \mathbb{C}^P$, $\mP_{\omega,ii} = 1$ if $i \in \omega$, and $|\omega| = N$        
+                \end{block}
+            \end{minipage}
+        \end{center}
+        
+        %Remark: The % in the includegraphics is what prevents the image from moving.
+        \begin{figure}
+            \centering
+            %\includegraphics<1>[width=.75\linewidth]{figs/flow_1}%
+            %\includegraphics<2>[width=.75\linewidth]{figs/flow_2}%
+            \includegraphics<1>[width=.7\linewidth]{figs/flow_2}%
+            \includegraphics<2>[width=.7\linewidth]{figs/flow_5}%
+            %\includegraphics<2>[width=.75\linewidth]{figs/flow_4}%
+        \end{figure}
+    \end{frame}
+
+    \begin{frame}{Reconstruction methods}
+        $\circ$ General idea: Use prior information.\\[3mm]
+        
+        \begin{minipage}{0.48\linewidth}
+            \centering
+            \textbf{Model-driven}\\[3mm]
+            $\displaystyle\min_\vx \frac{1}{2}\|\mA_\omega \vx - \yo\|_2^2 + \lambda \mathcal{R}(\vx)$
+        \end{minipage}
+        \hfill
+        \visible<2->{\begin{minipage}{0.48\linewidth}
+            \centering
+            \textbf{Data-driven}\\[3mm]
+            \alt<3->{$\displaystyle \underset{\theta}{\textcolor{blue}{\text{\textbf{max}}}} \frac{1}{m}\sum_{i=1}^m \textcolor{blue}{\boldsymbol{\eta}}\big(\vx_i,\vf_\theta(\vy_i)\big)$}{$\displaystyle \min_\theta \frac{1}{m}\sum_{i=1}^m \ell\big(\vx_i,\vf_\theta(\vy_i)\big)$}
+        \end{minipage}}
+            \vfill
+        $\circ$ \textit{Examples:}
+            \vfill
+
+
+        \begin{minipage}{0.48\linewidth}
+            \begin{itemize}
+                \item Compressed Sensing (CS) with $\mathcal{R}(\vx) = \|\mW\vx\|_1$~\parencite{lustig2008compressed}
+            \end{itemize}
+        \end{minipage}
+        \visible<2->{\hfill
+        \begin{minipage}{0.48\linewidth}
+            \begin{itemize}
+                \item Unrolled neural networks \parencite{sun2016deep,schlemper2017deep}
+        \end{itemize}
+        \end{minipage}}
+        \visible<4->{
+        \vfill
+        $\circ$ \textit{Trade-offs:}
+        \vfill
+        \begin{minipage}{0.48\linewidth}
+            \begin{itemize}
+                \item[$+$]No training data\\
+                \item[$+$] Theoretical guarantees 
+                \item[$-$] Slow reconstruction\\
+                \item[$-$] Worse performance\\
+            \end{itemize}
+            
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\linewidth}
+            \begin{itemize}
+            \item[$-$] Training data $\{(\vx_i,\vy_i)\}_{i=1}^m$\\
+            \item[$-$] No guarantees 
+            \item[$+$] Fast reconstruction\\
+            \item[$+$] SotA performance\\
+        \end{itemize}
+        \end{minipage}}
+
+
+
+        %\pause
+        %\footnotetext<6->{Methods relying on deep image prior \parencite{ulyanov2018deep,darestani2021accelerated} are model-driven, but manage to reach close to SotA performance.}
+        %Idea: illustration of DL recon vs CS?
+    \end{frame}
+
+
+    
+    % Maybe there isn't need to speak of coherence and this kind of things immediately. We can lay out the problem.
+
+    % \begin{frame}{Sampling} Compressed Sensing -- Random sampling}
+    %     \begin{columns}
+    %     \column{0.6\textwidth}
+    %     \begin{block}{Reconstruction method }
+    %     \vspace{-8mm}
+    %     \begin{align*}
+    %     \min_\vx~&~\|\mW \vx \|_1 \\
+    %     \textrm{s.t.}~&~\|\mAo \vx-\vy\|_2 \leq \varepsilon.
+    %     \end{align*}
+    %     \vspace{-7mm}
+        
+    %     \end{block}	
+    %     \begin{block}{Recovery guarantee}
+    %     Perfect reconstruction is guaranteed with probability $ >1-\epsilon$ if $|\omega| := N $ satsifies
+    %     $$N \gtrsim  \mu(\mU)\cdot P \cdot S \cdot (1+\log(1/\epsilon))\cdot \log(P)$$
+    %     $S$: number of nonzero coefficients, $\mU := \mAo \mW^\dagger$
+    %     \end{block}
+        
+        
+    %     \column{0.35\textwidth}
+    %     \centering
+    %     \includegraphics[scale=.27]{neurospin/figs/cs_random_sampling.png}
+    %     \end{columns}
+        
+    %     \let\thefootnote\relax\footnote{\tiny From: M. Lustig, D. Donoho, and J. M. Pauly, ``Sparse MRI: The application of compressed sensing
+    %     for rapid MR imaging,'' \textit{Magnetic Resonance in Medicine}, vol. 58, no. 6, pp. 1182--1195, 2007.\\[-2mm]}
+    %     \end{frame}
+        
+        
+        % \begin{frame}[t]{Sampling}{Compressed Sensing}
+        %     \begin{tabular}{@{\quad$\circ$~}l@{\hspace{3mm}}p{0.75\textwidth}}
+        %         \scshape CS theory. & Uniformly random sampling. \hfill \parencite{candes2006robust,donoho2006compressed}%
+        %         \visible<2->{\\[3mm]\scshape Issue. & Does not work for MRI.}%
+        %         \visible<3->{\\[3mm]\scshape Solution. & \textit{Variable-density sampling} (VDS).\hfill \parencite{lustig2007sparse}}%
+        %     \end{tabular}
+        % %\begin{itemize}
+        %     %\item \textsc{CS theory.} \quad Uniformly random sampling. \hfill \parencite{candes2006robust,donoho2006compressed}%perfect reconstruction is possible with uniformly \textit{random} undersampling provided incoherence between the measurement basis (Fourier) and the sparsity basis (Wavelets).\vfill
+        %     %\visible<2->{\vfill\item \textsc{Issue.} \quad Does not work for MRI.}
+        %     %\visible<3->{\vfill\item \textsc{Solution.} \quad\textit{Variable-density sampling} (VDS).\hfill \parencite{lustig2007sparse}\vfill}
+        %     %\visible<4->{\begin{itemize}
+        %     %    \item Works well in practice, but lacked theoretical justifications \parencite{chauffert2014variable,adcock2015quest}.\vfill
+        %     %    \item However, heuristics often still perform better \parencite{chauffert2013variable}.\vfill
+        %     %\end{itemize}}
+        % %\end{itemize}        
+        % \vfill
+        % \only<2>{
+        % \begin{figure}
+        % \begin{tabular}{ccc}
+        %     Ground truth& Random Mask& Reconstruction\\
+        %     \includegraphics[width=.2\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+        %     \includegraphics[width=.2\linewidth]{neurospin/figs/knee_mask_rand}\hspace{.3cm}&
+        %     \includegraphics[width=.2\linewidth]{neurospin/figs/knee_recon_rand}
+        % \end{tabular}
+        % \end{figure}}%
+        % \only<3->{
+        % \begin{figure}
+        % \begin{tabular}{ccc}
+        %     Ground truth& VD Mask& Reconstruction\\
+        %     \includegraphics[width=.2\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+        %     \includegraphics[width=.2\linewidth]{neurospin/figs/knee_mask_vd}\hspace{.3cm}&
+        %     \includegraphics[width=.2\linewidth]{neurospin/figs/knee_recon_vd}
+        % \end{tabular}
+        % \end{figure}}
+
+        % \end{frame}
+        
+        % \begin{frame}{Variable-density sampling}
+        % \begin{itemize}
+        % \item Used in practice since the beginning of CS-MRI \parencite{lustig2007sparse}.
+        % \item Theoretical justification came later, along several lines
+        % \begin{itemize}
+        % \item Draw coherent samples more often than incoherent ones\footnote{\tiny $^{\text{\tiny 3}}$ N. Chauffert, P. Ciuciu, J. Kahn, et al., ``Variable density sampling with continuous trajectories,'' \textit{SIAM Journal on Imaging Sciences}, vol. 7, no. 4, pp. 1962--1992, 2014.}.
+        % \item Exploit structured sparsity \parencite{adcock2017breaking}
+        % \end{itemize}
+        % \end{itemize}
+        
+        % \alt<2>{
+        % \begin{figure}
+        % \begin{tabular}{ccc}
+        % Ground truth& VD Mask& Reconstruction\\
+        % \includegraphics[width=.25\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+        % \includegraphics[width=.25\linewidth]{neurospin/figs/knee_mask_vd}\hspace{.3cm}&
+        % \includegraphics[width=.25\linewidth]{neurospin/figs/knee_recon_vd}
+        % \end{tabular}
+        % \end{figure}}{
+        % \begin{figure}
+        % \begin{tabular}{ccc}
+        % Ground truth& Random Mask& Reconstruction\\
+        % \includegraphics[width=.25\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+        % \includegraphics[width=.25\linewidth]{neurospin/figs/knee_mask_rand}\hspace{.3cm}&
+        % \includegraphics[width=.25\linewidth]{neurospin/figs/knee_recon_rand}
+        % \end{tabular}
+        % \end{figure}}
+        % %\begin{figure}[!t]
+        % %\centering
+        % %\begin{minipage}[c]{.21\linewidth}
+        % %\includegraphics[width=\textwidth]{FIGURES_REV/mask_coherence.pdf} 
+        % %\vspace{-2mm}
+        % % \end{minipage}
+        % % \begin{minipage}[c]{.275\linewidth}
+        % %\includegraphics[width=\textwidth]{figures/gaussianpdf}  
+        % % \end{minipage}
+        % % \end{figure}
+        % \end{frame}
+
+       %Which performance metric do we want?
+        % Do we want to perform optimization for each set of training data?
+    % \begin{frame}[t]{Compressed Sensing MRI}{Learning-based VD (LB-VD) sampling}
+    % \begin{itemize}
+    % \item Parametric approach:
+    
+    % \begin{itemize}
+    % \item Tune the parameters of the distribution to optimize performance.
+    % \item Grid search $\to$ combinatorial
+    % %  (e.g. variance, rate of decay, number of low frequency phase encodes)
+    % % Bound to the family of distributions you consider
+    % %MASK DRAWN W/O repetition
+    % \end{itemize}
+    
+    % \item Nonparametric approach:
+    % \begin{itemize}
+    % \item Construct a distribution directly from the data.
+    % %Cannot be optimized for a specific reconstruction method
+    % \end{itemize}
+    	
+    	
+    
+    % \only<2>{\item Which performance metric do we want?
+    % \item Do we want to perform optimization for each set of training data?
+    % \item Do we want an inherently probabilistic mask design?}
+    % \end{itemize}
+    % % TODO: VDS vs data-driven sampling example -> VDS optimized vs simply construct from fourier spectrum
+    
+    % \end{frame}
+    
+    
+    
+    \begin{frame}[t]{Sampling methods}
+
+        \begin{tabular}{@{\quad$\circ$~}p{0.15\textwidth}@{\hspace{3mm}}p{0.8\textwidth}}
+            \scshape CS theory: & Draw masks randomly to minimize coherence. \hfill \parencite{candes2006robust,donoho2006compressed}%
+            \visible<2->{\\[3mm]\scshape Issue: & Does not work for MRI.}%
+            \visible<3->{\\[3mm]\scshape Solution: & Draw masks from a \alt<4->{$\overbrace{\text{\textit{variable-density sampling} (VDS) distribution}}^{\text{Model-\textit{based}}}$}{variable-density sampling (VDS) distribution}\newline and \alt<4->{$\underbrace{\text{minimize coherence}}_{\text{Model-\textit{driven}}}$}{minimize coherence}.\hfill \parencite{lustig2007sparse}}%
+            \only<5->{\\[10mm]\scshape Double shift: &Towards \textit{learning}-based, \textit{data}-driven methods.}
+        \end{tabular}
+    %\begin{itemize}
+        %\item \textsc{CS theory.} \quad Uniformly random sampling. \hfill \parencite{candes2006robust,donoho2006compressed}%perfect reconstruction is possible with uniformly \textit{random} undersampling provided incoherence between the measurement basis (Fourier) and the sparsity basis (Wavelets).\vfill
+        %\visible<2->{\vfill\item \textsc{Issue.} \quad Does not work for MRI.}
+        %\visible<3->{\vfill\item \textsc{Solution.} \quad\textit{Variable-density sampling} (VDS).\hfill \parencite{lustig2007sparse}\vfill}
+        %\visible<4->{\begin{itemize}
+        %    \item Works well in practice, but lacked theoretical justifications \parencite{chauffert2014variable,adcock2015quest}.\vfill
+        %    \item However, heuristics often still perform better \parencite{chauffert2013variable}.\vfill
+        %\end{itemize}}
+    %\end{itemize}        
+    \vskip 0pt plus 1filll
+    \only<2>{
+    \begin{figure}
+    \begin{tabular}{ccc}
+        Ground truth& Random Mask& Reconstruction\\
+        \includegraphics[width=.2\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+        \includegraphics[width=.2\linewidth]{neurospin/figs/knee_mask_rand}\hspace{.3cm}&
+        \includegraphics[width=.2\linewidth]{neurospin/figs/knee_recon_rand}
+    \end{tabular}
+    \end{figure}}%
+    \only<3-4>{
+    \begin{figure}
+    \begin{tabular}{ccc}
+        Ground truth& VD Mask& Reconstruction\\
+        \includegraphics[width=.2\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+        \includegraphics[width=.2\linewidth]{neurospin/figs/knee_mask_vd}\hspace{.3cm}&
+        \includegraphics[width=.2\linewidth]{neurospin/figs/knee_recon_vd}
+    \end{tabular}
+    \end{figure}}
+
+    \end{frame}
+    
+
+        %\hspace{.2cm}\includegraphics[width=.65\textwidth]{icassp/figs/dd_sampling}  
+    %\end{figure}
+
+    
+    
+    
+    % $\circ$ Training data can be used to find a model as well. State-of-the-art:  \\
+    %	\begin{itemize}
+    %	\item $\triangleright$  Adaptive random sampling (heuristical, single reference image is used)   [\mblue{\mblue{Vellagoundar et. al., 2015}}].  \\[2mm]
+    %	\item $\triangleright$ Learning-based variable-density random sampling: search over the parameter space for the best reconstruction (parameter sweep).
+    %\end{itemize}
+    % \end{frame}
+
+    % \begin{frame}{A double shift in mask design}{Towards learning-based, data-driven approaches}
+    %     \textit{Ideally:}
+        
+    %     For an \textit{unknown} ground truth $\vx$, find the mask $\omega$ that maximizes performance w.r.t. $\eta$:
+    %     $$\max_{\omega: |\omega|\leq N} \eta(\vx,\vf_{\theta^\star}(\vy_{\omega}=\mathbf{P}_{\omega}\mA\vx))$$
+
+    %     \pause
+    %     But
+    %     \begin{itemize}
+    %         \item In practice, you don't get access to $\vx$ at test time.
+    %         \item This is a combinatorial optimization problem, there are $O(2^P)$ candidates.
+    %     \end{itemize}
+    %     % We are already motivating why we need to
+
+    % \end{frame}
+
+    % \begin{frame}{Random sampling vs variable-density sampling}
+    %     \begin{itemize}
+    %     \item \textbf{Random sampling:} Does not work well for MRI because of high coherence.
+    %     \visible<2>{
+    %     \item \textbf{Variable-density sampling (VDS):} Used in practice since the beginning of CS-MRI \parencite{lustig2007sparse}.
+    %     \begin{itemize}
+    %     \item Theoretical justification came later (e.g.  \cite{chauffert2014variable, adcock2017breaking})
+    %     \end{itemize}}
+    %     \end{itemize}
+        
+    %     \vspace{.4cm}
+    %     \alt<1>{
+    %     \begin{figure}[b]
+    %     \begin{tabular}{ccc}
+    %     Ground truth& Random Mask& Reconstruction\\
+    %     \includegraphics[width=.25\linewidth]{icassp/figs/knee_gt}\hspace{.3cm}&
+    %     \includegraphics[width=.25\linewidth]{icassp/figs/knee_mask_rand}\hspace{.3cm}&
+    %     \includegraphics[width=.25\linewidth]{icassp/figs/knee_recon_rand}
+    %     \end{tabular}
+    %     \end{figure}}
+    %     {\begin{figure}
+    %     \begin{tabular}{ccc}
+    %     Ground truth& VD Mask& Reconstruction\\
+    %     \includegraphics[width=.25\linewidth]{icassp/figs/knee_gt}\hspace{.3cm}&
+    %     \includegraphics[width=.25\linewidth]{icassp/figs/knee_mask_vd}\hspace{.3cm}&
+    %     \includegraphics[width=.25\linewidth]{icassp/figs/knee_recon_vd}
+    %     \end{tabular}
+    %     \end{figure}}
+        
+    %     \end{frame}
+        
+    %     \begin{frame}[t]{Learning-based variable-density sampling}{Formalization}
+    %     Consider
+    %     \begin{itemize}
+    %     \item a probability mass function $f \in \Delta^{P}$%, where $\Delta^{P}:= \{f \in [0,1]^P: \sum_i f_i = 1\}$
+    %     \item \alt<1>{a fixed distribution $p(\rvx)$ from which MRI images are drawn}{a set of samples $\{\vx_i\}_{i=1}^m$ from a fixed distribution $p(\rvx)$}.
+    %     \item a reconstruction algorithm $g$.\\\quad {\footnotesize It forms an estimate ${\hat{\vx}}  = g(\vy, \omega) $ of $\vx$.} \\
+    %     \item a performance metric $\eta$\\%\quad
+    %     %{\footnotesize Examples: PSNR,  negative MSE, SSIM }
+    %     \end{itemize}
+    %     \begin{block}{Variable-density sampling (VDS) optimization}
+    %     \only<1>{$$
+    %     \max_{f\in \Delta^{P}} \eta(f), 
+    %     \qquad \eta(f) :=  \mathbb{E}_{\substack{\omega(f,N)\\ \vx \sim p(\rvx)}}\left[\eta\left(\vx, {\hat{\vx}}\left(\vy, \omega\right)\right)\right],
+    %     $$}
+    %     \only<2>{$$\max_{f\in \Delta^P}  \eta_m (f), \text{~~~~} \eta_m (f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right].$$}
+        
+    %     \end{block}
+        
+    %     % note: maximization of eta f -> Change of perspective: maximize performance, minimize error
+    %     \end{frame}
+        
+    %     \begin{frame}[t]{Learning-based variable-density sampling\\[-3mm]{\normalsize formalization}}
+    %     \vspace{-2mm}
+    %     \begin{block}{Variable-density sampling optimization}
+    %     $$\max_{f\in \Delta^P}  \eta_m (f), \text{~~~~} \eta_m (f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right].$$
+    %     \end{block}
+    %     %Sample N times from $f$
+    %     \begin{itemize}
+    %     \item Parametric VDS\only<1>{:
+    %     \begin{itemize}
+    %     \item \textbf{Coherence}: Tune the parameters of the distribution to minimize coherence \parencite{lustig2007sparse}
+    %     \begin{itemize}
+    %     \item Model-based approach.
+    %     \end{itemize}
+    %     \item \textbf{Learning-based VD (LB-VD)}: Tune the parameters of the distribution to optimize performance on a training set.
+        
+    %     \begin{itemize}
+    %     \item Model-based,data-driven approach.
+    %     \end{itemize}
+    %     %Grid search $\to$ combinatorial
+    %     %  (e.g. variance, rate of decay, number of low frequency phase encodes)
+    %     % Bound to the family of distributions you consider
+    %     %MASK DRAWN W/O repetition
+    %     \end{itemize}
+    %     \vspace{-4mm}
+    %     \begin{figure}[!t]
+    %     \centering
+    %     \begin{minipage}[c]{.21\linewidth}
+    %     \includegraphics[width=\textwidth]{icassp/figs/mask_coherence.pdf} 
+    %     \vspace{-2mm}
+    %      \end{minipage}
+    %      \begin{minipage}[c]{.275\linewidth}
+    %     \includegraphics[width=\textwidth]{icassp/figs/gaussianpdf}  
+    %      \end{minipage}
+    %      \end{figure}}
+         
+    %     %\only<2>{\item Which performance metric do we want?
+    %     %\item Do we want to perform optimization for each set of training data?}
+    %     \only<2>{\item Nonparametric approach \parencite{knoll2011adapted,vellagoundar2015robust}:
+    %     \begin{itemize}
+    %     \item Construct a distribution directly from the data.
+    %     \item Model-free, data-driven approach.
+    %     %Cannot be optimized for a specific reconstruction method
+    %     \end{itemize}
+    %     \begin{figure}[!t]
+    %     \centering
+    %     \begin{minipage}[t]{.21\linewidth}
+    %     \includegraphics[width=\textwidth]{icassp/figs/dd_mask} 
+    %     \vspace{-2mm}
+    %      \end{minipage}
+    %      \begin{minipage}[t]{.275\linewidth}
+    %     \hspace{.2cm}\includegraphics[width=.65\textwidth]{icassp/figs/dd_sampling}  
+    %      \end{minipage}
+    %      \end{figure}}
+    %     \end{itemize}
+    %     \end{frame}
+        
+    %\subsection{Optimizing sampling masks}
+    %\addtocounter{framenumber}{-1}
+
+        %\begin{frame}{Optimizing sampling masks}
+        %    \centering
+        %    \includegraphics<1>[width=.75\linewidth]{figs/flow_5}%
+        %    \includegraphics<2>[width=.75\linewidth]{figs/flow_6}%
+        %    \includegraphics<3>[width=.75\linewidth]{figs/flow_7}%
+        %    \includegraphics<4>[width=.75\linewidth]{figs/flow_8}%
+        %\end{frame}
+
+        
+        \begin{frame}{Optimizing sampling masks}{Learning-based, data-driven sampling}
+
+
+            \begin{columns}
+                \column{0.65\linewidth}
+                \begin{itemize}
+                    \item Recall the observation model $\yo = \mAo\vx + \bepsilon =\Po \mF \vx + \bepsilon$
+                    \item The ideal sampling algorithm would solve the following for \textit{each} $\vx \sim p(\vx)$:
+                    $$\max_{\omega: |\omega|\leq N} \eta(\vx,\vf_\theta(\vy_{\omega}=\mathbf{P}_{\omega}\mF\vx))$$
+                    \visible<2->{\item However, this is not feasible: requires access to the ground truth at the time of evaluation.\vfill}
+                    \visible<3->{\item Solutions:
+                    \begin{enumerate}
+                        \item \textbf{Non-adaptive masks:} \textbf{i)} train a mask offline, \textbf{ii)} use the mask for acquisition
+                        \item \textbf{Adaptive masks:} \textbf{i)} train a sampling \textit{policy} $\pi_\phi$ offline, \textbf{ii)} deploy the trained policy for acquisition
+                    \end{enumerate}
+                    }
+                    
+                \end{itemize}
+                \column{0.3\linewidth}
+                \centering
+                \includegraphics[width=\linewidth]{figs/mask_flow_1}%
+            \end{columns}
+        \end{frame}
+
+        
+
+
+        \begin{frame}{Designing sampling masks}{Non-adaptive sampling}
+            \begin{columns}
+                \column{0.65\linewidth}
+
+                \vfill
+                \begin{itemize}
+                    \item Recall the observation model $\yo = \mAo\vx + \bepsilon =\Po \mF \vx + \bepsilon$
+                    \item Solve 
+                    $$\max_{\omega: |\omega| \leq N} \frac{1}{m} \sum_{i=1}^m \eta(\vx_i, \vf_\theta(\vy_{\omega,i}; \omega)) \text{~s.t.~}\vy_{\omega,i} = \mAo\vx_i + \bepsilon$$
+                    \visible<2->{\item Challenge: Combinatorial problem $\rightarrow $ $O(2^P)$ possible masks.}
+                    \visible<3->{\item Solutions:
+                    \begin{enumerate}
+                        \alt<5>{\item \hl{Approximate combinatorial solution} \parencite{gozcu2018learning,zibetti2020fast}}{\item Approximate combinatorial solution \parencite{gozcu2018learning,zibetti2020fast}}%\textit{sequential problem}
+                        \visible<4->{\item Continuous relaxation \parencite{bahadir2019learning,aggarwal2020j,weiss2020joint,huijben2020learning,sherry2019learning}} %: \textit{fixed} sampling rate
+                        % Could mention that sequential has some flexibility in the design, and aims at acquiring the most important components first. It can be stopped at any time.
+                    \end{enumerate}}
+                \end{itemize}
+                \column{0.3\linewidth}
+                \centering
+                \includegraphics[width=\linewidth]{figs/mask_flow_2}%
+            \end{columns}
+        \end{frame}
+
+        \begin{frame}{Designing sampling masks}{Adaptive sampling}
+            \begin{columns}
+                \column{0.65\linewidth}
+
+                \vfill
+                \begin{itemize}
+                    \item Recall the observation model $\yo = \mAo\vx + \bepsilon =\Po \mF \vx + \bepsilon$
+                    \item Two-step procedure:
+                    \begin{enumerate}
+                        \visible<2->{\item \textit{Training:} For $t=1,\ldots,T$
+                       $$
+                        \max_{\phi} \frac{1}{m} \sum_{i=1}^m \eta(\vx_i, \vf_\theta(\vy_{\omega_T,i})), \text{~where~}
+                        \begin{cases}
+                            \omega_t = \omega_{t-1}\cup v_t \\
+                            v_t\sim \pi_\phi(\vf_\theta(\vy_{\omega_{t-1}}))\\
+                            |\omega_t| \leq N
+                        \end{cases}
+                        $$}
+                        \visible<3->{\item \textit{Inference:} $v_{t+1} \in \argmax_{v \in [P]} [\pi_\phi(\vf_\theta(\vy_{\omega_t, \text{test}}))]_v$}
+                    \end{enumerate}
+                    \visible<4->{\item Challenge: The sampling operation $v_t \sim \pi_\phi((\vf_\theta(\vy_{\omega_{t-1}}))$ prevents a direct computation of the gradients.}
+                    \visible<5->{\item Solutions:
+                    \begin{enumerate}
+                        \alt<6>{\item \hl{Deep reinforcement learning} \parencite{bakker2020experimental,pineda2020active, jin2019self}}{\item Deep reinforcement learning \parencite{bakker2020experimental,pineda2020active, jin2019self}}
+                        \item Continuous relaxation \parencite{van2021active,yin2021end}
+                    \end{enumerate} }
+                \end{itemize}
+                \column{0.3\linewidth}
+                \centering
+                %\includegraphics<1-2>[width=\linewidth]{figs/mask_flow_3}%
+                \includegraphics[width=\linewidth]{figs/mask_flow_4}%
+            \end{columns}
+        \end{frame}
+
+        \begin{frame}{Questions in this thesis}
+            \begin{itemize}
+                \visible<2->{\item \textbf{Methodological questions.}
+                    \begin{itemize}
+                        \item How to develop \textit{better} mask optimization algorithms?\\
+                        %{\footnotesize Reconstruction SotA evolves quickly $\rightarrow$ Develop an algorithm that does \textit{not} depend on a specific reconstruction method.}
+                        \visible<3->{\item How to develop \textit{scalable} mask optimization algorithms?\\}
+                        %{\footnotesize Clinical setting involve high resolution, multi-coil images $\rightarrow$ Mask optimization methods must scale up to such settings.}}
+                    \end{itemize}}
+                \visible<4->{\vfill\item \textbf{Understanding questions.}
+                    \begin{itemize}
+                        \item What kind of components enable mask design algorithms to perform well in practice?\\
+                        %{\footnotesize\textit{e.g.} Should mask design algorithms adapt to each patient? How far ahead should they plan?} %How should they be trained?
+                        %\visible<5>{\item What are the components that enable to \textit{efficiently} reach SotA?}
+                    \end{itemize}}
+            \end{itemize}
+        \end{frame}
+
+
+        \begin{frame}{Roadmap}
+            Two axes of contribution: {\color{red} methodology} and  {\color{blue} understanding}.
+            
+            \begin{figure}
+                \centering
+                \includegraphics<1>[width=.7\linewidth]{figs/intro_contrib_1}%
+                \includegraphics<2>[width=.7\linewidth]{figs/intro_contrib_2}%
+                \includegraphics<3>[width=.7\linewidth]{figs/intro_contrib_3}%
+                \includegraphics<4>[width=.7\linewidth]{figs/intro_contrib_4}%
+                \includegraphics<5>[width=.7\linewidth]{figs/intro_contrib_5}%
+                \includegraphics<6>[width=.7\linewidth]{figs/intro_contrib_6}%
+            \end{figure}
+          \end{frame}
+          
+
+     %\textbf{Adaptive sampling masks}
+     %Two-step procedure: first train a \textit{policy} model $\pi_\phi$, and subsequently evaluate it on testing data. 
+     
+     
+     %Here, $T$ describes the number of acquisition rounds that the policy does.
+     
+     %\textbf{Remark.}\textit{two} fundamental differences to be noted. First, the optimization here is on the \textit{parameters} $\phi$ of the policy model, rather than on the mask itself. Secondly, the problem is inherently sequential, as the mask is gradually built from atoms $v_t$, $t=1,\ldots,T$ that are all given from the policy $\pi_\phi$ at different stages in the acquisition. 
+
+     %where $[\cdot]_v$ denotes the $v$-th entry of the vector, $\omega_{t}=\omega_{t-1}\cup v_t$, for $t=1,\ldots,T$. 
+       

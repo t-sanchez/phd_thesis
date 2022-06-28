@@ -1,0 +1,688 @@
+%!TEX root = thesis_presentation.tex
+
+\begin{frame}{Magnetic Resonance Imaging}
+  \begin{columns}[totalwidth=\linewidth]
+      \column{0.55\linewidth}
+      \begin{itemize}
+          \item Measure the \textit{density} of hydrogen nuclei (proton).
+          \item The \textit{Nuclear Magnetic Resonance (NMR)} phenomenon:
+          \begin{enumerate}
+              \item Proton spins align with magnetic field $\mathbf{B}_0$
+              \item They are \textit{excited} by a radio-frequency pulse
+              \item They \textit{relax} and emit a signal that is recorded
+          \end{enumerate}
+          \vfill\item If we only have $\mathbf{B}_0$, we receive \textit{global} information
+          \vfill\item To obtain \textit{local} information
+          \begin{enumerate}
+              \item Use spatially varying magnetic field.
+              \item Repeat the acquisition with different magnetic field configurations
+          \end{enumerate} 
+          \vfill\item \textsc{Result:} \textit{Fourier space} (k-space) representation of the signal
+         % \vfill\item<7-> Inverse (fast) Fourier transform to get the image
+      \end{itemize}
+      \column{0.4\linewidth}
+          \centering
+      %\includegraphics<1-2>[width=\linewidth]{figs/mri_1}%
+      %\includegraphics<3>[width=\linewidth]{figs/mri_2}%
+      %\includegraphics<4-5>[width=\linewidth]{figs/mri_3}%
+      %\includegraphics<6>[width=\linewidth]{figs/mri_3b}%
+      %\includegraphics<7>[width=\linewidth]{figs/mri_4}%
+      \includegraphics[width=\linewidth]{figs/mri_5}%
+      
+  \end{columns}
+  
+\end{frame}
+%\subsection{Subsection 1.1}
+% \begin{frame}{Cartesian MRI}
+% \begin{columns}[totalwidth=\linewidth]
+%   \column{0.55\linewidth}
+%   \begin{itemize}
+%       \item Acquisition is typically \textit{structured}.
+%       \visible<2->{\vfill\item Great flexibility in trajectory design:
+%       \begin{itemize}
+%           \item \textit{Cartesian sampling} = grid-like covering of k-space.
+%           \item Alternatives: radial \parencite{lauterbur1973image}, space-filling \parencite{lazarus2019sparkling}, etc.
+%       \end{itemize}}
+%       \visible<3->{\vfill\item Cartesian: Can use IFFT for efficient reconstruction.}
+%       %\item Allows easy reconstruction by using the \textit{fast Fourier transform} algorithm.
+%       %\item<3> Alternatives exist: radial \parencite{lauterbur1973image}, spiral \parencite{meyer1992fast}, space-filling trajectories \parencite{lazarus2019sparkling}.
+%   \end{itemize}
+%   \column{0.4\linewidth}
+%   \includegraphics[width=\linewidth]{figs/fourier_representation}%
+%   \vspace{1.5cm}
+%   \visible<2->{\includegraphics[width=\linewidth]{figs/sequences}}%
+%   %\includegraphics<4>[width=\linewidth]{figs/sequences_undersampled}%
+% \end{columns}
+% \end{frame}
+
+
+% \begin{frame}{Cartesian MRI - Issues}
+%   \begin{columns}[totalwidth=\linewidth]
+%       \column{0.55\linewidth}
+%       MRI is \textbf{slow}.
+%       \begin{itemize}
+%           \vfill\item Many repetitions to cover k-space
+%           \vfill\item A scan can take from $20$ to $60$ minutes \parencite{edelstein2010mri}
+%           %\vfill\item<3-> Accelerating MRI has been a major concern and led to many innovations\\
+%       %{\footnotesize E.g. Rapid imaging sequences \parencite{frahm1986rapid,hennig1986rare}, multi-coil imaging \parencite{sodickson1997simultaneous,pruessmann1999sense,griswold2002generalized}}
+%           \vfill\item<2-> We can go faster by \textit{undersampling}
+%           \vfill\item<4-> But this introduces artifacts
+%           \vfill\item<6-> Reconstruction methods can remove them
+%       \end{itemize}
+%       \column{0.4\linewidth}
+%       \includegraphics<1-3>[width=\linewidth]{figs/fourier_representation}%
+%       \includegraphics<4->[width=\linewidth]{figs/fourier_representation_2}%
+%       \vspace{1.5cm}
+%       \includegraphics<1-2>[width=\linewidth]{figs/sequences}%
+%       \includegraphics<3->[width=\linewidth]{figs/sequences_undersampled}%
+%   \end{columns}
+%   \end{frame}
+
+\begin{frame}[t]{Sampling}{From model-based, model-driven to learning-based, data-driven methods}
+  \visible<1->{$\mathbf{1.} \underbrace{\text{Hand tuned VDS}}_{\text{Model-based}}\text{~~~~}\mathbf{2.}\underbrace{\text{Sample according to coherence}}_{\text{Model-driven}}$\hfill \parencite{lustig2007sparse}}
+  
+  \vfill 
+
+  \visible<2->{$\mathbf{1.} \underbrace{\text{Construct the pdf from training data}}_{\text{\textit{Learning}-based}}\text{~~~~}\mathbf{2.}\underbrace{\text{Sample according to coherence}}_{\text{Model-driven}}$\hfill \parencite{knoll2011adapted}}
+
+  \vfill
+  \visible<4->{$\mathbf{1.} \underbrace{\text{Untuned VDS}}_{\text{Model-based}}\text{~~~~}\mathbf{2.}\underbrace{\text{ \textit{Optimize} the parameters on training data}}_{\text{\textit{Data}-driven}}$\hfill \parencite{knoll2011adapted,chauffert2013variable}}
+%\visible<5->{\item Moving towards \textit{learning-based}, \textit{data-driven} sampling methods. \hfill \parencite{ravishankar2011adaptive,baldassarre2016learning}}
+
+
+
+%$\circ$ \textbf{Parametric distribution:} Family of distribution which rely on some parameters. \\[.3cm]
+
+%\begin{itemize}
+%\item Typically: zero-mean Gaussian distributions where the standard deviation can change.
+%\end{itemize}
+
+% $\circ$ Allows to obtain masks which sample more heavily the center of the k-space.
+
+\vfill
+\begin{figure}[!t]
+\centering
+\begin{minipage}[c]{.18\linewidth}
+\includegraphics<2,4->[width=\textwidth]{eusipco/FIGURES_REV/mask_coherence.pdf}%
+\includegraphics<3>[width=\textwidth]{icassp/figs/dd_mask} 
+\end{minipage}
+\hspace{0.1cm}
+\begin{minipage}[c]{.18\linewidth}
+\includegraphics<2,4->[width=.9\textwidth]{figs/gaussian_pdf}  
+\includegraphics<3>[width=.9\textwidth]{figs/dd_sampling}
+\end{minipage}
+\end{figure}
+\end{frame}
+
+\section{LBCS appendix}
+
+\subsection{Theoretical foundation}
+\begin{frame}{Combinatorial optimization}
+\begin{block}{Variable-density sampling optimization}
+$$\max_{f\in \Delta^P}  \eta_m (f), \text{~~~~} \eta_m (f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right].$$
+\end{block}
+
+\begin{block}{Combinatorial sampling optimization \parencite{gozcu2018learning}}
+$$ \max_{|\omega|=N}  \frac{1}{m}\sum_{i=1}^m \eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right) $$
+\end{block}
+\pause
+\begin{itemize}
+\item Still a hard problem
+\item Approximate solution through greedy optimization (optimal for submodular functions \parencite{minoux1978accelerated})
+\end{itemize}
+
+\end{frame}
+\begin{frame}{Theoretical foundation}
+\begin{itemize}
+\item Can we relate both problems? \visible<2>{\quad \textbf{Yes!}}\\
+
+\end{itemize}
+\visible<2>{
+\begin{block}{Proposition \parencite{sanchez2019scalable}}
+$$ \max_{f\in \Delta^P}  \frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right] =  \max_{|\omega|=N}  \frac{1}{m}\sum_{i=1}^m \eta(\vy_{i}, \omega)$$
+\end{block}}
+\end{frame}
+
+
+
+\begin{frame}{Sampling mask design}
+
+    \begin{itemize}
+    \item $f \in \Delta^P$, where $\Delta^P := \{f \in [0,1]^p : \sum_{i=1}^p f_i =1\}$ 
+    \item mask is then be constructed by drawing without replacement from $f$, until the cardinality constraint $|\omega|=N$
+    \end{itemize}
+    
+    Solve
+    \begin{equation}
+    \max_{f\in S_{p}} \eta(f), % \mathbb{E}_{\omega_f,X}\left[\eta\left(\vx, \*{\hat{x}}\left(\omega,x\right)\right)\right] 
+    \qquad \eta(f) :=  \mathbb{E}_{\substack{\omega(f,n)\\ \vx \sim \mathcal{P}_{\vx}}}\left[\eta\left(\vx, \*{\hat{x}}\left(\omega,\vx\right)\right)\right],
+    \label{eq:main}
+    \end{equation}
+    \end{frame}
+    
+    \begin{frame}
+    ERM reformulation
+    \begin{equation}
+    \label{eq:emp}
+    \max_{f\in \Delta^P}  \eta_m(f), \text{~~~~} \eta_m(f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,n)}\left[\eta(\omega,\vx_i)\right].
+     \end{equation} 
+    
+    
+    \begin{proposition}
+    There exists a maximizer of Program \ref{eq:emp} that is supported on an index set of size at most $N$.\label{prop:1}
+    \end{proposition}
+    \end{frame}
+    
+    \begin{frame}
+    \begin{proof}
+    Let the distribution $\widehat{\vf}_N$ be a maximizer of Program~\ref{eq:emp}. We are interested in finding the support of $\widehat{\vf}_N$. Because $\sum_{|\omega|=N}\Pr[\omega]=1$, note that 
+    
+    \begin{align}
+    \max_{f\in \Delta^P}  \eta_m(f) & := \max_{f\in \Delta^P}  \sum_{|\omega|=N}  \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\omega) \cdot \Pr[\omega|f]\nonumber\\ 
+    & \le \max_{f\in \Delta^P} \max_{|\omega|=N} \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i}; \omega) \nonumber\\
+    & = \max_{|\omega|=N}   \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\omega). 
+    \end{align}
+    Let $\widehat{\omega}_N$ be an index set of size $N$ that maximizes the last line above. 
+    Above holds with equality when $\Pr[\widehat{\omega}_N]=1$ and $\Pr[\omega]=0$ for $\omega\ne \widehat{\omega}_N$ for $f=\widehat{\vf}_N$. This in turn happens when $\widehat{\vf}_N$ is  supported on $\widehat{\omega}$. That is, there exists a maximizer of Program \ref{eq:emp} that is supported on an index set of size $N$. 
+    \end{proof}\vspace{-.2cm}
+    \end{frame}
+    
+    \begin{frame}
+    
+    \begin{proposition}
+    \vspace{-.3cm}
+    \begin{equation}
+    \text{Program \ref{eq:emp}} \equiv  \max_{|\omega|=N}  \frac{1}{m}\sum_{i=1}^m \eta(\vx_{i}; \omega) \label{eq:greedy}
+    \end{equation} \label{prop:2}
+    \vspace{-.3cm}
+    \end{proposition}
+    \begin{proof}
+    Lemma \ref{prop:1} : 
+    \begin{equation}
+    \text{Program \ref{eq:emp}} \equiv 
+    \max_{f\in \Delta^P, |\text{supp}(f)| = N}\eta_m(f)\label{eq:main emp equiv 1}
+    \end{equation} 
+    Let $S_\Gamma$ be the simplex on a support $\Gamma\subset [p]$. 
+    \begin{align}
+    \text{Program \ref{eq:main emp equiv 1}} &  \equiv
+    \max_{|\Gamma|=N} \max_{f\in S_\Gamma}\eta_m(f) \nonumber\\
+     = \max_{|\Gamma|=N} &\max_{f \in S_\Gamma} \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\Gamma) \cdot \Pr[\Gamma|f] \nonumber\\
+     = \max_{|\Gamma|=N}& \max_{f \in S_\Gamma} \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\Gamma) \nonumber\\
+     =  \max_{|\Gamma|=N} & \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\Gamma).
+    \label{eq:main emp equiv 2}
+    \end{align}\end{proof}
+    \end{frame}
+
+\subsection{Stochastic LBCS}
+
+\begin{frame}{LBCS algorithm}
+  \begin{columns}     
+  \column{0.58\linewidth}
+  \vspace{-.5cm}
+  \begin{algorithm}[H]
+      \small
+      \caption{LBCS \parencite{gozcu2018learning}}
+      \textbf{Input}: raining data $\{\vx\}_{i=1}^m$, reconstructor $\vf_\theta$, sampling subset $\mathcal{S}$, max. cardinality $B$\\
+      \textbf{Output}: Sampling pattern $\omega$ 
+      \begin{algorithmic}[1]
+          \State $\omega \leftarrow \emptyset$
+          \While{$|\omega| \leq N$}
+          
+              \For{$S \in \mathcal{S}$ such that  $|\omega \cup S| \le N$}
+                  \State $\omega' = \omega \cup S$
+                  \State For each $j$, set $\hat{\vx}_j \leftarrow \vf_\theta( \mP_{\omega'}\mF\vx_j,\omega')$ 
+                  \State $\eta(\omega') \leftarrow \frac{1}{m}\sum_{j=1}^m \eta(\vx_j,\hat{\vx}_j)$
+              \EndFor
+              \State $\displaystyle  \omega \leftarrow \omega \cup S^*, \mbox{ ~~~}
+              S^* = \argmax_{S:|\omega \cup S| \leq N} \eta(\omega \cup S)$
+          \EndWhile
+          \State {\bf return} $\omega$
+      \end{algorithmic}
+  \end{algorithm}
+  \column{0.4\linewidth}
+  \centering
+  \includegraphics[width=\linewidth]{figs/masks_6}%
+\end{columns}
+\end{frame}
+
+\begin{frame}{Stochastic LBCS}
+  \begin{columns}
+  \column{0.58\linewidth}
+      \vspace{-.5cm}
+      \begin{algorithm}[H]
+          \small
+          \caption{Stochastic LBCS (sLBCS)}\label{alg:dslbcs}
+          \textbf{Input}: Training data $\{\vx\}_{i=1}^m$, reconstructor $\vf_\theta$, sampling subset $\mathcal{S}$, max. cardinality $N$, samp. batch size $k$, train. batch size $l$ \\
+          \textbf{Output}: Sampling pattern $\omega$
+          \begin{algorithmic}[1]
+          \State  $\omega \leftarrow \emptyset$  
+          \State \textcolor{gray}{\textbf{(dMRI)}  Initialize $t=1$},
+          \While{$|\omega| \leq N$}
+                  \State \textcolor{blue}{Pick $ \left \{\begin{tabular}{l}
+                      $\mathcal{S}_{iter}\subseteq \mathcal{S}$ \textbf{(MRI)} \\
+                      $\mathcal{S}_{iter}\subseteq \mathcal{S}_t$ \textbf{(dMRI)}\end{tabular}\right.$  at random, with $|\mathcal{S}_{iter}| = k$}
+  
+  
+                  \State \textcolor{red}{Pick $\mathcal{L} \subseteq \{1,\ldots,m\} $, with $|\mathcal{L}| = l$}
+                  \For{$\color{blue} S \in \mathcal{S}_{iter} \text{ such that } |\omega \cup S| \leq n$} 
+              
+                  \State  $\omega' = \omega \cup S$ 
+                  \State \textcolor{red}{For each $\ell \in \mathcal{L}$} set ${\hat{\vx}}_\ell\leftarrow \vf_\theta(\mP_{\omega'}\mF\vx_\ell,\omega')$
+                  \State {$\eta(\omega') \leftarrow {\color{red}\frac{1}{|\mathcal{L}|} \sum_{\ell\in\mathcal{L}}} \eta(\vx_\ell, {\hat{\vx}}_\ell)$}
+              \EndFor
+              \State $\displaystyle\omega \leftarrow \omega \cup S^*,  \text{ where }$   $\displaystyle S^* = \argmax_{S:|\omega \cup S| \leq N, {\color{blue}S \in \mathcal{S}_{iter}}} \eta(\omega\cup S)$
+              \State   \textcolor{gray}{\textbf{ (dMRI) }   $t= (t \bmod T)+1$}
+              \EndWhile
+          \State {\bf return} $\omega$ 
+          \end{algorithmic}
+      \end{algorithm}
+      \column{0.4\linewidth}
+      \centering
+      \includegraphics[width=\linewidth]{figs/masks_6b}%
+  \end{columns}
+\end{frame}
+
+\begin{frame}[t]{From LBCS to stochastic LBCS}{Visual comparison}
+  \begin{minipage}[h]{\linewidth}
+      \centering
+      \vspace{-.3cm}
+      %-> Works with adobe player
+      \rotatebox{90}{\hspace{1.1cm}LBCS}\hspace{0.2cm}\embedvideo*{\includegraphics[width=.65\linewidth,height=.21\linewidth,page=1]{example-movie}}{icassp/figs/gv1-slow2.mp4}
+      % Does not autoplay...
+      %\movie[width=0.65\linewidth,height=.21\linewidth,autostart]{}{icassp/figs/gv1-slow2.mp4}
+      %\rotatebox{90}{\hspace{1.1cm}LBCS}\hspace{0.2cm}\href{run:icassp/figs/gv1-slow2.mp4?autostart}
+      %{\includegraphics[width=.65\linewidth,height=.21\linewidth]{example-movie}}
+  \end{minipage}
+  \vfill
+  \begin{minipage}[h]{\linewidth}
+      \centering
+      
+      %\rotatebox{90}{\hspace{1cm}sLBCS}\hspace{0.2cm}\href{run:icassp/figs/sgv2-slow2.mp4?autostart}
+      %{\includegraphics[width=.65\linewidth,height=.21\linewidth]{example-movie}}
+      
+      %\movie[autostart,width=0.65\linewidth,height=.21\linewidth]{}{icassp/figs/sgv2-slow2.mp4}
+      
+      \rotatebox{90}{\hspace{1cm}sLBCS}\hspace{0.2cm}\embedvideo*{\includegraphics[width=.65\linewidth,height=.21\linewidth,page=1]{example-movie}}{icassp/figs/sgv2-slow2.mp4}
+  \end{minipage}
+  \end{frame}
+
+
+  \begin{frame}[t]{From LBCS to stochastic LBCS}{Computational comparison}
+    \begin{columns}[totalwidth=\textwidth]
+      \column{0.3\linewidth}
+      \begin{itemize}
+        \item \textbf{G-v1} = LBCS, \textbf{G-v2} = sLBCS (batch of training data $\mathcal{L}$), \textbf{SG-v1} = sLBCS (batch of candidate locations $\mathcal{S}_{iter}$), \textbf{SG-v2} = sLBCS (batch of candidate locations $\mathcal{S}_{iter}$ \textit{and} training data $\mathcal{L}$).
+        \item Scaling up with no loss of performance: redundancy of the computations is reduced.
+        %\item Scalability to large datasets such as fastMRI \parencite{zbontarFastMRIOpenDataset2019}.
+        \end{itemize}
+      \column{0.65\linewidth}
+      \centering
+      \includegraphics[width=\linewidth]{icassp/figs/mask_batch}
+    \end{columns}
+    %\vspace{5mm}
+    
+    \end{frame}
+
+\begin{frame}{Results highlights: Single-coil dMRI}
+    
+  \begin{table} 
+  \small
+  \begin{tabular}{lcccccc}
+  \toprule
+   Sampling rate & \multicolumn{2}{c}{$10\%$ sampling}  & \multicolumn{2}{c}{$20\%$ sampling} &\multicolumn{2}{c}{$30\%$ sampling}  \\ 
+   \cmidrule(r){2-3}\cmidrule(r){4-5}\cmidrule(r){6-7}
+  %\midrule
+  \backslashbox{\hspace{-1mm}Mask\hspace{-5mm}}{\hspace{-2mm}Decoder \hspace{-2mm} } &KTF&ALOHA &\makebox[2em]{{KTF}}&\makebox[2em]{ALOHA} &\makebox[2em]{{KTF}}&\makebox[2em]{ALOHA} \\ 
+  \midrule  % to be updated
+  Coherence&30.91&31.35&35.52&36.56&37.64&39.11\\ 
+  LB-VD&32.87&33.66&36.19&37.52&38.46&39.8\\
+  \midrule
+  \midrule
+  SG-KTF&\textit{\textbf{33.61}}&34.51&\textit{\textbf{36.77}}&\textit{37.96}&\textit{\textbf{39.12}}&40.24\\
+  SG-ALOHA&31.59&\textit{\textbf{34.95}}&\textit{34.76}&\textit{\textbf{38.13}}&37.57&\textit{\textbf{40.38}}\\
+  \bottomrule
+  \end{tabular}
+  \end{table}
+   
+  \end{frame}
+  
+  
+  
+  
+  \begin{frame}{Results highlights: Single-coil dMRI}
+  \begin{columns}
+   \column{0.45\linewidth}
+   \centering
+  \includegraphics[width=\linewidth]{icassp/figs/comp_all_algos_1}
+  
+   \column{0.45\linewidth}
+    \centering
+    \hspace{-.4cm}\includegraphics[width=\linewidth]{icassp/figs/comp_all_algos_2}
+  
+  \end{columns}
+  % WALK THROUGH THE
+  \end{frame}
+
+  \begin{frame}{Results highlights: Multicoil dMRI}
+    \centering
+    \includegraphics[width=0.75\linewidth]{figs/plot_LBCS}
+    % \begin{columns}
+
+    %  \column{0.4\linewidth}
+    %  \centering
+    % \includegraphics[width=\linewidth]{figs/multicoil_dmri_1}
+    
+    %  \column{0.4\linewidth}
+    %   \centering
+    %   \includegraphics[width=\linewidth]{figs/multicoil_dmri_2}
+    
+    % \end{columns}
+    % % WALK THROUGH THE
+    \end{frame}
+
+  \begin{frame}{Results highlights: Large-scale static dataset}
+    \begin{itemize}
+        \item Resolution $320\times 320$, $12\,649$ training data.
+        \item SG-v2: $k=80$, $l=20$ ($2\,500$ fewer computation than G-v1).
+        \item LBCS: $80$ slices + grid search
+    \end{itemize}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.48\linewidth]{figs/n_recon_slbcs_large_scale}%
+        \hfill
+        \includegraphics[width=0.48\linewidth]{scalable_mri/main-figure3}
+    \end{figure}
+    
+\end{frame}
+
+\subsection{Lazy LBCS}
+\begin{frame}{Lazy LBCS}
+
+ \begin{block}{Topic of this paper}
+ Given training data and a black box reconstruction method $g$, how can we design a mask $\omega$ to optimize the reconstruction quality?\\[2mm]
+Specifically aimed for 2D and 3D \textbf{Multi-coil} images.
+ \end{block}
+
+ \begin{block}{Challenge}
+ Combinatorial problem $\Rightarrow$ too many candidate masks\\[.3cm]
+ $\mathbf{e.g.}$  For accelerating $4$ times the acquisition of a $256\times 256$ image, there are ${N \choose N/4} > 10^{61}$ possible Cartesian masks!
+
+ \end{block}
+\end{frame}
+
+\begin{frame}{Multi-coil MRI (parallel)}
+
+\begin{columns}[T]
+\column{0.6\linewidth}
+
+\begin{block}{Acquisition model}
+Measurement acquired on different \textit{coils}:
+$$\vy_j = \mP_\omega \mF\mS_j \vx + \vw_j$$
+where $\mS_j$ denotes the spatial sensitivity of a coil.
+\end{block}
+
+\begin{itemize}
+\item Classical approaches:
+\begin{itemize}
+\item  GRAPPA \cite{griswold2002generalized}
+\item SENSE \cite{pruessmann1999sense}  \\[2mm]
+\end{itemize}
+\item CS-based approaches:
+\begin{itemize}
+\item \textit{CS-SENSE} \cite{liang2009accelerating}: \\
+Sensitivities estimated using  ESPIRiT \cite{uecker2014espirit}. \\[2mm]
+\item\textit{Low-rank Hankel matrix approach (ALOHA)} \cite{jin2016general}:\\
+Casts the problem as a low-rank matrix completion task\\[2mm]
+\end{itemize}
+\end{itemize}
+	
+
+%Exploits the sparsity of image in wavelet basis, 
+\column{0.4\linewidth}
+\begin{figure}
+  \centerline{\includegraphics[width=.9\linewidth]{eusipco/figures/multi_coil_cropped.png}}
+  \end{figure}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Parallel MRI with learning-based sampling}
+
+\begin{columns}[T]
+\column{0.4\linewidth}
+\begin{figure}[ht]
+  \centering
+  \centerline{\includegraphics[width=5cm]{eusipco/figures/figure_1_new.png}}
+  \begin{itemize}
+  \small
+  \item \textbf{LP}: low-pass
+  \item \textbf{VD}: variable density  $\equiv$ coherence
+  \item \textbf{LB-VD}: learning-based variable density
+  \item \textbf{LB}: learning-based
+  \end{itemize}
+\end{figure} % \com{TO BE adjusted contrast MIP}
+
+\column{0.6\linewidth}
+\begin{table} 
+\small
+\begin{tabular}{lcccc}
+\toprule
+\multirow{2}{*}{\backslashbox{\hspace{-1mm}Mask\hspace{-5mm}}{\hspace{-2mm}Decoder \hspace{-2mm} }} & \multicolumn{2}{c}{\textbf{Single-coil}}  & \multicolumn{2}{c}{\textbf{Multi-coil}}  \\ 
+\cmidrule(r){2-3}\cmidrule(r){4-5}
+&TV&BP &\makebox[2em]{{SENSE}}&\makebox[2em]{ALOHA} \\ 
+\midrule  % to be updated
+
+Low pass&30.6&30.8&30.2&29.9\\
+Coherence&29.0&29.6&33.1&32.6\\ 
+\midrule
+TV LB (SC)&\textit{\textbf{32.8}}&\textit{34.2}&34.6&35.1\\
+BP LB (SC)&\textit{32.9}&\textit{\textbf{34.3}}&35.0&35.1\\
+\midrule
+SENSE LB (MC)&31.5&31.8&\textit{\textbf{36.9}}&\textit{36.6}\\
+ALOHA LB (MC)&29.0&27.0&\textit{30.7}&\textit{\textbf{37.2}}\\
+\bottomrule
+%\rev{Low pass} &  0.852 & 30.97 &0.710&30.90\\\hline
+%\rev{Coherence based} &  0.888 & 33.26 &0.747 &32.63\\\hline \hline
+%
+%\rev{TV LB-2} & ... &  ... & ... & ....\\\hline
+%\rev{BP LB-2} & 0.849 &  28.450  &  0.9320 & \textbf{36.98} \\\hline
+%\rev{SENSE LB-2} & 0.849 &  28.450  &  0.9320 & \textbf{36.98} \\\hline
+%\rev{ALOHA LB-2} & 0.849 &  28.450  &  0.9320 & \textbf{36.98} \\\hline
+
+%\rev{Low Pass} &  & &0.849&30.04\\\hline
+\end{tabular}
+\caption{\label{tab:cross_recon} 25\% subsampling rate results  }
+
+%\caption{\label{tab:cross_recon} Cross performance of optimal single and multi-coil masks at 20\% subsampling rate. }
+\end{table}
+
+\begin{itemize}
+\item \textbf{SC}: Single-coil
+\item \textbf{MC}: Multi-coil
+\end{itemize}
+\end{columns}
+	
+\vspace{3mm}
+
+\begin{minipage}[t]{.45\linewidth}
+
+\end{minipage}\hfill
+\begin{minipage}[t]{.45\linewidth}
+
+\end{minipage}
+
+\end{frame}
+
+
+
+
+\begin{frame}{Multi-coil vs. single coil masks}
+
+\begin{itemize}
+\item  Optimal multi-coil masks are more wide-spread \\[2mm]
+\item  Not using the proper mask will result in performance loss 
+\end{itemize}
+
+
+\begin{figure}[!h] % [!b]
+\centering
+\resizebox*{0.7\linewidth}{!}{
+\begin{tabular}{cccccc}
+& \hspace{-5mm} \textbf{Mask} & \hspace{-4mm} \textbf{ALOHA } & & \hspace{-6mm} \textbf{Mask} & \hspace{-4mm} \textbf{ALOHA }     \\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\hspace{-7mm} \rotatebox{90}{\hspace{3mm} \textbf{Coher. based}} &                         
+\hspace{-5mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/coherence_20.pdf} &
+\hspace{-4mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/MULTI_index_95_rate_20_algo_and_mask_LRH_coherence.pdf}  &
+
+\hspace{-5mm}\rotatebox{90}{\hspace{-0.5mm} \textbf{SENSE LB-VD (MC)}} &                         
+\hspace{-5mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/ALOHA_LB1_20.pdf} &
+\hspace{-4mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/MULTI_index_95_rate_20_algo_and_mask_LRH_SENSE_LB2.pdf}  \\ [-1mm]
+
+% 
+
+\hspace{-5mm}\rotatebox{90}{\hspace{3.5mm} \textbf{BP LB (SC)}} &                         
+\hspace{-5mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/BP_shearlet_20.pdf} &
+\hspace{-4mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/MULTI_index_95_rate_20_algo_and_mask_LRH_BP_shearlet.pdf}  &
+
+\hspace{-5mm}\rotatebox{90}{\hspace{1.5mm} \textbf{ALOHA LB (MC)}} &                         
+\hspace{-5mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/ALOHA_LB2_20.PDF} &
+\hspace{-4mm}\includegraphics[width=.2286\textwidth]{eusipco/figures_MULTI_ICASSP/MULTI_index_95_rate_20_algo_and_mask_LRH_ALOHA_LB2.pdf}  \\ [-1mm]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{tabular}}
+%\caption{Optimized masks  and example reconstructions under ALOHA decoding at 20\% sampling rate. \label{fig:recons}} % \com{TO BE adjusted contrast MIP}
+\end{figure}
+
+\end{frame}
+
+\begin{frame}{3D Multi-coil MRI: Subsampling in 2 directions}
+
+\begin{columns}
+\column{0.6\textwidth}
+\begin{itemize}
+\item Greedy with $\Theta(mP^2$) complexity 
+\item Even the parallelized greedy will take \textbf{a year} to run on eight training images of sizes $256^3$ with a $200$ nodes cluster
+\end{itemize}
+\column{0.6\textwidth}
+\begin{figure} % [!b]
+\centering
+\includegraphics[width=.4\textwidth]{eusipco/figures_lazy/LBL_mask.pdf}  
+\end{figure}
+\end{columns}
+
+\pause
+
+\begin{block}{Proposed solution}
+Use a \textbf{lazy greedy} algorithm \cite{minoux1978accelerated} with complexity  $\mathcal{O}(mP$).
+\begin{enumerate}
+\item Maintain a list $\rho$ containing the estimated marginal benefit of each point $S$.
+\item Iterate through the ordered list and update the estimated marginal benefits. 
+\item If the updated marginal benefit for some $S$ remains above all elements of $\rho$, then add it to the mask.
+\end{enumerate}
+\end{block}
+% 	\caption{Number of lazy evaluations per the iteration of the lazy algorithm, i.e.,  Algorithm \ref{alg:3}, until $50\%$ rate.}\label{fig:lazy_eval}
+\end{frame}
+
+\begin{frame}{3D Multicoil MRI: Subsampling in 2 directions}
+
+
+\vspace{-.5cm}
+\begin{algorithm}[H]
+\caption{Lazy greedy mask optimization}
+\label{alg:3}
+\textbf{Input}: Training set $\*x_1, \ldots, \*x_m$, reconstruction algorithm $g$, sampling subsets $\mathcal{S}$, cost function $c$, maximum cost $\Gamma$, image quality metric $\eta$ \\
+\textbf{Output}: Subsampling mask $\omega$
+%\textbf{Input}: Training awr $\vx_1, \dotsc, \vx_m$, decoder $g$, sampling subsets $\mathcal{S}$, cost function $c$, maximum cost $\Gamma$ \\
+%\textbf{Output}: Sampling pattern $\omega$
+\begin{algorithmic}[1]
+\State $\omega \leftarrow \emptyset$
+\State  {\color{blue} $\rho(S) \leftarrow +\infty \text{~}\forall S \in \mathcal S \text{ s.t. } |\omega \cup S| \le \Gamma$}
+
+\While{$ |\omega| \leq  \Gamma$}
+	 \State $\displaystyle\omega' \leftarrow \omega \cup S, \text{where } S = \argmax_{S' \in \mathcal S\,:\,|\omega \cup S'| \le \Gamma} \rho(S')$	 
+        \State For each $j$, set  $\*b_{j} \leftarrow \mP_{\omega'}\mF\vx_j$, $\hat{\vx}_j \leftarrow g(\omega',\*b_j)$ 
+        \State $\eta(\omega') \leftarrow \frac{1}{m}\sum_{j=1}^m \eta(\vx_j,\hat{\vx}_j)$
+        \State $\rho(S) \leftarrow \eta(\omega') - \eta(\omega) $%\frac{ \eta(\omega') - \eta(\omega) }{ c(\omega') - c(\omega) }$
+	\If{{\color{blue} $\rho(S) \ge \rho(S') \text{~}\forall S' \in \mathcal S \text{ s.t. } |\omega \cup S'| \le \Gamma$}}
+	\State $\omega = \omega \cup S$
+	\EndIf 
+ \EndWhile
+ \State {\bf return} $\omega$
+\end{algorithmic}
+\end{algorithm}
+% 	\caption{Number of lazy evaluations per the iteration of the lazy algorithm, i.e.,  Algorithm \ref{alg:3}, until $50\%$ rate.}\label{fig:lazy_eval}
+\end{frame}
+
+
+\begin{frame}{3D Multi-coil MRI: Subsampling in 2 directions}
+
+\begin{columns}
+\column{0.5\textwidth}
+\begin{itemize}
+\item Lazy greedy results in around 2.5 days of computation time (on 8 training images
+\item Masks given by lazy greedy algorithm performs slightly better in low sampling rate region \\[2mm]
+\end{itemize}
+\column{0.5\textwidth}
+\begin{figure}%[!h]
+  \centering
+ \includegraphics[width=45mm]{eusipco/figures_MULTI_ICASSP_p//figure_3D_rates_PSNR.png} \\
+  %\caption{MRI experiment. (a) Objective function. Feasibility gap}  
+\caption{ PSNR  performances averaged over 120 test images. 8 training images are used. }
+\label{fig:figure_3D_rates}
+\vspace{-5mm}
+\end{figure}
+\end{columns}
+\end{frame}
+
+
+
+
+\frame{\frametitle{3D Multi-coil MRI: Experimental Results}
+\centering
+\resizebox*{0.8\linewidth}{!}{
+\begin{tabular}{cccccc} % \hspace{-4mm} \textbf{\rev{Fully sampled}}
+ & \hspace{-4mm} \textbf{\small CAIPIRINHA } & \hspace{-6mm} \textbf{\small Poisson disk }  & \hspace{-6mm} \textbf{\small Adaptive rand.} & \hspace{-.5mm} \textbf{\hspace{-6mm} \small Poisson disk (VD)} & \hspace{-4mm} \textbf{\hspace{-1mm} \small Lazy greedy (LB)}    \\
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\hspace{-4mm} \rotatebox{90}{\hspace{6mm} \textbf{\small {Masks}}} &                         
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/CAIRIPINHA_mask.pdf}  & \hspace{-2mm}
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/poisson_disk_uniform_mask.pdf}  & \hspace{-0.4mm}
+\hspace{-5mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/AR_mask.pdf} & \hspace{-1.5 mm} 
+%\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_MULTI_ICASSP/MULTI_index_95_rate_20_algo_and_mask_BART-SENSE_coherence.pdf}  & 
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/poisson_disk_mask.pdf}  &  \hspace{-2mm}
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/LBL_mask.pdf}  \\ [-1 mm]
+
+
+\hspace{-4mm} \rotatebox{90}{\hspace{0mm} \textbf{\small Reconstructions}} &                         
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/CAIRIPINHA_recon.pdf}  &  \hspace{-2mm}
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/poisson_disk_uniform_recon.pdf}  &  \hspace{-0.4mm}
+\hspace{-5mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/AR_recon} & \hspace{-1.5 mm}
+%\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_MULTI_ICASSP/MULTI_index_95_rate_20_algo_and_mask_BART-SENSE_coherence.pdf}  & 
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/poisson_disk_recon.pdf}  &  \hspace{-2mm}
+\hspace{-4mm}\includegraphics[width=.20\textwidth]{eusipco/figures_lazy/LBL_recon}  \\ [-1mm]
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{tabular}}
+{Optimized masks and example reconstructions of knee images under SENSE decoding at 6-fold acceleration. 
+%  \vspace{-1.5cm}
+\label{fig:recons_3D}} % \com{TO BE adjusted contrast MIP}
+\vspace{-0mm}
+
+\footnotetext{CAIPIRINHA \parencite{breuer2006controlled}, Poisson disk \parencite{bridson2007fast}, Adaptive random \parencite{knoll2011adapted}, Poisson disk (VD) \parencite{vasanawala2011practical}}
+
+
+}
+    
+    \begin{frame}{Summary}
+    \begin{block}{Our data-driven framework}
+    \begin{itemize}
+    \item Adapts well to different settings (single/multi-coil, static/dynamic\footnote{$^{1}$Learning-based approach for dynamic MRI \cite{sanchez2019scalable}}, 2D/3D), reconstruction algorithms, anatomies and sampling rates. 
+    \item Is parameter-free and yields deterministic masks
+    \item Shows the importance of optimizing the sampling mask for the reconstruction algorithm at hand.
+    \item Provides high quality image reconstructions.
+    %\item Contrasts with the approaches focusing on adaptive sampling \cite{knoll2011adapted,boyer2016generation,jin2019self,zhang2019reducing}
+    \end{itemize}
+    \end{block}
+\end{frame}
+
+

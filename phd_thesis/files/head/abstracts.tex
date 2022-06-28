@@ -1,0 +1,86 @@
+%\begingroup
+%\let\cleardoublepage\clearpage
+
+
+% English abstract
+\cleardoublepage
+\chapter*{Abstract}
+\markboth{Abstract}{Abstract}
+\addcontentsline{toc}{chapter}{Abstract (English/Français)} % adds an entry to the table of contents
+
+Magnetic Resonance Imaging (MRI) is a non-invasive, non-ionizing imaging modality with unmatched soft tissue contrast. However, compared to imaging methods like X-ray radiography, MRI suffers from long scanning times, due to its inherently sequential acquisition procedure. Shortening scanning times is crucial in clinical setting, as it increases patient comfort, decreases examination costs and improves throughput.\\
+
+Recent developments thanks to compressed sensing (CS) and lately deep learning allow to reconstruct high quality images from undersampled images, and have the potential to greatly accelerate MRI. Many algorithms have been proposed in the context of reconstruction, but comparatively little work has been done to
+find acquisition trajectories that optimize the quality of the reconstructed image downstream.\\ %Indeed, most approaches rely on random-like under-sampling in Fourier space, but do not seek to find a trajectory that is most informative for a given algorithm.\\ 
+ 
+Although in recent years, this problem has gained attention, it is still unclear what is the best approach to design acquisition trajectories in Cartesian MRI. %In particular, it is not clear what kind of information and feedback should be used by algorithms that train sampling trajectories in order to efficiently reach state-of-the-art performance.
+%\todoi{clear is a bit redundant}
+In this thesis, we aim at contributing to this problem along two complementary directions.\\
+
+First, we provide novel \textit{methodological} contributions to this problem. We first propose two algorithms that improve drastically the greedy learning-based compressed sensing (LBCS) approach of \citet{gozcu2018learning}. These two algorithms, called lazy LBCS and stochastic LBCS scale to large, clinically relevant problems such as multi-coil 3D MR and dynamic MRI that were inaccessible to LBCS. %They also easily scale to large datasets, which is particularly relevant in modern deep learning applications. %Our results also show that stochastic LBCS can achieve a very significant computational gain compared to LBCS while retaining its performance.
+We also show that generative adversarial networks (GANs), used to model the posterior distribution in inverse problems, provide a natural criterion for adaptive sampling by leveraging their variance in the measurement domain to guide the acquisition procedure.\\ 
+
+%In this chapter, we take a step back from the question of designing the best sampling policy, and primarily aim at exploring how conditional Generative Adversarial Networks (GANs) \citep{goodfellow2014generative} can be used to model inverse problems in a Bayesian fashion. We show that this ability also readily extends to additional problems such as inpainting. 
+
+Secondly, we aim at deepening the \textit{understanding} of the kind of structures or assumptions that enable mask design algorithms to perform well in practice. In particular, our 
+%It is not clear from the current literature what components are fundamental when optimizing acquisition trajectories. 
+experiments show that state-of-the-art approaches based on deep reinforcement learning (RL), which have the ability to adapt trajectories on the fly to patient and perform long-horizon planning, bring at best a marginal improvement over stochastic LBCS, which is neither adaptive nor does long-term planning.\\ %Furthermore, these deep RL approaches are in addition much more expensive to train than our approach. 
+
+Overall, our results suggest that methods like stochastic LBCS offer promising alternatives to deep RL. They shine in particular by their scalability and computational efficiency and could be key in the deployment of optimized acquisition trajectories in Cartesian MRI.\\
+
+%In a field racing to develop ever more sophisticated models, our results suggest, somewhat counterintuitively, that deep RL methods in their current state long-horizon planning and patient adaptivity do not bring significant benefits over greedy and non-adaptive policies to the problem of designing acquisition trajectories.
+
+%Such a criterion is not restricted to acquisition in Fourier domain, like in MRI, but can also be readily used for image domain sampling. In this context, we show that our GAN-based policy can strongly outperform the non-adaptive greedy policy from sLBCS. However, in Fourier domain, the GAN-based policy does not match the performance of sLBCS. We provide an explanation to this phenomenon rooted in the concept of the information horizon used to make a decision at each step. We show that our model uses less information than LBCS to design its policy, and argue that this is the reason leading to its inferiors performance. However, when compared with models that use the same amount of information to inform their policy, our model largely outperforms the competition.
+
+
+%Secondly, we aim at deepening the \textit{understanding} of the kind of structures or assumptions that enable mask design algorithms to perform well in practice. It is not clear from the current literature what components are fundamental in a mask design algorithm
+%For instance, the following questions cannot be answered satisfactorily in the current state of the literature. 
+%Should the mask design algorithm plan several steps of ahead? Should it adapt to each different patient?
+% How should the reconstruction algorithm used impact the design of the mask? 
+%What kind of feedback should be available to the mask design algorithm in order to achieve the best performance? In a race to develop ever more complex models, we aim at identifying the key components that drive the performance of modern mask design algorithms, in order to efficiently reach state-of-the-art performance.
+
+
+
+
+
+
+\textbf{Keywords:} magnetic resonance imaging, experiment design, inverse problems, compressed sensing, reinforcement learning, deep learning, generative adversarial networks
+
+% German abstract
+%\begin{otherlanguage}{german}
+%\cleardoublepage
+%\chapter*{Zusammenfassung}
+%\markboth{Zusammenfassung}{Zusammenfassung}
+% put your text here
+%\lipsum[1-2]
+%\end{otherlanguage}
+
+
+
+
+% French abstract
+\begin{otherlanguage}{french}
+\cleardoublepage
+\chapter*{Résumé}
+\markboth{Résumé}{Résumé}
+% put your text here
+L'imagerie par résonance magnétique (IRM) est une modalité d'imagerie non invasive, non ionisante et offrant un contraste inégalé des tissus mous. Cependant, en raison de procédures d'acquisition inhéremment séquentielles, la vitesse d’acquisition en IRM est  lente comparé à des méthodes telles que la radiographie par rayons X. La réduction des temps d’acquisition est cruciale en milieu clinique, car elle profite au confort du patient, diminue les coûts d'examen et améliore le rendement.\\
+
+Les innovations récentes grâce à l’acquisition comprimée (CS) et dernièrement l'apprentissage profond permettent de reconstruire des images de haute qualité à partir d'images sous-échantillonnées et ont le potentiel de grandement accélérer l'IRM. De nombreux algorithmes ont été proposés dans le contexte de la reconstruction, mais comparativement peu de travaux ont été réalisés afin de trouver des trajectoires d'acquisition qui optimisent la qualité de l'image reconstruite en aval.\\
+
+Bien que ces dernières années, ce problème ait gagné en attention, il n'est toujours pas clair quelle est la meilleure approche pour concevoir des trajectoires d'acquisition en IRM cartésienne. Dans cette thèse, nous visons à contribuer à ce problème selon deux directions complémentaires.\\
+
+Premièrement, nous proposons de nouvelles contributions \textit{méthodologiques} à ce problème. Nous proposons tout d'abord deux algorithmes qui améliorent considérablement l'approche gloutonne d’acquisition comprimée basée sur l’apprentissage (LBCS) de \citep{gozcu2018learning}. Ces deux algorithmes, appelés \textit{LBCS paresseux} et \textit{LBCS stochastique}, s’étendent à des problèmes importants et cliniquement pertinents, tels que l'IRM parallèle 3D et dynamique, qui étaient inaccessibles à LBCS. Nous montrons également que les réseaux antagonistes génératifs (GAN), utilisés pour modéliser la distribution \textit{a posteriori} dans les problèmes inverses, fournissent un critère naturel pour l’acquisition adaptative en utilisant leur variance dans le domaine de la mesure pour guider la procédure d'acquisition.\\
+
+Deuxièmement, nous cherchons à approfondir la \textit{compréhension} du type de structures ou d'hypothèses qui permettent aux algorithmes de conception de masques d'être performants en pratique. En particulier, nos expériences montrent que les approches de pointe basées sur l'apprentissage par renforcement (RL) profond, qui ont la capacité d'adapter leurs trajectoires au patient à la volée et d'effectuer une planification à long terme, apportent au mieux une amélioration marginale par rapport à LBCS stochastique, qui n'est ni adaptatif ni ne fait pas de planification à long terme.\\
+
+Dans l'ensemble, nos résultats suggèrent que des méthodes comme LBCS stochastique offrent des alternatives prometteuses au RL profond. Elles brillent notamment par leur extensibilité et leur efficacité de calcul et pourraient être déterminantes dans le déploiement de trajectoires d'acquisition optimisées en IRM cartésienne.\\
+
+\textbf{Mots-clé~:} imagerie par résonance magnétique, planification d'expériences, problèmes inverses, acquisition comprimée, apprentissage par renforcement, apprentissage profond, réseaux antagonistes génératifs.
+
+
+\end{otherlanguage}
+
+
+%\endgroup			
+%\vfill

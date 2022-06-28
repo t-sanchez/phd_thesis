@@ -1,0 +1,31 @@
+\begin{tabular}{lcccc|cccc}
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c|}{\texttt{c+rhz}} & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c}{\texttt{c+rhz}} \\
+ \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} \\
+ \midrule
+\textbf{Random} & {0.607} & 0.6141 & 0.7565 & 0.7667 & 0.5249 & 0.5432 & 0.6567 & 0.6567 \\
+\textbf{LtH } & {0.6267} & 0.6313 & {0.7602} & {0.7786} & 0.5832 & 0.6197 & 0.7325 & 0.7714 \\
+\textbf{LBCS } & {0.6288} & {0.6413} & \textbf{0.7751} & \textbf{0.7923} & 0.6294 & \textbf{0.6417} & \textbf{0.7768} & \textbf{0.7941} \\
+\textbf{RL } & \textbf{0.6298} & \textbf{0.6417} & {0.7745} & \textbf{0.7921} & \textbf{0.6298} & \textbf{0.6415} & {0.7761} & {0.7935} \\
+\midrule
+\textbf{NA Oracle } & 0.6301 & 0.6421 & 0.7751 & 0.7926 & 0.6301 & 0.6428 & 0.7771 & 0.7942\\[2mm]
+\bottomrule
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c|}{\texttt{c+rvz}} & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c}{\texttt{c+rvz}} \\
+ \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} \\
+ \midrule
+\textbf{Random } & {0.6053} & 0.6148 & 0.7201 & 0.7401 & 0.5502 & 0.5693 & 0.6191 & 0.6359 \\
+\textbf{LtH } & {0.619} & 0.6309 & {0.7052} & {0.7487} & 0.6190 & 0.6309 & 0.7052 & 0.7487 \\
+\textbf{LBCS } & {0.6282} & {0.6413} & {0.7411} & {0.7710} & 0.6293 & \textbf{0.6451} & {0.7453} & \textbf{0.7746} \\
+\textbf{RL } & \textbf{0.6288} & \textbf{0.6416} & \textbf{0.7417} & \textbf{0.7714} & \textbf{0.6304} & \textbf{0.6452} & \textbf{0.7470} & {0.7738} \\
+\midrule
+\textbf{NA Oracle } & 0.6292 & {0.643} & 0.741 & 0.7717 & {0.6304} & {0.6464} & 0.7457 & 0.7755\\
+\bottomrule
+\end{tabular}
+

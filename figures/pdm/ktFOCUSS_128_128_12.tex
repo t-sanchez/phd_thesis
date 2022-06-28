@@ -1,0 +1,109 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\definecolor{mycolor1}{rgb}{1.00000,0.00000,1.00000}%
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=0.475\textwidth,
+height=0.375\textwidth,
+at={(0.758in,0.481in)},
+scale only axis,
+xmin=0.0435483870967742,
+xmax=0.508387096774194,
+xlabel style={font=\color{white!15!black}},
+xlabel={Sampling rate},
+ymin=18.2798833819242,
+ymax=41.4577259475219,
+ylabel style={font=\color{white!15!black}},
+ylabel={PSNR},
+axis background/.style={fill=white},
+xmajorgrids,
+ymajorgrids,
+ytick={20,22,24,26,28,30,32,34,36,38,40},
+yticklabels={{20},{22},{24},{26},{28},{30},{32},{34},{36},{38},{40}},
+xtick={0.05,0.1,0.15,0.2,0.25,0.3,0.35,0.4,0.45,0.5},
+legend style={at={(0.63,0.02)}, anchor= south, legend cell align=left, align=left, draw=white!15!black}
+]
+\addplot [color=black, line width=1.0pt, mark size=2.0pt, mark=*, mark options={solid, black}]
+  table[row sep=crcr]{%
+0.05	24.3374131170213\\
+0.1	28.8690342461539\\
+0.15	31.4281260096807\\
+0.2	33.4199228534477\\
+0.25	35.05072554532\\
+0.3	36.4074140130832\\
+0.35	37.7181159912388\\
+0.4	38.7259297157661\\
+0.45	40.1619633824369\\
+0.5	41.3170600657965\\
+};
+\addlegendentry{$\text{Optimised }\Omega\text{ on}$ train. set}
+
+\addplot [color=blue, line width=1.0pt, mark size=3.0pt, mark=x, mark options={solid, blue}]
+ plot [error bars/.cd, y dir = both, y explicit]
+ table[row sep=crcr, y error plus index=2, y error minus index=3]{%
+0.05	21.1846857343734	0.605808871167988	0.605808871167988\\
+0.1	25.7409169633291	0.512632058150791	0.512632058150791\\
+0.15	28.0235852492316	0.306007954251256	0.306007954251256\\
+0.2	29.6174394561947	0.282679376122781	0.282679376122781\\
+0.25	31.8775302548719	0.525895237870265	0.525895237870265\\
+0.3	33.2020970679384	0.701781347410218	0.701781347410218\\
+0.35	34.8651944404655	0.571364761803079	0.571364761803079\\
+0.4	35.9425906379791	0.452060476535991	0.452060476535991\\
+0.45	37.0398133574583	0.246394151848037	0.246394151848037\\
+0.5	38.7002344322709	0.225655970989312	0.225655970989312\\
+};
+\addlegendentry{k-t FOCUSS rand. sampling}
+
+\addplot [color=red, line width=1.0pt, mark size=4.0pt, mark=+, mark options={solid, red}]
+  table[row sep=crcr]{%
+0.05	23.8502499798369\\
+0.1	28.3051919152315\\
+0.15	30.3849512151834\\
+0.2	32.077228730444\\
+0.25	33.1204371012867\\
+0.3	34.9029907059789\\
+0.35	36.0614369399961\\
+0.4	36.9597028457605\\
+0.45	38.1545270151669\\
+0.5	39.3122196574817\\
+};
+\addlegendentry{$\text{Optimised }\Omega\text{ on}$ test. set}
+
+\addplot [color=green, line width=1.0pt, mark size=2.0pt, mark=x, mark options={solid, green}]
+  table[row sep=crcr]{%
+0.0390625	18.5178984412723\\
+0.09375	22.8430075749322\\
+0.171875	28.5943511630379\\
+0.2421875	30.2317251952035\\
+0.3125	32.3869789955944\\
+0.390625	35.1088168274677\\
+0.4453125	35.9414176660504\\
+0.4921875	37.5586237417932\\
+0.546875	38.6486118770553\\
+0.59375	39.4290378177856\\
+};
+\addlegendentry{Repeated mask  on train. set}
+
+\addplot [color=mycolor1, line width=1.0pt, mark size=2.0pt, mark=*, mark options={solid, mycolor1}]
+  table[row sep=crcr]{%
+0.0390625	18.8338849370336\\
+0.09375	22.9928207033142\\
+0.171875	28.7619931013797\\
+0.2421875	29.9955579878673\\
+0.3125	31.209527497013\\
+0.390625	33.5917656751536\\
+0.4453125	34.3189323636188\\
+0.4921875	35.5303177815782\\
+0.546875	36.676814342024\\
+0.59375	37.3559750906077\\
+};
+\addlegendentry{Repeated mask on test. set}
+
+\end{axis}
+\end{tikzpicture}%

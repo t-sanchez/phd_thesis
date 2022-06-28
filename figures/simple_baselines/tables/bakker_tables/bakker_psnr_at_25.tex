@@ -1,0 +1,31 @@
+\begin{tabular}{lcccc|cccc}
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c|}{\texttt{c+rhz}} & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c}{\texttt{c+rhz}} \\
+ \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} \\
+ \midrule
+\textbf{Random} & {24.583} & 24.604 & 28.241 & 29.113 & 21.520 & 21.684 & 23.547 & 23.843 \\
+\textbf{LtH } & {25.056} & 24.984 & {28.176} & {29.567} & 25.056 & 24.984 & 28.176 & 29.567 \\
+\textbf{LBCS } & \textbf{25.068} & \textbf{25.117} & \textbf{29.088} & {30.214} & 25.043 & {25.077} & \textbf{29.226} & \textbf{30.234} \\
+\textbf{RL } & {25.032} & {25.108} & {29.050} & \textbf{30.218} & \textbf{25.071} & \textbf{25.101} & {29.194} & {30.188} \\
+\midrule
+\textbf{NA Oracle } & 25.095 & 25.120 & 29.090 & 30.233 & 25.111 & 25.111 & 29.211 & 30.229\\[2mm]
+\bottomrule
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c|}{\texttt{c+rvz}} & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c}{\texttt{c+rvz}} \\
+ \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} & \textbf{UNet} & \textbf{CResNet} \\
+ \midrule
+\textbf{Random } & {24.369} & 24.623 & 26.657 & 27.957 & 21.791 & 22.497 & 21.854 & 22.506 \\
+\textbf{LtH } & {24.551} & 24.961 & {26.223} & {28.143} & 24.551 & 24.961 & 26.223 & 28.143 \\
+\textbf{LBCS } & \textbf{24.817} & {25.089} & {27.439} & \textbf{29.069} & 24.850 & \textbf{25.084} & {27.518} & \textbf{29.145} \\
+\textbf{RL } & {24.765} & \textbf{25.102} & \textbf{27.451} &  \textbf{29.069} &\textbf{25.102} & {24.807} & \textbf{27.583} & {29.041} \\
+\midrule
+\textbf{NA Oracle } & 24.813 & {25.123} & 27.429 & 29.043 & {24.837} & {25.101} & 27.446 & 29.072\\
+\bottomrule
+\end{tabular}
+

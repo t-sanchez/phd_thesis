@@ -1,0 +1,237 @@
+%!TEX root = thesis_presentation.tex
+\section{Deep RL results}
+
+\begin{frame}{Experimental setting}
+    \vspace{-0.7cm}    
+    \begin{columns}
+        \column{0.8\textwidth}
+    
+    \textbf{Baselines}
+    \begin{itemize}
+        \item \textbf{Random}: Fixed number of center frequencies, the rest is random
+        \item Low-to-high (\textbf{LtH}): Sample from low to high frequencies.
+        \item \textbf{sLBCS}: Stochastic LBCS
+        \item \textbf{RL}: Greedy Policy Gradient approach of \cite{bakker2020experimental}.
+        \item Non-adaptive Oracle \textbf{NA Oracle}: LBCS, trained on the \textit{test} set.
+    \end{itemize}
+    \vfill
+    \textbf{Different processing pipelines}
+    \begin{itemize}
+        \item $128 \times 128$ image size
+        \item Horizontal vs vertical sampling masks
+        \item Cropped data vs cropped+resized data 
+        \item Reconstructor pretrained using different masks distributions:
+        \begin{itemize}
+            \item \cite{zhang2019reducing}: Covers a long range of sampling rates continuously%Covers $10\%$ to $37.5\%$ continuously
+            \item \cite{bakker2020experimental}: Covers a short range of sampling rates intermittently %$12.5\%$ to $25\%$
+        \end{itemize}
+    \end{itemize}
+    \vfill
+    \textbf{Different architectures}
+    \begin{itemize}
+        \item UNet \parencite{ronneberger2015u,zbontarFastMRIOpenDataset2019}
+        \item cResNet (Cascade of ResNets) \parencite{zhang2019reducing}
+    \end{itemize}
+    \column{0.18\textwidth}
+    \centering 
+    Cropped data
+    \includegraphics[width=\linewidth]{figs/image_cropped.pdf}
+
+    \vspace{.5cm}
+    Cropped+resized data
+    \includegraphics[width=\linewidth]{figs/image_resized_cropped.pdf}
+    %ToDo: Image of cropped vs cropped+resized
+    \end{columns}
+    %- Present the baselines, random, lth and put maybe a gif of the evolving masks with added samples.
+    %- Illustrate also the different setting, cvb, cvz, c+rhz.
+    %- Keep as a backup slide the specific differences and methodology that was deployed throughout. 
+    %-Illustrate in the appendix both architectures used
+\end{frame}
+
+\begin{frame}{Implementation details}
+    \begin{itemize}
+        \item \textbf{Mask regimes.}
+        \begin{itemize}
+            \item \textbf{\cite{bakker2020experimental}.} Sampling rates: ($25\%$,$25\%$,$25\%$, $16.7\%$,$16.7\%$, and $12.5\%$); Center freq. ($25\%$,$16.7\%$,$12.5\%$, $16.7\%$,$12.5\%$,$12.5\%$)
+            \item \textbf{\cite{zhang2019reducing}} Sampling rates: uniformly between $0$ and $38$; center freq. $10$ lines.
+        \end{itemize}
+        \item UNet trained following \cite{zbontarFastMRIOpenDataset2019} (except for LR kept constant.)
+        \item cResNet: Adam, LR=$10^{-3}$, $\beta=(0.9,999)$. 
+        \item 50 epochs, batch size $32$
+        \item \textbf{Hardware.} DGX-2 server using $A100$ GPUs.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Data processing differences with \cite{bakker2020experimental}}
+    \begin{enumerate}
+        \item \textbf{Train-test split:} Different train-test split: $10\%$ of the training set as a test set, fastMRI validation set used for test.\\
+        $50\%$ more central slices: $15599$ training, $1743$ validation, $3564$ test.
+        \item \textbf{Complex data undersampling:} Complex preprocessing of data, followed by taking magnitude of the observation obtained \textit{after} undersampling. 
+        \item \textbf{Data range:} Use the maximal intensity of the \textit{slice} instead of \textit{volume} for PSNR/SSIM computations
+        \item \textbf{Data standardization:} Data standardization using \textit{observation} statistics only.
+    \end{enumerate}
+
+\end{frame}
+
+\begin{frame}{Data processing differences with \cite{bakker2020experimental}}{Impact on the metrics}
+    AUC on test, using SSIM.
+    Mismatched = trained in the setting of \cite{bakker2020experimental}, but evaluated complex data preprocessing instead of magnitude data preprocessing
+        \begin{center}
+        \resizebox{\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_pipeline_ssim_auc_sh}} 
+        \end{center}
+\end{frame}
+
+\begin{frame}{Exact reproduction of Bakker et al.}{Impact on the metrics}
+Using the same train-val-test split as Bakker et al.
+\begin{center}
+    \input{../figures/simple_baselines/tables/bakker_tables/bakker_mismatched_ablation_ssim_at_25_sh}
+\end{center}
+
+Consistent with the results displayed in the paper of \cite{bakker2020experimental}, although this is not an \textit{exact} replication.
+\end{frame}
+
+\begin{frame}{Results on Bakker et al. (2020)}
+        \begin{itemize}
+            \item Area Under Curve (AUC)
+        \end{itemize}
+        \begin{center}
+        \resizebox{0.75\linewidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_LH_ssim_auc}}%Explicit path b.c. it is not covered by graphicspath
+        \end{center}
+  \end{frame}
+
+\begin{frame}{Additional results on Bakker et al. (2020)}{Different mask regimes (cropped + vertical)}
+    \begin{itemize}
+        \item Consider different sampling \textit{horizons}.
+        \begin{itemize}
+            \item Short horizon: from $16$ to $32$ lines.
+            \item Long horizon: from $4$ to $32$ lines.
+        \end{itemize}
+        \item Limited return on investment of adopting RL over LBCS:
+        \begin{itemize}
+            \item Moving from UNet to cResNet:  $\sim 0.01$ SSIM improvement, one order of magnitude larger than what RL brings over LBCS (around $0.0015$ at best).
+            \item Distribution of masks matters: Bakker for SH, Zhang for LH
+        \end{itemize}
+    \end{itemize}
+
+    \begin{center}
+    \resizebox{0.8\linewidth}{!}{
+    \begin{tabular}{lcccccccc}
+        \toprule
+        \multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+        \cmidrule(l){2-5}\cmidrule(l){6-9}
+         & \multicolumn{2}{c}{\texttt{Bakker mask}} & \multicolumn{2}{c}{\texttt{Zhang mask}} & \multicolumn{2}{c}{\texttt{Bakker mask}} & \multicolumn{2}{c}{\texttt{Zhang mask}} \\
+          \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+         & \multicolumn{1}{c}{{UNet}} & \multicolumn{1}{c}{{cResNet}} & \multicolumn{1}{c}{{UNet}} & \multicolumn{1}{c}{{cResNet}} & \multicolumn{1}{c}{{UNet}} & \multicolumn{1}{c}{{cResNet}} & \multicolumn{1}{c}{{UNet}} & \multicolumn{1}{c}{{cResNet}} \\
+        \midrule
+        \textbf{Random}    & {$0.5608$}            & {$0.5659$}  & {$0.5580$} & { $0.5661$}  &  $0.4348$ & $0.4432$&$0.4483$& $0.4621$\\
+        \textbf{LtH}         & {$0.5719$}            & $0.5764$         & $0.5663$    & $0.5759$   & $0.4849$   & $0.5107$&$0.5122$ &$0.5218$      \\
+        \textbf{LBCS}        &{$0.5732$}            & $0.5828$           & {$0.5712$} & {$0.5822$} & $0.5134$& $\mathbf{0.5243}$&{$0.5174$} &$0.5328$\\
+        \textbf{RL }         & $\mathbf{0.5738}$            & $\mathbf{0.5830}$   & $\mathbf{0.5717}$ & $\mathbf{0.5829}$ &$\mathbf{0.5142}$ & $\mathbf{0.5242}$ &$\mathbf{0.5183}$&$\mathbf{0.5334}$ \\
+        \midrule
+        \textbf{NA Oracle}          & $0.5738$ & {$0.5832$}  & $0.5718$          & $0.5835$& $0.5140$& $0.5247$  & $0.5180$ &$0.5336$\\
+        \bottomrule
+        \end{tabular}}
+    \end{center}
+\end{frame}
+
+
+\begin{frame}{Additional results on Bakker et al.}{SSIM AUC}
+    \begin{center}
+        \resizebox{0.8\linewidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_ssim_auc}}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Additional results on Bakker et al.}{SSIM at $25\%$}
+    \begin{center}
+        \resizebox{0.8\linewidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_ssim_at_25}}
+        \end{center}
+\end{frame}
+
+\begin{frame}{Additional results on Bakker et al.}{PSNR AUC}
+    \begin{center}
+        \resizebox{.8\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_psnr_auc}}
+    \end{center}
+\end{frame}
+
+\begin{frame}{Additional results on Bakker et al.}{PSNR at $25\%$}
+    \begin{center}
+        \resizebox{.8\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_psnr_at_25}}
+    \end{center}
+\end{frame}
+
+
+\begin{frame}{Pineda results}
+    \begin{minipage}[c]{0.57\linewidth}
+        \resizebox*{\linewidth}{!}{
+    \begin{tabular}{lcccccc}
+        \toprule
+       \multirow{2}{*}{\textbf{Policy}}& \multicolumn{3}{c}{\textbf{SSIM}}& \multicolumn{3}{c}{\textbf{PSNR}}\\
+       \cmidrule(l){2-4}\cmidrule(l){5-7}
+       & Samp. rate & Acc. factor & Final rate & Samp. rate & Acc. factor & Final rate\\
+       \midrule
+       \textbf{Random} & 0.5801&0.4497&0.6723 &  26.489 &22.327&28.962\\
+       %\textbf{Random low bias} & $0.6010$ & $27.817$ \\
+       \textbf{LtH} & 0.5636 &0.4506&0.6686& 27.169&23.133&29.360\\
+       \textbf{LBCS} & 0.6079 &0.4787&\textbf{0.6886}& \textbf{28.491}&23.799&\textbf{ 30.211}\\
+       %\textbf{Evaluator} & 0.5933&0.4671&0.6812& 27.665&23.2691&29.681 \\
+       \textbf{DS-DDQN} & 0.6101&\textbf{0.4797}&0.6855&28.240&\textbf{23.978}&29.652 \\
+       \textbf{SS-DDQN} & \textbf{0.6139}&\textbf{0.4797}& 0.6882&28.424 &23.918&29.929\\
+       \midrule
+       \textbf{Adaptive Oracle} & 0.6341 &0.4910&0.7131& 29.013&24.498&30.683\\
+       
+       \bottomrule
+       \end{tabular}}
+    \end{minipage}
+    \begin{minipage}[c]{0.4\linewidth}
+        \includegraphics[width=\linewidth]{simple_baselines/pineda_plots/pineda_psnr_accellFalse.pdf}
+    \end{minipage}
+\end{frame}
+
+\begin{frame}{Pineda results}
+    SS-DDQN variability and comparison with the LBCS mask. CoV stands for Coefficient of Variation here.
+        \begin{center}
+            \includegraphics[width=\linewidth]{simple_baselines/ss-ddqn_lbcs_masks.pdf}    
+        \end{center}
+\end{frame}
+
+
+\begin{frame}{Bakker visual results}{c+rhz recon ($25\%$ and $12.5\%$)}
+    \centering
+    \begin{minipage}[c]{0.46\linewidth}
+        \includegraphics[width=\linewidth]{simple_baselines/plot_idx_1684_acc_4.pdf}    
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.46\linewidth}
+        \includegraphics[width=\linewidth]{simple_baselines/plot_idx_1684_acc_8_small.pdf}    
+    \end{minipage}
+\end{frame}
+
+\begin{frame}{Bakker visual results}{recon at diff SR -- PDFS and PD images}
+    \centering
+    \includegraphics[width=.48\linewidth]{simple_baselines/plt_recon_full_53.pdf}
+    \hfill
+    \includegraphics[width=.48\linewidth]{simple_baselines/plt_recon_full_82.pdf}
+\end{frame}
+
+\begin{frame}{Additional discussion}
+    \begin{itemize}
+        \item What kind of metrics should be used?
+        \item What about joint training? 
+        \begin{itemize}
+            \item Fixed sampling  \parencite{bahadir2019learning, huijben2020learning}
+            \item Sequential sampling \parencite{yin2021end,van2021active,jin2019self}.
+            \item What does matter? Curriculum for training recon or gain due to policy?
+        \end{itemize}
+        \item Sequential vs fixed sampling rate?
+        \item Practical advice
+        \begin{mdframed}
+        \begin{enumerate}
+            \item Focus on improvements in the reconstructor architecture, mask distribution and algorithms used for training the reconstructor.
+            \item Compare against strong baselines, such as LBCS.
+            \item Show sampling curves and use AUC to aggregate your results instead of performance at the final sampling rate.
+            \item Be mindful about preprocessing settings when evaluating a policy model. We recommend using the cropped+vertical setting with the data normalization implemented by \cite{zbontarFastMRIOpenDataset2019}.
+        \end{enumerate}
+        \end{mdframed}
+        %\item RL is known to be sensitive to variations in parameters.  \cite{Engstrom2020Implementation,ingredientsdeeppolicy} showed that the improvements of SotA RL methods can be traced to the exploitation of a subset of implementation details and algorithmic improvements and that even simple algorithms leveraging this subset can achieve SotA performance, similar to our work.
+    \end{itemize}
+\end{frame}

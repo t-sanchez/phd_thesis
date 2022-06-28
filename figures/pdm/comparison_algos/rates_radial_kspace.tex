@@ -1,0 +1,79 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=4.602in,
+height=3.566in,
+at={(0.772in,0.481in)},
+scale only axis,
+xmin=0,
+xmax=0.3,
+xlabel style={font=\color{white!15!black}},
+xlabel={Sampling rate},
+ymin=26,
+ymax=38,
+ylabel style={font=\color{white!15!black}},
+ylabel={PSNR},
+axis background/.style={fill=white},
+xmajorgrids,
+ymajorgrids,
+legend style={at={(0.52,0.161)}, anchor=south west, legend cell align=left, align=left, draw=white!15!black}
+]
+\addplot [color=blue, mark=x, mark options={solid, blue}]
+  table[row sep=crcr]{%
+0.025	27.3332997697084\\
+0.05	30.1998127095317\\
+0.075	31.9802823358828\\
+0.1	33.2266730346306\\
+0.125	34.1988144184603\\
+0.15	34.8612831898287\\
+0.175	35.4714111080465\\
+0.2	35.6269092040207\\
+0.225	35.7560469738236\\
+0.25	36.0612698671979\\
+0.275	36.3347039866566\\
+};
+\addlegendentry{$\text{Optimised x}_\text{i}$}
+
+\addplot [color=red, mark=+, mark options={solid, red}]
+  table[row sep=crcr]{%
+0.025	27.0217154847296\\
+0.05	29.2228536115997\\
+0.075	30.7952657729741\\
+0.1	31.8803307930429\\
+0.125	32.8873298146683\\
+0.15	33.744794368452\\
+0.175	34.5644880771616\\
+0.2	35.4459843290354\\
+0.225	36.0543596249987\\
+0.25	36.2817574432956\\
+0.275	36.3455931291089\\
+0.3	36.5827961686373\\
+};
+\addlegendentry{$\text{Optimised Radial x}_{\text{radial,i}}$}
+
+\addplot [color=black, dashed]
+ plot [error bars/.cd, y dir = both, y explicit]
+ table[row sep=crcr, y error plus index=2, y error minus index=3]{%
+0.025	29.649762675288	1.99001689731684	1.99001689731684\\
+0.05	29.7930011709283	1.6872644267804	1.6872644267804\\
+0.075	30.4388558892866	1.48947541757156	1.48947541757156\\
+0.1	31.4489488264075	1.25151792477212	1.25151792477212\\
+0.125	32.4130835349112	0.81041265507179	0.81041265507179\\
+0.15	33.2961244384302	0.420807468828699	0.420807468828699\\
+0.175	34.1440870959689	0.464636734739712	0.464636734739712\\
+0.2	34.7751221909502	0.336686304169435	0.336686304169435\\
+0.225	35.4832875869528	0.380400152707237	0.380400152707237\\
+0.25	36.0612413459803	0.367336969985818	0.367336969985818\\
+0.275	36.607285881972	0.387514114260523	0.387514114260523\\
+0.3	36.9459442790928	0.306796209823419	0.306796209823419\\
+};
+\addlegendentry{Random}
+
+\end{axis}
+\end{tikzpicture}%

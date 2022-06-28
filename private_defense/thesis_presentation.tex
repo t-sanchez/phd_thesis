@@ -1,0 +1,39 @@
+% Full instructions available at:
+% https://github.com/elauksap/focus-beamertheme
+\documentclass[9pt,aspectratio=169]{beamer}
+\input{preamble}
+
+
+\title{Learning to sample\\ in Cartesian MRI}
+\subtitle{Thesis Defense}
+\author{Thomas Sanchez}
+\institute{Advised by Volkan Cevher}
+\date{April 12th, 2022}
+
+\newif\ifoldappendix
+\oldappendixfalse%\oldappendixtrue%
+
+\begin{document}
+    \begin{frame}
+        \maketitle
+    \end{frame}
+    
+
+    \input{0_intro}
+    \input{1_gan}
+    \input{1_lbcs}
+    \input{2_rl}
+    \input{3_gan}       
+    \input{4_conclusion}
+    
+    \appendix
+    \begin{frame}[allowframebreaks]{References}
+        \printbibliography
+    \end{frame}
+
+    
+    \input{appendix_lbcs}
+    \input{appendix_rl}
+    \input{appendix_gan}
+
+\end{document}

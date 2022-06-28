@@ -1,0 +1,320 @@
+%!TEX root = ../../thesis.tex
+\chapter{Optimizing sampling patterns}\label{ch:sampling}
+In the previous chapter, we discussed the evolution of reconstruction methods for accelerated MRI, where a shift from model-driven approaches to data-driven approaches was observed. A similar shift can be observed in the design of sampling patterns. 
+
+
+\section{A taxonomy of mask design methods}
+While the evolution of reconstruction methods can generally be described along the axis of moving from model-based approaches towards learning-based ones, the picture is less clear for the mask design methods. It is nonetheless to consider two axes of discussion that run in parallel to the evolution witnessed in reconstruction methods. 
+
+These two axes pertain to the two main components needed to optimize sampling patterns (or masks or trajectories). One needs \textbf{i)} a prior distribution from which candidates patterns are drawn, and \textbf{ii)} a criterion, a metric to quantify its performance. We will see that at the onset of compressed sensing, sampling patters were drawn from heuristically designed parametric distributions, a setting widely known as \textit{variable density sampling}, and gradually moved towards distributions tailored for a specific dataset. Similarly, the criteria used to establish the quality of a mask initially were mathematical quantities such as \textit{coherence}, but the criteria became increasingly related to the reconstruction performance enabled by subsampling data using a given mask. One can clearly see a shift from \textbf{i)} \textit{model-based} approaches towards \textit{learning-based} ones, and from \textbf{ii)} \textit{model-driven} criteria towards \textit{data-driven} ones. 
+
+\begin{remark} 
+    We chose to denote the distribution from which candidate sampling patterns are drawn as the \textit{base} for the sampling optimization procedure, while the criterion used as what \textit{drives} it. 
+\end{remark}
+
+In the rest of this chapter, we will survey the literature from the first application of compressed sensing to MRI onwards to show how mask design evolved from model-based, model-driven approaches towards learning-based, data-driven approaches. We will conclude by formalizing the problems linked with optimizing mask design in this context.
+
+
+%\todot{Maybe mention how you sample a mask in a VDS?}
+
+\section{Compressed sensing and MRI: Model-based, model-driven approaches}
+\subsection{The contribution of \texorpdfstring{\citet{lustig2007sparse}}{Lustig et al. (2007)}}
+With the onset of Compressed Sensing (CS), random sampling patterns were used, as they allowed to obtain noise-like, incoherent aliasing, as illustrated on Figure \ref{fig:aliasing}. This was indeed theoretically motivated, as random sampling easily enables to achieve incoherent sampling, which in turn meant that a small number of measurements were sufficient to exactly solve the problem \ref{eq:cs} for $\mathcal{R}(\vx) = \|\mW\vx\|_1$ with high probability. 
+
+
+\begin{definition}
+    Let $(\mA, \mW)$ be two orthonormal bases of $\mathbb{C}^p$, where $\mA$ is the observation domain, and $\mW$ is the sparsifying (representation) basis. Then, the \textbf{coherence} between these bases is defined as \citep{candes2008introduction}
+    \begin{equation}
+        \mu(\mA,\mW) = \sqrt{p} \cdot \max_{1\leq i,j \leq p} |\langle \va_i, \vw_j \rangle|.
+    \end{equation}
+    The coherence measures the maximal correlation between any element of $\mA$ and $\mW$. $\mu(\mA,\mW) \in [1, \sqrt{p}]$, where coherence $1$ implies maximal incoherence between the bases, and $\sqrt{p}$ maximal coherence. 
+\end{definition}
+
+
+Coherence then allows to bound the minimal number of measurements $N$ required for exactly solving \ref{eq:cs} with high probability. Indeed, for a given signal $\vx \in \mathbb{C}^p$ observed in domain $\mA$, assuming that $\vx$ is $S$-sparse in the transformed domain $\mW$, then a typical compressive sensing result \citep{candes2007sparsity} dictates that, given $N$ \textit{random} measurements, exact reconstruction will occur with high probability when 
+\begin{equation}
+    N \geq C \cdot S\cdot \mu^2(\mA, \mW) \cdot \log P \label{eq:n_measurement}
+\end{equation}    
+for some positive constant $C$. 
+
+While the theory of CS obtains results for \textit{random} measurements, practitioners have quickly sought to optimize the measurements, and a natural initial criterion has been to minimize the coherence between measurements, i.e. to select a sampling pattern $\omega$ with $|\omega| = N$ that enables to minimize $\mu(\mAo, \mW)$ \citep{lustig2007sparse}. However, when applying compressed sensing to MRI, it was quickly observed that purely random undersampling of the Fourier space is not practical, for several reasons \citep{lustig2007sparse,lustig2008compressed}: \textbf{i)} it does not satisfy hardware and physical constraints that require smooth trajectories in Fourier space and the use of trajectories robust to system imperfections, \textbf{ii)} it does not consider the energy distribution of the signal in k-space, which is very concentrated around the center %and \textbf{iii)} the measurement basis (Fourier), is coherent with the sparsifying basis (Wavelets). 
+
+For this reason, the seminal work of \citet{lustig2007sparse} proposed to use a variable-density sampling approach, where the k-space is less undersampled near the origin (low frequency, high energy region) and more towards the periphery (high frequency but low energy)\footnote{The name \textit{variable-density sampling} originates from the very fact that k-space is not uniformly subsampled, but rather with a variable density \citep{tsai2000reduced}.}.  They used a distribution centered at the origin of k-space, where the probability of acquiring a location decayed at a polynomial rate as a distance of the origin, namely 
+\begin{equation}
+    P(k_x,k_y) = \left(1-\frac{2}{\sqrt{p}}\sqrt{k_x+k_y}\right)^d \label{eq:vds_distribution}
+\end{equation}
+with decay $d>1$, and $-p/2\leq k_x,k_y\leq p/2$. This heuristic was proposed to imitate the decay in the spectrum observed on real data. The mask to be used is then estimated by a Monte-Carlo procedure: a set of masks are randomly sampled from Equation \ref{eq:vds_distribution}, and the mask with minimal coherence is retained.
+
+%\todot{I would have to speak here about 2D vs 3D undersampling in CSMRI}
+
+The idea proposed by \citet{lustig2007sparse} of using variable-density sampling for MRI was not totally novel, as variable-density sampling had previously been used in the MRI community to design undersampling trajectories with incoherent aliasing when using linear reconstructions \citep{marseille1996nonuniform,tsai2000reduced}. However, \citet{lustig2007sparse} were the first to integrate this heuristic within the framework of CS. 
+
+It should be clear from the presentation that the approach of \citet{lustig2007sparse} is a \textit{model-based approach}, as the masks are sampled from a heuristic probability distribution (eq. \ref{eq:vds_distribution}) and also a \textit{model-driven} approach, as the criterion used to select the masks is \textit{coherence}, a mathematical structure prescribed by the theory of compressed sensing. 
+
+\subsection{Model-based, model-driven sampling in the sequel}
+A similarly model-based, model-driven was followed by \citet{gamper2008compressed}, which considers dynamic MRI, although from a different initial mask: they attempted at randomizing a deterministic mask design proposed by \citet{tsao2003k} to achieve incoherent sampling. The \textit{prior} in this case is given by a structured mask. 
+
+Some refinements to variable-density sampling (VDS) were developed for instance in \citep{wang2009pseudo}, but in the sequel, two broad approaches were followed to improve the design of sampling patterns. The first approach leveraged learning-based approaches, and will be discussed in the next section, while the second attempted at developing theoretical models that more closely captured the structure of real-world signals. 
+
+
+The work of \citet{wang2009variable} is a first step in this direction, where improved VDS functions are proposed by exploiting a priori statistical information of real-world images in the wavelets domain. One can notice that this approach chose to tie the sampling pattern specifically to a type of regularization, namely sparsity in the wavelet domain, and obtains better sampling density for this problem but lose in generality over competing approaches. 
+%\todoi{It seems from reading that it could be a learning-based approach as it exploits statistical methods.}
+
+The work of \citet{puy2011variable} proposes a coherence-driven optimization of the variable density sampling procedure. Instead of relying on a heuristic distribution such as \eqref{eq:vds_distribution}, the procedure proposes an objective that yields a VDS distribution that minimizes the coherence between the measurement and representation bases. 
+%\todoi{Could discuss this paragraph as a refinement over the MC approach of Lustig et al.-> no, it's still independent sampling of indices according to VDS distribution}
+
+A large body of subsequent works \citep{krahmer2013stable,roman2014asymptotic,adcock2015quest,adcock2017breaking} rely on some additional theoretical tools such as \textit{local coherence}, \textit{asymptotic sparsity}, and \textit{multilevel sampling} to give a solid ground to heuristics such as VDS that show good performance but lack theoretical justification. 
+
+
+\section{Towards learning-based, data-driven approaches}
+In parallel to these works, there was a motivation to move towards learning-based approaches, due to some weaknesses in the VDS approach of \citet{lustig2007sparse}. One of them is that the VDS distribution of \Eqref{eq:vds_distribution} is a heuristic that requires tuning to work well on different types of data, and that heuristically tuned variable density distributions generally performed better than the ones solely prescribed by CS theory \citep{chauffert2013variable}. 
+
+\textbf{Learning-based, model-driven sampling.} A first work of \citet{knoll2011adapted} aimed at solving this issue by constructing the VDS distribution from data rather than from a tuned heuristic. They simply average the spectra of several similar images, normalized it and sampled their mask from the resulting distribution, minimizing coherence to select the final mask, as in \citet{lustig2007sparse}. This approach was then improved by \citet{zhang2014energy,vellagoundar2015robust}.
+
+
+\textbf{Early learning-based, data-driven approaches.} \citet{ravishankar2011adaptive,liu2012under} proposed similar methods where they aimed at designing a sampling pattern that minimized the \textit{reconstruction error} in Fourier space, rather than coherence. Both algorithms partition k-space in blocks, and iteratively design a mask by removing samples from low-error regions in order to re-assign them in high-error regions. \citet{liu2012under} made the important point that the design of a mask should reconstruction-based and not observation-based. Until then, approaches did not include the reconstruction algorithm into the design of the mask, but relied on model-based criteria relying on the observations, such as coherence. This insight proved to be impactful in the performance of the methods, and while no quantitative comparison was available in the paper, further works confirmed the impact of including the reconstruction algorithm in the mask design \citep{zijlstra2016evaluation}.
+
+While these methods capture the paradigm that will be overwhelmingly dominant in the deep learning era, there was little follow-up work until much later, around 2018. 
+
+\textbf{The case of \citet{seeger2010optimization}.} The work of \citet{seeger2010optimization} lies in its own category. This approach builds on a sequential Bayesian experiment design perspective for sparse linear models \citep{seeger2007bayesian, seeger2008compressed}. First a model of the posterior distribution $p(\rvx|\yo)$ is built, and then, a sampling pattern is iteratively built by successively acquiring the readouts that have the highest entropy. This approach is able to sequentially tailor the sampling pattern to the need of an unseen image, given the previously acquired measurements. However, the approach features a quite high computational cost for a single image. \citet{liu2012under} raise that is not practical, as the matrix inversion required to compute the next measurement that must be acquired is too slow to match the readout time of a scanner. 
+
+While methods to optimize sequentially the sampling mask are common in the deep learning era, the approach of \citet{seeger2010optimization} is unique in its time, as all other works focused on optimizing the sampling pattern for a fixed sampling rate, and not in a sequential fashion. While more principled than other approaches, and using maximum entropy as the criterion to optimize the acquisition trajectory, this method remains model-based (using a Laplace prior) and model-driven (maximum entropy).
+
+\section{A matter of performance: how do these methods compare to each other?}
+Very few of the works discussed until then feature an extensive comparison of performance of their proposed approaches. Most works rely on visual comparisons, or state the weaknesses of previous methods, but do not compare against them. In this regard, the contributions that bring a comparison of various approaches to mask design are particularly valuable, and in this section, we will discuss two of them, namely \citet{chauffert2013variable} and \citet{zijlstra2016evaluation}.
+
+The work of \citet{chauffert2013variable} aims at designing a better VDS density, while also providing a comparison between theoretically informed sampling patterns, and the ones obtained using the polynomial of \Eqref{eq:vds_distribution} tuned at various degrees $d \in \{1,2,\ldots, 6\}$, and a hybrid distribution mixing some theoretically prescribed components and heuristics. It is interesting to observe that in their data, the tuned hybrid distribution performs best, followed by the tuned polynomial and the optimal theoretically predicted distribution. This theoretically optimal distribution is based on the arguments from \citet{rauhut2010compressive} uses rejection of already acquired locations \citep{puy2011variable} and minimizes coherence, while the polynomial was tuned on the data using directly the final evaluation metric, namely PSNR. The authors conclude that the theory would need to capture additional structure of real-world images for sampling patterns obtaining better practical performance. 
+
+The article of \citet{zijlstra2016evaluation} compares the performance of coherence-based VDS using \Eqref{eq:vds_distribution}, of \citet{knoll2011adapted}, of \citet{liu2012under} and of VDS optimized to minimize normalized root mean squared error (NRMSE). The results show that coherence-based VDS is generally outperformed by \citet{knoll2011adapted}, which is matched by the optimized VDS. Both are outperformed by the method of \citet{liu2012under}. The conclusion is however careful: \blockquote{\textit{When putting the presented results in perspective, it is important, to remember that data-driven optimization of an undersampling pattern for CS is just one aspect of the CS implementation. Data-driven approaches should be taken to optimize other aspects of the CS implementation, such as the sparse domain and the reconstruction algorithm.}}
+
+Overall, while these works do not exhaustively compare the existing methods in the literature, they give us reasons to view learning-based, data-driven methods as the most direct avenue towards improvement in mask design optimization. 
+
+%\todot{Discuss \citet{vasanawala2011practical} that discusses a focus on parallel MRI, where the sampling requirements are different. 
+
+%Present the different evolutions, axes onto which the discussion is constructed: between priors from which masks are obtained and criteria to rank them, ... Present also the divide between sequential and fixed mask optimization}
+
+
+\section{The advent of deep learning: Learning-based, data-driven approaches}
+
+Interest for learning-based, data-driven approaches to mask optimization was renewed around 2018, with the advent of the first deep learning-based reconstruction methods applied to MRI \citep{sun2016deep,schlemper2017deep,mardani2018neural}. This enabled the possibility to scale up the complexity of mask design methods, as deep learning methods enable fast reconstruction times, which was not the case for CS methods. 
+
+The first work that we discuss in this section comes slightly before this time and is the one of \citet{baldassarre2016learning}, where the authors propose a first principled, learning-based approach to optimizing a deterministic sampling pattern given a set of training signals. Note that in our taxonomy, their approach is both learning-based \textit{and} data-driven. While the optimization only considers the energy of the signal in the case of Fourier sampling, and while the paper on \textit{linear} reconstruction, the authors show improvement about the sampling patterns prescribed in \citet{lustig2007sparse,roman2014asymptotic}. However, as they optimize only the sampling pattern to capture the \textit{energy} of the signal and do not include the reconstruction algorithm in their optimization procedure, they fail to obtain significant improvement by turning to non-linear reconstruction methods. 
+
+However, the authors published a sequel to this work with \citet{gozcu2018learning}, that introduced a sequential optimization of the sampling pattern in a fully data-driven fashion. The principle consists, at each step, to evaluate the improvement for a given performance metric of including a candidate location in the final sampling pattern. Once all candidate locations have been evaluated, the algorithms picks the one that brings the largest improvement and moves to the next step. This method was shown to outperform existing approaches, such as the one of \citet{lustig2007sparse} and \citet{knoll2011adapted} by a large margin, due to its approach being both learning-based and data-driven. Part of the improvement is due also to not solely adding sampling locations based on the current error, but computing how adding a location would \textit{actually} decrease the error in the reconstruction. The distinction is important as the method of \citet{gozcu2018learning} is able to take into account how the newly acquired location affects the behavior of the non-linear reconstruction algorithm, rather than acquiring locations based on the current reconstruction error. We will describe the setting of \citet{gozcu2018learning} in greater depth in Chapter \ref{chap:lbcs} as this is the basis upon which this thesis was built. 
+
+At roughly the same time as \citet{gozcu2018learning}, \citet{haldar2019oedipus} published another work aiming at optimizing sampling, based on an experiment design approach to minimize the Cramér-Rao bound (CRB). The CRB provides a lower-bound to the covariance matrix that is based on the measurement matrix $\mAo$. This approach is independent on the reconstruction algorithm, and provides a different take on a learning-based, model-driven approach, aiming at minimizing the covariance of an estimator. In the context of MRI sampling, this amounts to finding the measurement matrix that will encode the most information about the original signal $\vx$. 
+
+The last non-fully deep learning-based work that we will discuss is the one of \citet{sherry2019learning}, where a bilevel optimization procedure is proposed: the first level solves an empirical risk minimization problem for the mask, while the second level consists in an iterative algorithm to solve a Problem similar to \ref{eq:cs}. The work takes an original approach whereby relaxing the mask optimization problem into a continuous optimization problem, they are able to tackle the mask optimization and the reconstruction under a unified framework. While the reconstruction remains model-based, the mask stage is clearly learning-based and data-driven, as training data are used, and aim at minimizing some loss between the original image and the reconstruction.
+
+Due to the overwhelming performance of deep learning methods, most subsequent works focus exclusively on deep learning-based reconstruction methods, and all follow  a learning-based, data-driven paradigm. All methods initialize the prior from which masks are drawn randomly, and aim at refining it throughout training in order to maximize some performance metric. 
+
+There are however some trends that can be highlighted within these methods. Some of them aim at \textit{jointly} train a reconstructor and a sampling pattern for some fixed sampling budget. Others tackle a problem of designing a mask \textit{sequentially}, by adding new sampling locations based on the currently acquired information. Finally, some methods aim at training a model that is able to propose a \textit{patient-adaptive} mask design. These methods often leverage tools from reinforcement learning (RL) and this is why we refer to such models as \textit{policy} models. 
+
+The works of \citet{bahadir2019learning,aggarwal2020j,weiss2020joint,huijben2020learning} relax the problem of optimizing the mask to a continuous optimization problem, and train the sampling pattern along with the neural network using backpropagation. After training, the mask is then mapped back as a boolean vector. Other approaches use a pre-trained reconstruction model and train a policy model that performs patient-adaptive sequential mask optimization using reinforcement learning \citep{pineda2020active,bakker2020experimental}. The approach of \citet{zhang2019reducing} is unique, as they aim at training an evaluator that tries to estimate the current reconstruction error for each location in k-space, while using this evaluator to inform the training of the reconstruction model. Finally, a fourth category of approaches tackles the challenging problem jointly learning a reconstruction model and a policy model for patient-adaptive sampling \citep{jin2019self,van2021active,yin2021end}.
+
+\begin{remark}[A short discussion of non-Cartesian sampling methods]
+The problem of optimizing sampling trajectories becomes more complex when moving to the non-Cartesian realm. The problem is inherently continuous, and there is a lot of freedom in designing non-Cartesian trajectories as long as hardware constraints such as bounded first and second derivatives of the trajectory \citep{boyer2016generation}. 
+
+As a result, there is great diversity in the methods proposed. Traditional approaches such as radial spokes \citep{lauterbur1973image} and spirals \citep{meyer1992fast} are typically \textit{model-based, model-driven}, but more recent space filling trajectories like SPARKLING \citep{lazarus2019sparkling} fall under this category. \citet{weiss2019pilot,chaithya2022hybrid} attempted to train non-Cartesian sampling and reconstruction jointly, in an end-to-end fashion, yielding \textit{learning-based, data-driven} approaches, while \citet{wang2021b} proposed to parametrize the trajectories with B-spline to facilitate learning, resulting in a \textit{model-based data-driven} method. Finally, \citep{chaithya2021learning} also proposed to refine the SPARKLING algorithm by learning from data the underlying variable-density distribution, yielding a \textit{learning-based, model-driven} approach. 
+
+These approaches were compared in \citet{chaithya2022benchmarking}, where additional challenges due to non-Cartesian sampling are highlighted. In this setting, it appears that the algorithm used to optimize the sampling trajectory greatly matters, as it is possible for trajectories to remain stuck close to initialization. As a result, merely being a learning-based, data-driven approach does not guarantee an improved performance over model-based model-driven alternatives. Nonetheless, the best performing method was found to be the hybrid learning approach of \citet{chaithya2022hybrid}.
+\end{remark}
+
+%\todot{I think that the two last paragraphs are not clear on their own right.}
+\section{Formalizing learning-based, data-driven mask design}
+Recall the observation setting described in Section \ref{s:acc_MRI}. We consider the problem of accelerated MRI, where we obtain partial information $\yo \in \mathbb{C}^P$ about a ground truth signal $\x \in \mathbb{C}^P$
+\begin{equation*}
+\yo = \mAo\x + \bepsilon =\Po \mF \x + \bepsilon
+\end{equation*}
+where $\bepsilon$ a complex Gaussian noise vector. $\mF$  is the Fourier transform operator, and $\Po$ is our masking operator, implemented as a diagonal matrix with diagonal entries $\mP_{\omega,ii} = 1 \text{ if } i \in \omega$ and $0$ otherwise. $\omega$ denotes the sampling mask and $|\omega| = N$ denotes is cardinality.
+
+As described in Chapter \ref{chap:rec}, we construct an estimate $\xh$ of the ground truth $\vx$ using a reconstruction algorithm $f_\theta$ such that $\xh = f_\theta(\y, \omega)$, where $\theta$ denote the parameters of the reconstruction algorithm. This can correspond to the regularization parameter of a compressed sensing method, or denote all the parameters of a neural network. 
+
+A learning-based approach requires access to a data distribution $p(\rvx)$ that can give us access to reference images, while a data-driven approach requires a way to quantify how close an estimation $\xh$ is from the ground truth $\vx$. This is done by using a performance metric $\eta(\cdot, \cdot): \mathbb{C}^P \times \mathbb{C}^P \to \mathbb{R}$, which we will aim to maximize\footnote{A similar reasoning would hold if one would consider a loss $\ell(\cdot, \cdot): \mathbb{C}^P \times \mathbb{C}^p \to \mathbb{R}$ instead of a performance metric. In this case, one would then need to find the sampling mask that minimizes it.}. The process is illustrated on Figure \ref{fig:acc_model}.
+
+ An ideal sampling algorithm would tailor the mask to each instance of $\vx \sim \px$, solving
+ \begin{equation}
+     \max_{\omega: |\omega|\leq N} \eta(\vx,\hat\vx_\theta(\vy_{\omega}=\mathbf{P}_{\omega}\mA\vx)), \label{eq:adaptive_long}
+ \end{equation} 
+ However, it is evident that such an approach is infeasible in practice, because solving \Eqref{eq:adaptive_long} would require access to the ground truth image $\vx$ at the time of evaluation. This is not the case in reality, where we only have access to fully sampled training signals for training. We turn now to two main approaches to this problem that have been discussed before. They rely on either \textbf{i)} using \textit{non-adaptive} masks, designed on a training set offline and deployed at testing time or \textbf{ii)} using \textit{adaptive} masks, where a sampling \textit{policy} or \textit{heuristic} $\pi_\phi$ is trained offline and then takes patient-adaptive decision during the acquisition at evaluation time.
+
+
+ \begin{figure}[!t]
+    \centering
+      \includegraphics[width=\linewidth]{undersampling_flow_new.pdf}%accelerated_overview/flowchart.pdf}
+      \caption{Overview of sampling in accelerated MRI, using a knee image. Acquisition physically happens sequentially in Fourier space (full readout lines acquired at once), and a \textit{sampling policy} can decide ahead of time what sampling mask to use (non-adaptive sampling), or integrate information from the current reconstruction to decide on the next location to acquire (adaptive sampling).\\
+      Blue dashed lines indicate optional relations: not all policies and reconstruction methods rely on training data, and not all policies are patient-adaptive. The light grayed area indicates that we do not have access to the full ground truth and spectrum at evaluation time, but that we rather directly acquire undersampled data.}
+    \label{fig:acc_model}
+    %\vspace{-1cm}
+\end{figure}
+
+\subsection{Non-adaptive sampling masks}\label{sec:non-adapt}
+In this first setting, given access to a set of training data $\{\vx_1, \ldots, \vx_m\} \sim p(\rvx)$, we aim at finding the mask that exhibits the best average performance, namely
+\begin{equation}
+    \max_{\omega: |\omega| \leq N} \frac{1}{m} \sum_{i=1}^m \eta(\vx_i, \vf_\theta(\vy_{\omega,i}; \omega)) \text{~s.t.~}\vy_{\omega,i} = \mAo\vx_i + \bepsilon.\label{eq:emp_perf}
+\end{equation}
+However, solving \Eqref{eq:emp_perf} remains challenging, due to the combinatorial nature of the problem. It also brings questions of \textit{generalization}, of whether a mask $\omega$ that shows good performance on the training set would also show good performance on a testing set of unseen samples from the same distribution $p(\rvx)$. While standard learning-theoretic can give answer on the generalization problem \citep{gozcu2018learning}, the combinatorial nature of the problem dooms to failure any naive approach, as the total number of different masks grows exponentially, with a complexity $O(2^N)$. 
+
+Two main types of approaches have been proposed for Problem \ref{eq:emp_perf}, relying either on tackling the combinatorial problem in an approximate fashion \citep{gozcu2018learning,zibetti2020fast} or relaxing the mask to a continuous variable that is then solved using gradient-based optimization \citep{bahadir2019learning,aggarwal2020j,weiss2020joint,huijben2020learning,sherry2019learning}. Combinatorial approaches typically tackle Problem \ref{eq:emp_perf} as a \textit{sequential} problem, starting from some initial mask $\omega_0$, and gradually growing the mask until the sampling budget $N$ is exhausted. On the contrary, \textit{continuous} approaches choose to directly optimize the mask at the maximal sampling budget $N$, a setting which we refer as \textit{fixed} sampling.
+%\todoi{Should we further discuss sequential and fixed settings?}
+
+\subsection{Adaptive sampling masks}
+In contrast to Equation \ref{eq:emp_perf}, adaptive sampling generally relies on a two-step procedure, where one must first train a \textit{policy} model $\pi_\phi$, and subsequently evaluate it on testing data. The problem of training the policy reads
+\begin{equation}
+    \max_{\phi} \frac{1}{m} \sum_{i=1}^m \eta(\vx_i, \vf_\theta(\vy_{\omega_T,i})), \text{~where~}
+    \begin{cases}
+        \omega_t = \omega_{t-1}\cup v_t \\
+        v_t\sim \pi_\phi(\vf_\theta(\vy_{\omega_{t-1}}))\\
+        |\omega_t| \leq N
+    \end{cases} t=1,\ldots,T. \label{eq:emp_adapt}
+\end{equation}
+Here, $T$ describes the number of acquisition rounds that the policy does. While the problem may look similar to Problem \ref{eq:emp_perf}, there are \textit{two} fundamental differences to be noted. First, the optimization here is on the \textit{parameters} $\phi$ of the policy model, rather than on the mask itself. Secondly, the problem is inherently sequential, as the mask is gradually built from atoms $v_t$, $t=1,\ldots,T$ that are all given from the policy $\pi_\phi$ at different stages in the acquisition. 
+
+Solving the problem remains challenging, as gradient-based optimization of $\phi$ remains challenging, due to the sampling operation $v_t \sim \pi_\phi((\vf_\theta(\vy_{\omega_{t-1}}))$ preventing a direct computation of the gradients. As a result, two main approaches can be found to tackle this problem, relying either again on relaxing the mask to a continuous variable \citep{van2021active,yin2021end}, or leveraging reinforcement learning \citep{bakker2020experimental,pineda2020active, jin2019self}, which is naturally suited to consider the problem of searching the policy that yields the best performance given a changing environment. In our case, the environment is described by the unknown underlying ground truth. 
+
+The second stage of adaptive sampling is the \textit{inference} step, where the trained policy $\pi_\phi$ is then used to guide the acquisition of an unseen image $\vx_{\text{test}}$:
+\begin{equation}
+    v_{t+1} \in \argmax_{v \in [P]} [\pi_\phi(\vf_\theta(\vy_{\omega_t, \text{test}}))]_v \label{eq:inference_adaptive}
+\end{equation}
+where $[\cdot]_v$ denotes the $v$-th entry of the vector, $\omega_{t}=\omega_{t-1}\cup v_t$, for $t=1,\ldots,T$. At inference time, we see that the test image is gradually sampled at the locations $v_t$ provided by the policy and based on the reconstruction at the previous step.
+
+\begin{remark}[Using heuristics] The inference of \Eqref{eq:inference_adaptive} is not restricted to policies trained following \Eqref{eq:emp_adapt}, but can be paired with different heuristics. For instance, \citet{zhang2019reducing} trained an \textit{evaluator} that estimates the error made by the reconstruction model at the different locations to be acquired. They then use this heuristic for sampling, by acquiring at each step the location that is estimated to have the highest reconstruction error. 
+
+We refer to this approach as a \textit{heuristic} rather than a \textit{policy} because it is not specifically trained to estimate what would be the best location to answer next; it only trains a model that estimates the current reconstruction error, and then uses it in a greedy fashion.
+    
+We will expand upon the use of heuristics for adaptive sampling in Chapter \ref{ch:gans}, where we propose to use the variance of a generative adversarial network \citep{goodfellow2014generative} to perform adaptive sampling.
+\end{remark}
+
+\begin{remark}[Non-sequential adaptive sampling] Although a sequential acquisition is a natural choice for adaptive sampling, it is possible to perform patient-adaptive sampling with a fixed (non-sequential) mask. 
+    
+This was done for instance by \citet{bakker2021learning}, where in the case of multi-coil MRI, the authors used the auto-calibration signal (ACS), a small set of measurements that is systematically acquired, to design a patient-adaptive fixed mask in a one-shot fashion. They inputted the measurements into a policy model that outputs a single mask for the rest of the acquisition as a result. However, their results surprisingly show that their best performing sampling policies explicitly learn to be non-adaptive, and their results provide then a state-of-the-art \textit{non-adaptive} sampling mask.
+\end{remark}
+
+
+
+%\newpage
+\subsection{On the optimality of the discrete mask optimization problem}
+In the previous sections, we defined Problems \ref{eq:adaptive_long} and \ref{eq:emp_perf} as optimization problems over masks. However, compressed sensing approaches \citet{puy2011variable, chauffert2013variable} rather optimized the probability \textit{distribution} from which masks are subsequently drawn. These arguments were also constructed in the context of model-based, model-driven methods, aiming at minimizing coherence. Can we relate the optimization of a probability distribution to the optimization of a discrete mask such as Problem \ref{eq:emp_perf}? How does the problem of finding an optimal probability distribution change when moving from a model-based, model-driven context to a learning-based, data-driven context? These are the questions that we will answer in this section.
+
+% \begin{remark}[A non-Cartesian perspective on the question]
+    % We note that in the case of non-Cartesian sampling, the question of optimizing the probability distribution now relates to optimizing a trajectory
+% \end{remark}
+
+%Compressed sensing has traditionally relied on random sampling \citep{donoho2006compressed,candes2006robust}, while aiming to minimize some mathematical criterion such as coherence. In MRI, variable-density sampling \citep{lustig2007sparse}, where a random mask is drawn from a non-uniform distribution, has traditionally prevailed. Previous works, such as \citet{puy2011variable, chauffert2013variable} aimed at finding an \textit{optimal} variable-density distribution with respect to coherence. However, it is not clear what happens when one moves from a model-based to a learning-based approach, and aim at finding an optimal mask rather than an optimal distribution. Can one construct an optimal distribution from which to sample masks in a data-driven fashion? If yes, how would Problem \ref{eq:emp_perf} relate to it? 
+While in \citet{chauffert2013variable}, the optimization was done on the distribution $\pi$ from which masks are subsequently sampled, in our case, the performance metric will be optimized directly for a fixed mask rather than a distribution. We will formally show below that in a data-driven context, we can construct an optimal sampling distribution $\pi$ from an optimal mask. The optimal mask describes the support of an optimal probability distribution. 
+
+We model the mask designing process as finding a probability mass function (PMF) $\pi \in S^{P-1}$, where $S^{P-1} := \{\pi \in [0,1]^P : \sum_{i=1}^P \pi_i =1\}$ is the standard simplex in $\mathbb{R}^P$. $\pi$ assigns to each location $i$ in the $k$-space a probability $\pi_i$ to be acquired. The mask is then constructed by drawing without replacement from $\pi$ until the cardinality constraint $|\omega|=N$ is met. We denote this dependency as $\omega(\pi,N)$. The problem of finding the optimal sampling distribution is subsequently formulated as \useshortskip
+\begin{equation}
+\max_{\pi\in S^{P-1}} \eta(\pi), 
+\qquad \eta(\pi) :=  \mathbb{E}_{\substack{\omega(\pi,N)\\ \vx \sim p(\rvx)}}\left[\eta\left(\vx, \vf_\theta\left(\vy,\omega\right)\right)\right],
+\label{eq:main}
+\end{equation}
+where the index set $\omega\subset [P] $ is generated from $\pi$ and $[P] := \{1,\ldots,P\}$. This problem corresponds to finding the probability distribution $\pi$ that maximizes the expected performance metric with respect to the data $p(\vx)$ and the masks drawn from this distribution. To ease the notation, we will use $\eta\left(\vx, \vf_\theta\left(\vy,\omega\right)\right) \equiv \eta\left(\vx; \omega\right)$.
+
+In practice, we do not have access to $\mathbb{E}_{p(\vx)} \left[\eta(\vx; \omega)\right]$ and instead have at hand the training images $\{\vx_i\}_{i=1}^m$ drawn independently from $p(\vx)$. We therefore maximize the \textit{empirical} performance by solving \useshortskip
+\begin{equation}
+\label{eq:emp}
+\max_{\pi\in S^{P-1}}  \eta_m(\pi), \text{~~~~} \eta_m(\pi) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(\pi,N)}\left[\eta(\omega,\vx_i)\right].
+ \end{equation}\useshortskip 
+Note that Problem \ref{eq:emp}, while being an empirical maximization problem, is distinct from Problem \ref{eq:emp_perf} above, as it seeks to optimize the distribution from which masks are drawn, and as a result, performs an expectation over all the masks drawn from it.
+
+Given that Problem \ref{eq:emp} looks for  masks that are constructed by sampling $N$ times without replacement from $\pi$, the following holds.
+\begin{proposition}
+There exists a maximizer of Problem \ref{eq:emp} that is supported on an index set of size at most $N$.\label{prop:1}
+
+{\normalfont \noindent \textit{Proof.}  Let the distribution $\widehat{\pi}_n$ be a maximizer of Problem~\ref{eq:emp}. We are interested in finding the support of $\widehat{\pi}_n$. Because $\sum_{|\omega|=N}\Pr[\omega]=1$, note that 
+
+    \begin{align}
+    \max_{\pi\in S^{P-1}}  \eta_m(\pi) & := \max_{\pi\in S^{P-1}}  \sum_{|\omega|=N}  \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\omega) \cdot \Pr[\omega|\pi]\nonumber\\ 
+    & \le \max_{\pi\in S^{P-1}} \max_{|\omega|=N} \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i}; \omega) \nonumber\\
+    & = \max_{|\omega|=N}   \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\omega).  \nonumber
+    \end{align}
+    Let $\widehat{\omega}_N$ be an index set of size $N$ that maximizes the last line above. 
+    The above holds with equality when $\Pr[\widehat{\omega}_N]=1$ and $\Pr[\omega]=0$ for $\omega\ne \widehat{\omega}_N$ and $\pi=\widehat{\pi}_N$. This in turn happens when $\widehat{\pi}_N$ is  supported on $\widehat{\omega}$. That is, there exists a maximizer of Problem \ref{eq:emp} that is supported on an index set of size $N$. \hfill $\square$}
+\end{proposition}
+
+While this observation does not indicate how to find this maximizer, it nonetheless allows us to simplify Problem \ref{eq:emp}. More specifically, the observation that a distribution $\widehat{\pi}_N$ has a compact support of size $N$ implies the following:
+\begin{proposition}
+\begin{equation}
+\text{Problem \ref{eq:emp}} \equiv  \max_{|\omega|=N}  \frac{1}{m}\sum_{i=1}^m \eta(\vx_{i}; \omega) \label{eq:greedy}
+\end{equation}\label{prop:2}
+
+
+    {\normalfont \noindent \textit{Proof.} Proposition~\ref{prop:1} tells us hat a solution of Problem~\ref{eq:emp} is supported on a set of size at most $n$, which implies
+    \begin{equation}
+    \text{Problem \ref{eq:emp}} \equiv 
+    \max_{\pi\in S^{P-1}: |\text{supp}(\pi)| = N }\eta_m(\pi)\label{eq:main emp equiv 1}.
+    \end{equation} 
+    That is, we only need to search over compactly supported distributions $\pi$. Let $S_\Gamma$ denote the standard simplex on a support $\Gamma\subset [P]$. It holds that
+    \begin{align}
+    \text{Problem \ref{eq:main emp equiv 1}} &  \equiv
+    \max_{|\Gamma|=N} \max_{\pi\in S_\Gamma}\eta_m(\pi) \nonumber\\
+    % = \max_{|\Gamma|=N} &\max_{\pi\in S_\Gamma} \sum_{|\omega|=N}\frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\omega) \cdot \Pr[\omega|f] \nonumber\\
+    = \max_{|\Gamma|=N} &\max_{\pi \in S_\Gamma} \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\Gamma) \cdot \Pr[\Gamma|\pi] \nonumber\\
+    = \max_{|\Gamma|=N}& \max_{\pi \in S_\Gamma} \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\Gamma) \nonumber\\
+    =  \max_{|\Gamma|=N} & \frac{1}{m}\sum\nolimits_{i=1}^m\eta(\vx_{i};\Gamma).
+    \label{eq:main emp equiv 2}
+    \end{align}
+    To obtain the second and third equalities, one observes that all masks have a common support $\Gamma$ with $N$ elements, i.e. $\pi\in S_\Gamma$ allows only for a single mask $\omega$ with  $N$ elements, namely $\omega=\Gamma$. \hfill $\square$}
+    
+\end{proposition}
+%As $\omega$ is obtained by sampling $n$ times without repetition from $f$, then $\omega = \Gamma$ after $n$ draws, so $\Pr[\Gamma|f]=1$%the all masks all be contained on the same support $\Gamma$, which means that in the end, a single mask supported on~$\Gamma$ will be obtained with $\Pr[\Gamma]=1$.
+%which is exactly the formulation of equation \eqref{eq:erm}, which means that trying to learn an optimal support is equivalent to trying to learn the optimal sampling distribution.
+The framework of Problem~\ref{eq:emp} captures most variable-density based approaches of the literature that are defined in a learning-based fashion \citep{knoll2011adapted,ravishankar2011adaptive,vellagoundar2015robust,haldar2019oedipus,bahadir2019learning,sherry2019learning}, and Proposition \ref{prop:2} shows that Problem~\ref{eq:main emp equiv 2}, that we tackled in \citet{gozcu2018learning,gozcu2019rethinking,sanchez2019scalable} and develop in Chapter \ref{chap:lbcs}, also aims at solving the \textit{same} problem as these probabilistic approaches. 
+\todoi{Think again to what it is applicable. Does it capture most VD approaches? They are non data-driven in most cases. This might need to be revised.}
+
+Note that while the present argument considers sampling \textit{points} in the Fourier space, it is readily applicable to the Cartesian case, where full lines are added to the mask at once.
+
+Several additional observations and remarks can be made. The argument presented here is thus mainly a justification of the objective of \Eqref{eq:emp_perf} that we use for a greedy mask optimization: we do not aim at solving a fundamentally different problem than the one of finding the optimal sampling density in a data-driven approach when trying to find the best performing mask. Indeed, Proposition \ref{prop:2} shows that we do not need to find a density, but that finding the support of cardinality $N$ of an optimal distribution is sufficient. And proposition \ref{prop:1} shows the existence of an optimal distribution with such a support. 
+
+The argument does not formally prove the suboptimality of variable-density sampling, although one can argue for this from the intuition that these results bring. Indeed, any distribution not compactly supported on a set of $N$ optimal location will open the possibility to a suboptimal mask being sampled by doing sampling without replacement. The heuristic of picking sampling locations at random without replacement could be a cause of the worse practical performance of VDS compared to LBCS, as we will see in Section \ref{s:exp_slbcs} of next Chapter.
+
+Finally, these propositions do not prescribe any particular algorithm that should be used to solve Problem \ref{eq:emp_perf}. Rather, they are limited to establishing an equivalence between \textit{problems}, and do not speak either about the expected \textit{generalization} of these solutions. Generalization is however addressed by standard learning theoretic arguments \citep{gozcu2018learning}. 
+
+
+\section*{Bibliographic note}
+Propositions \ref{prop:1} and \ref{prop:2} are due to Armin Eftekhari. 
+%\section{This thesis in perspective}
+
+%The work carried out in this thesis was done within the recent developments for optimizing the sampling pattern in accelerated MRI. Our two first contributions extend the setting of \citet{gozcu2018learning}. This method showed excellent performance, but has prohibitive running costs on imaging settings where a new sampling location has to be chosen out of a large set of candidates, as it would be the case on 3D MRI or dynamic MRI. In addition, the experiments in \citet{gozcu2018learning} did not cover parallel MRI, a setting that is much closer to the real-world sampling than single-coil. The original method also did not scale well with large training datasets. Our first contribution \citet{gozcu2019rethinking} tackles the issues of parallel and multi-coil MRI, while the second \citet{sanchez2019scalable} tackled the issue of larger datasets, of dynamic MRI along with multicoil MRI. 
+
+%A second part of this thesis aims at putting in perspective our extension of the setting of \citet{gozcu2018learning,sanchez2019scalable} with the state-of-the-art approaches proposed in \citet{pineda2020active,bakker2020experimental}. In particular, we show in \citet{sanchez2021on} that these expensive methods do not necessarily bring a significant performance boost over this simpler approach. This work highlights the issue of the lack of standardized evaluation setting, reporting metrics, common baselines and training pipelines for deep learning-based approaches to mask optimization in MRI. 
+
+%Finally, the last part of this thesis proposes a novel, posterior-based sampling approach that leverages the variance in the posterior as a tool to guide sampling for MRI and other inverse problems \citep{sanchez2020uncertaintydriven,sanchez2020closed}. 
+
+
+
+%\todot{Elements to discuss.\\ Mention that we focus on these two cases as interesting representatives of the motivations.
+%However, even the very first works that apply it to MRI relied on different heuristics than pure random sampling \citep{lustig2007sparse,gamper2008compressed}. Several reasons deserve to be highlighted. First, purely random sampling of k-space is not practical for MRI acquisition, as this does not enable a meaningful acceleration of the sampling, due to the constraint of acquiring full frequency-encoded lines at once \todoi{Check the terminology. Discuss in ch. 1 what are practical trajectories. \citet{lustig2007sparse} mentions "It is simple and also highly robust to numerous sources of imperfection."}. These first heuristics aimed at taking into account the structure of the signal in Fourier space in order to improve the quality of the reconstruction, while maintaining a high level of incoherence. This is what led \citet{lustig2008compressed} to propose that Cartesian sampling masks could be drawn from a distribution sampling more heavily from the center of k-space (low frequencies with high energy) and where the probability of sampling a line decayed at a polynomial rate when moving away. Several masks were drawn from this distribution and the mask with minimal coherence was retained. \todot{Maybe speak in greater depth of polynomial decay, to give an example of VDS?}
+
+
+%In both of these cases, it is interesting to see that these approaches both leveraged a model to construct their mask: we can interpret the approach of \citet{lustig2008compressed} as constructing a prior from which candidate masks are sampled and ranked according to an incoherence criterion. In the case of \citet{gamper2008compressed}, the prior is constructed as a structured mask \citet{tsao2003k} that is subsequently randomized, in order to account for the prescriptions of the compressed sensing theory. It is clear that for these early approaches, non-learned heuristics dominate the mask design. 
+
+%Moreover, we see also a second, parallel trend: these first approaches, being driven by mathematical models, relied only on the structure of the \textit{measurement} matrix, + moving from model driven to data driven subtly: the first recon based approaches, if I understand correctly, are already data-driven. Check \citet{liu2012under} for this.
+
+%\citep{liu2012under} Uses the framework of \citep{seeger2010optimization} with the criterion of \citep{ravishankar2011adaptive}. Aims at (1) the design scheme should be reconstruction-guidance-based not observation-based. (2) in the optimization procedure, criterion could effectively reveal the underlying structure of k-space and computation complexity should be low. (3) the designed trajectory should possess incoherence property, reasonable distribution in low and high frequency domain and robust transplantation from training set to test set.
+
+%Similarly to reconstruction methods, sampling methods underwent a transition from relying purely on model-driven approaches to using complex data-driven reinforcement learning approaches that enable long-term planning and adaptation of the sampling pattern to the patient at test time. \todoi{This leaves a bit of suspense overall: we don't immediately disclose the main results of our thesis.}
+
+
+%Outline of the section:
+
+%\citet{lustig2007sparse}: "In \citep{donoho2006compressed,candes2006robust},sampling a completely random subset of k-space was chosen to simplify the mathematical proofs and in particular to guarantee a very high degree of incoherence." 
+%+ Sample 2-5 times the number of sparse coefficients + introduce polynomial decay and minimize coherence with MC sampling to select the final mask. 
+%I think that a good setting would be to explain the definition of coherence, and then state some CS result about what this implies about the number of measurements to guarantee good reconstructions. Then, we would discuss the limitations of this: unfeasible in practical MRI, which requires more structured sampling, and the issues  with Cartesian sampling \citep{lustig2008compressed} with line-wise sampling being much more coherent than purely random sampling. We could also then briefly discuss why we do no pursue non-Cartesian sampling. Here, references to the challenges of non-Cartesian sampling approaches would be relevant. 
+
+%It is clear that the early approaches applying compressed sensing to MRI relied on a model or external principle from which to build a mask : \citep{lustig2008compressed} sampled masks from a parametric polynomial distribution over the k-space and ranked them according to coherence. \citep{knoll2011adapted} chose to instead design the sampling probability distribution function from data, by considering the average energy distribution in Fourier over the whole volume considered. The masks obtained are still selected according to coherence. 
+
+%+ Note that coherence is explicitly tied to the sparsity domain considered.
+
+%One can distinguish two elements when trying to construct a mask to use for accelerated: the distribution from which the mask is constructed and the metric used to assess its quality. 
+
+%\citep{weiss2007learning} -> about learning the sampling in CS: sampling pattern designed by finding the uncertain components to acquire. Based on training data. Similar as doing maximal entropy sampling or minimizing conditional entropy.  
+
+%\citep{seeger2007bayesian,seeger2008compressed,seeger2009bayesian,seeger2010optimization} -> The work of Seeger et al. is an important first step in into learning methods. It is about imposing a sparse Bayesian model and leveraging expectation propagation to compute an approximate posterior distribution that can subsequently be updated with new measurements. It is interesting to see the comparison of \citet{seeger2008compressed} with \citet{ji2008bayesian}, where it is shown that the approach of Seeger et al. enables much better performance at adaptive sampling, due to poor \textit{covariance} estimates in \citet{ji2008bayesian}, that aggressively sparsifies solutions early on, which does not hurt prediction performance much. This testifies to the importance of solid uncertainty estimation. What is approximated here is $p(\vu|\vy)$, i.e. the posterior distribution of latent variables (pixels) given noisy measurements. Given a Gaussian approximate posterior $Q(\vu)$, and an approximate posterior including a measurement at a new location $\vx_*$, the entropy difference reads, $\frac{1}{2}\log\left(1+\sigma^{-2}\vx_*^T \text{Cov}_{Q}[\vu]\vx_*\right)$, which is maximized by choosing $\vx_*$ along the leading eigendirection of $\text{Cov}_{Q}[\vu]$, which is equivalent to taking a measurement at the location with the largest variance, similarly as in \citet{ji2008bayesian}. This approach is successful because the measurement model is included explicitly into the construction of the approximate posterior, enabling to compute the information that adding a measurement would imply in the model. The conclusions of \citet{seeger2008compressed} also align with the ones of \citet{weiss2007learning} in that CS on natural images is suboptimal due in particluar to the theory omitting any structure apart from randomly distributed sparsity patterns, and deriving some kind of worst-case performance, which is far from typical performance of the method.
+
+%\citep{puy2011variable,chauffert2013variable} to include and discuss, also discussed a bit on p.150 of my BBNB
+
+%\citet{chauffert2014variable,boyer2016generation,lazarus2019sparkling}
+%\citet{ahmad2015variable,li2018dynamic}
+%}

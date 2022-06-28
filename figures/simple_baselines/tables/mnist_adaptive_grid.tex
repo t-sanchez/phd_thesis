@@ -1,0 +1,94 @@
+\begin{figure}[h]
+\begin{minipage}[c]{0.48\textwidth}
+\begin{center}
+\resizebox{\textwidth}{!}{
+    \begin{tabular}{llcccc}
+     \toprule
+    \multirow{2}{*}{\textbf{Domain}}&\multirow{2}{*}{\textbf{Recon. model}}& \multicolumn{4}{c}{\textbf{Sampling Model}}\\
+    \cmidrule{3-6} && WGAN & NC & AO & Zhang\\
+    \midrule
+    \multirow{3}{*}{\textbf{Image}}& WGAN& $28.02$ & $27.89$ & $30.73$ & $--$\\
+    & NC& $28.92$ & $34.98$ & $28.44$ & $--$\\
+    & AO& $24.03$ & $19.82$ & $34.19$ & $--$\\
+    \midrule
+    \multirow{4}{*}{\textbf{Fourier}}& WGAN& $24.4$& $23.95$ & $22.83$& -\\
+    & NC& $25.09$ & $25,35$ & $23.81$& $--$\\  
+    & AO& $24,34$ & $24,21$ & $23.44$& -\\  
+    & Zhang& $--$ & $--$ & $--$& $--$\\  
+    \bottomrule
+    \end{tabular}
+    }\captionof{table}{ResUNet table. Average PSNR test set AUC (one AUC per image) with on MNIST.}\label{tab:comp_mnist_psnr2} 
+\end{center}
+%Here mask embedding seems to do a diff but we report without it.
+
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+\begin{center}
+\resizebox{0.96\textwidth}{!}{
+    \begin{tabular}{llcccc}
+     \toprule
+    \multirow{2}{*}{\textbf{Domain}}&\multirow{2}{*}{\textbf{Recon. model}}& \multicolumn{4}{c}{\textbf{Sampling Model}}\\
+    \cmidrule{3-6} && WGAN & NC & AO & Zhang\\
+    \midrule
+    \multirow{3}{*}{\textbf{Image}}& WGAN& $0.90$ & $0.89$ & $0.92$ & -\\
+    & NC& $0.91$ & $0.91$ & $0.90$ & -\\
+    & AO& $0.90$ & $0.84$ & $0.94$ & -\\
+    \midrule
+    \multirow{4}{*}{\textbf{Fourier}}& WGAN& $0.55$& $0.54$ & $0.48$& -\\
+    & NC& $0.59$ & $0.59$ & $0.53$& $--$\\  
+    & AO& $0.56$ & $0.55$ & $0.5$& -\\  
+    & Zhang& $--$ & $--$ & $--$& $--$\\  
+    \bottomrule
+    \end{tabular}
+    }\captionof{table}{ResUnet table. Average SSIM set AUC (one AUC per image) on MNIST.}\label{tab:comp_mnist_ssim2} 
+\end{center}
+\end{minipage}
+\end{figure}
+
+\begin{figure}[h]
+\begin{minipage}[c]{0.48\textwidth}
+\begin{center}
+\resizebox{\textwidth}{!}{
+    \begin{tabular}{llcccc}
+     \toprule
+    \multirow{2}{*}{\textbf{Domain}}&\multirow{2}{*}{\textbf{Recon. model}}& \multicolumn{4}{c}{\textbf{Sampling Model}}\\
+    \cmidrule{3-6} && WGAN & NC & AO & Zhang\\
+    \midrule
+    \multirow{3}{*}{\textbf{Image}}& WGAN& $28.33$ & $23.33$ & $24.45$ & -\\
+    & NC& $26.92$ & $35.44$ & $27.78$ & -\\
+    & AO& $23.82$ & $23.19$ & $27.98$ & -\\
+    \midrule
+    \multirow{4}{*}{\textbf{Fourier}}& WGAN& $24.34$& $24.90$ & $24.29$&  $20.45$\\
+    & NC& $26.87$ & $28.93$ & $27.63$& $22.15$\\  
+    & AO& $24.27$ & $25.08$ & $24.88$& $20.16$\\  
+    & Zhang& $-$ & $-$ & $-$& $21.94$\\  
+    \bottomrule
+    \end{tabular}
+    }\captionof{table}{cResNet table. Average PSNR test set AUC (one AUC per image) with on MNIST.}\label{tab:comp_mnist_psnr2} 
+\end{center}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+\begin{center}
+\resizebox{0.96\textwidth}{!}{
+    \begin{tabular}{llcccc}
+     \toprule
+    \multirow{2}{*}{\textbf{Domain}}&\multirow{2}{*}{\textbf{Recon. model}}& \multicolumn{4}{c}{\textbf{Sampling Model}}\\
+    \cmidrule{3-6} && WGAN & NC & AO & Zhang\\
+    \midrule
+    \multirow{3}{*}{\textbf{Image}}& WGAN& $0.91$ & $0.89$ & $0.90$ & -\\
+    & NC& $0.91$ & $0.96$ & $0.93$ & -\\
+    & AO& $0.87$ & $0.87$ & $0.92$ & -\\
+    \midrule
+    
+    \multirow{4}{*}{\textbf{Fourier}}& WGAN& $0.6$& $0.57$ & $0.56$&$0.44$\\
+    & NC& $0.79$ & $0.78$ & $0.77$& $0.52$\\  
+    & AO& $0.61$ & $0.57$ & $0.57$& $0.43$\\  
+    & Zhang& $-$ & $-$ & $-$& $0.52$\\  
+    \bottomrule
+    \end{tabular}
+    }\captionof{table}{cResNet table. Average SSIM set AUC (one AUC per image) on MNIST.}\label{tab:comp_mnist_ssim2} 
+\end{center}
+\end{minipage}
+\end{figure}

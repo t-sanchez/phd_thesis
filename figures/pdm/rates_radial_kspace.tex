@@ -1,0 +1,134 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\begin{tikzpicture}[spy using outlines=
+	{rectangle, magnification=2.3, connect spies, every spy on node/.append style={thin}}]%, every pin/.style={fill=white}]
+
+\begin{axis}[%
+width=2.7in,
+height=1.7in,
+at={(0.758in,0.481in)},
+scale only axis,
+xmin=0,
+xmax=0.3,
+xlabel style={font=\color{white!15!black}},
+xlabel={Sampling rate},
+ymin=27,
+ymax=37.5,
+ylabel style={font=\color{white!15!black}},
+ylabel={PSNR},
+axis background/.style={fill=white},
+xmajorgrids,
+ymajorgrids,
+title={Comparison with $\*x_{\text{radial, i}}$},
+ytick={27,28,29,30,31,32,33,34,35,36,37},
+yticklabels={27,{},29,{},31,{},33,{},35,{},37},
+xtick={0, 0.05,0.1,0.15,0.2,0.25,0.3},
+xticklabels={0, {0.05},0.1,0.15,0.2,0.25,0.3},
+legend style={at={(0.4,0.05)}, anchor=south west, legend cell align=left, align=left, draw=white!15!black}
+]
+\addplot [color=blue,  mark=x, mark options={solid, blue}, forget plot]
+  table[row sep=crcr]{%
+0.025	27.3332997697084\\
+0.05	30.1998127095317\\
+0.075	31.9802823358828\\
+0.1	33.2266730346306\\
+0.125	34.1988144184603\\
+0.15	34.8612831898287\\
+0.175	35.4714111080465\\
+0.2	35.6269092040207\\
+0.225	35.7560469738236\\
+0.25	36.0612698671979\\
+0.275	36.3347039866566\\
+0.3	36.9391680703387\\
+};
+\addplot [color=red, dashdotted, mark size=1pt, mark=*, mark options={solid, red}, forget plot]
+  table[row sep=crcr]{%
+0.025	27.0217154847296\\
+0.05	29.2228536115997\\
+0.075	30.7952657729741\\
+0.1	31.8803307930429\\
+0.125	32.8873298146683\\
+0.15	33.744794368452\\
+0.175	34.5644880771616\\
+0.2	35.4459843290354\\
+0.225	36.0543596249987\\
+0.25	36.2817574432956\\
+0.275	36.3455931291089\\
+0.3	36.5827961686373\\
+};
+\addplot [color=black, dashed, forget plot]
+ plot [error bars/.cd, y dir = both, y explicit]
+ table[row sep=crcr, y error plus index=2, y error minus index=3]{%
+0.025	26.9471706596344	0.281509705787854	0.281509705787854\\
+0.05	29.3866033002325	0.275967805527492	0.275967805527492\\
+0.075	31.0461871578821	0.285126929442503	0.285126929442503\\
+0.1	32.3503802978871	0.243277490592917	0.243277490592917\\
+0.125	33.3338605211767	0.157107865576106	0.157107865576106\\
+0.15	34.0261926869286	0.509677823450648	0.509677823450648\\
+0.175	34.7607130826854	0.192346095407791	0.192346095407791\\
+0.2	35.3214086443121	0.262167457027189	0.262167457027189\\
+0.225	35.7517329934733	0.232904317376325	0.232904317376325\\
+0.25	36.0162231477352	0.54297457019025	0.54297457019025\\
+0.275	36.1487783507882	0.913760644999325	0.913760644999325\\
+0.3	36.4972559664341	0.747851271156887	0.747851271156887\\
+};
+\draw (0.21,35) rectangle (0.28,37.2); 
+
+\draw (0.245,35) -- (0.21,32);
+%\coordinate (spypoint) at (axis cs:0.2,36.1);
+%\coordinate (magnifyglass) at (axis cs:0.215,30);
+\end{axis}
+%\spy [black, width=3.1cm,  height=1.9cm,] on (spypoint)
+%   in node[fill=white] at (magnifyglass);
+
+    \begin{axis}[
+      tiny,
+      axis background/.style={fill=white!10},
+      grid=major,
+      width=5cm,
+	  height=3.3cm,
+	  at={(2in, 0.68in)},       
+      %x unit={eV},
+      xmin=0.21,xmax=0.28,
+      ymin=35,ymax=37.2,
+	  ytick={35, 35.5, 36, 36.5, 37},
+	  yticklabels={35, {}, 36, {}, 37},      
+	  xtick={0.21, 0.22, 0.23, 0.24, 0.25, 0.26, 0.27},
+	  xticklabels={0.21, {}, 0.23, {}, 0.25, {}, 0.27},
+    ]
+	\addplot [color=black, dashed, forget plot]
+	 plot [error bars/.cd, y dir = both, y explicit]
+ 	table[row sep=crcr, y error plus index=2, y error minus index=3]{%
+	0.2	35.3214086443121	0.262167457027189	0.262167457027189\\
+	0.225	35.7517329934733	0.232904317376325	0.232904317376325\\
+	0.25	36.0162231477352	0.54297457019025	0.54297457019025\\
+	0.275	36.1487783507882	0.913760644999325	0.913760644999325\\
+	0.3	36.4972559664341	0.747851271156887	0.747851271156887\\
+	};
+\addplot [color=blue,  mark=x, mark options={solid, blue}, forget plot]
+  table[row sep=crcr]{%
+0.2	35.6269092040207\\
+0.225	35.7560469738236\\
+0.25	36.0612698671979\\
+0.275	36.3347039866566\\
+0.3	36.9391680703387\\
+};
+\addplot [color=red, dashdotted, mark size=1pt, mark=*, mark options={solid, red}, forget plot]
+  table[row sep=crcr]{%
+0.2	35.4459843290354\\
+0.225	36.0543596249987\\
+0.25	36.2817574432956\\
+0.275	36.3455931291089\\
+0.3	36.5827961686373\\
+};	
+
+\draw[line width=.3mm] (0.21,35) rectangle (0.28,37.2); 
+	
+    \end{axis}
+
+
+\end{tikzpicture}%

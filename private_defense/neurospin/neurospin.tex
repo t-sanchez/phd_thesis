@@ -1,0 +1,736 @@
+%\setbeamertemplate{itemize items}[default]
+
+%!TEX root = Neurospin_2020.tex
+
+\section{Accelerated MRI\\[-3mm]{\normalsize Reconstruction and Sampling}}
+
+\begin{frame}{Problem setting\\[-3mm]{\normalsize Accelerated MRI -- Cartesian acquisition}}
+\vspace{-2mm}
+ \begin{block}{Acquisition model}
+\centering
+\only<1>{ $\vy = \Po\mF\vx + \vw  \in\mathbb{C}^P$}
+\only<2>{ $\vy = \mAo\vx + \vw  \in\mathbb{C}^P$}
+ \end{block}
+
+
+\begin{columns}
+\column{0.35\textwidth}
+\begin{itemize}
+\item For simplicity: Cartesian setting \textit{only}. \\[.3cm]
+
+\item Reconstruction: Use a \textbf{reconstruction algorithm} $g$ to form an estimate $\mathbf{\hat{x}}$ of $\vx$.
+\end{itemize}
+
+\column{0.7\textwidth}
+\begin{figure}[!t]
+\centering
+\vspace{-.2cm}
+\begin{tabular}{ccc}
+{ \footnotesize Fourier spectrum} & & \hspace{-.3cm}{\footnotesize Measurement}\\
+ $\mF\vx$ & & \hspace{-.3cm} \alt<1>{ $\vy=\Po\mF\vx$}{ $\vy=\mAo\vx$}\\
+\includegraphics[width=.27\textwidth]{neurospin/figs/accelerated_mri/fourier_spectrum} &
+\hspace{-.4cm}\multirow{2}{*}[21mm]{\centering{\includegraphics[width=.27\textwidth,height=.32\textwidth]{neurospin/figs/accelerated_mri/arrow_schema}}}  &
+\hspace{-.3cm}\includegraphics[width=.27\textwidth]{neurospin/figs/accelerated_mri/fourier_spectrum_undersampled.png} \\[-1.5mm]
+$\Downarrow$&    &\hspace{-.3cm}$\Downarrow$ \\
+\includegraphics[width=.27\textwidth]{neurospin/figs/accelerated_mri/im_full.png}   & \hspace{-.4cm} \includegraphics[width=.27\textwidth]{neurospin/figs/accelerated_mri/mask.png} &  
+\hspace{-.3cm}\includegraphics[width=.27\textwidth]{neurospin/figs/accelerated_mri/im_aliased}  \\
+\multirow{2}{*}{ \footnotesize Image $\vx$} & \hspace{-.4cm}\multirow{2}{*}{ \footnotesize Mask $\omega$} &\hspace{-.3cm} { \footnotesize Undersampled}\\
+&&\hspace{-.3cm} {\footnotesize image  \alt<1>{$(\Po\mF)^{\dagger}\vy$}{$\mF_\omega^{\dagger}\vy$}}\\
+
+\end{tabular}
+ \end{figure}
+
+\end{columns}
+\end{frame}
+
+\begin{frame}{Reconstruction\\[-3mm] {\normalsize Compressed Sensing approach}}
+ \framesubtitle{Subtitles can be in lowercase if they are full sentences.}
+ \begin{block}{Acquisition model}
+\centering
+%$\vy = \mAo\vx + \vw  \in\mathbb{C}^P$
+ \end{block}
+\begin{block}{Reconstruction algorithm}
+\vspace{-.7cm}
+\begin{align*}
+\min_\vx~&~\mathcal{R}(\vx) \\
+\textrm{s.t.}~&~\|\mAo \vx-\vy\|_2 \leq \varepsilon.
+\end{align*}
+where $\mathcal{R}(\vx)$ promotes sparsity in some basis.
+\end{block}
+
+Some examples:
+
+\begin{tabular}{ll}
+\quad$\bullet$ Sparsity in a domain $\mW$ \parencite{lustig2007sparse}:&$\mathcal{R}(\vx) = \|\mW\vx\|_1$ \\
+\quad$\bullet$ Total variation (TV): &$\mathcal{R}(\vx) = \|\vx\|_{\textrm{TV}}$\\
+%\quad$\bullet$ Hybrid \parencite{lustig2007sparse}: &$\mathcal{R}(\vx) = \|\mW\vx\|_1 +\alpha \|\vx\|_{\textrm{TV}}$\\
+\quad$\bullet$ Low-rank Hankel matrix \parencite{jin2016general}: &$\mathcal{R}(\vx) = \|\mathbb{H}(\vx)\|_*$
+
+\end{tabular}
+
+
+%$$\min_\vz \|\mAo \vz-\vy\|_2^2 +  \lambda\mathcal{R}(\vz)$$
+\vspace{10cm}
+\end{frame}
+
+\begin{frame}[t]{Reconstruction\\[-3mm]{\normalsize From model-driven to data-driven regularization}}
+\begin{enumerate}
+\begin{block}{Reconstruction algorithm (regularized)}
+\vspace{-.4cm}
+$$ \min_\vx \|\mAo \vx-\vy\|_2^2 + \lambda \mathcal{R}(\vx) $$
+\vspace{-.4cm}
+\end{block}
+\item Model-driven approaches
+\only<1>{\begin{tabular}{ll}
+\quad$\bullet$ Sparsity in a domain $\mW$:&$\mathcal{R}(\vx) = \|\mW\vx\|_1$ \\
+\quad$\bullet$ Total variation (TV): &$\mathcal{R}(\vx) = \|\vx\|_{\textrm{TV}}$\\
+%\quad$\bullet$ Hybrid \parencite{lustig2007sparse}: &$\mathcal{R}(\vx) = \|\mW\vx\|_1 +\alpha \|\vx\|_{\textrm{TV}}$\\
+\quad$\bullet$ Low-rank Hankel matrix \parencite{jin2016general}: &$\mathcal{R}(\vx) = \|\mathbb{H}(\vx)\|_*$
+\end{tabular}}
+\visible<2->{\item Dictionary learning approaches \parencite{ravishankar2011mr}}
+%\only<2>{$$\begin{aligned}
+%\mathcal{R}(\vx) = & \min_{\mathbf{D},\mathbf{Z}} &&\sum_{i=1}^N \|\mathbf{P}_j\vx + \mathbf{D}\vz_j\|_2^2\\
+%			& \textrm{s.t.} && \|\vz_j\|_0 \leq s, \|\mathbf{d}_i\|_2 =1, \forall i,j
+%\end{aligned}$$}
+\visible<3->{\item Data-driven regularization
+\begin{itemize}
+\item Regularization with a CNN: $\mathcal{R}(\vx) = \|\vx - \vf_\theta(\vy)\|_2^2$\\ 
+\begin{itemize}
+\item Approach of \cite{schlemper2017deep}
+\item Unrolled methods  \parencite{sun2016deep, mardani2018neural, hammernik2018learning, adler2018learned}. 
+\end{itemize}
+\end{itemize}}
+\visible<4->{
+\begin{itemize}
+\item Deep image prior perspective \parencite{ulyanov2018deep, yoo2021time}:
+$$\begin{aligned}
+\mathcal{R}(\vx) = & \min_{\theta} &&\|\mAo \vz(\theta)-\vy\|_2^2 + \lambda\mathcal{R}(\vz(\theta))\\
+			& \textrm{s.t.} &&\vz(\theta) = G_\theta(\vy)
+\end{aligned}$$
+\end{itemize}}
+
+\end{enumerate}
+%Enter the training data: should frame it as an ERM problem?
+
+\only<1>{\vspace{-1cm}}
+\visible<1->{\let\thefootnote\relax\footnote{\tiny Comprehensive overview in: S. Ravishankar, J. C. Ye, and J. A. Fessler, ``Image reconstruction: From sparsity to data-adaptive methods and machine learning,'' \textit{Proceedings of the IEEE}, vol. 108, no. 1, pp. 86--109, 2019.\\[3mm]}}
+%{\footnotesize Comprehensive overview in: }
+\end{frame}
+
+\begin{frame}{Reconstruction\\[-3mm] {\normalsize Data-driven reconstruction and the training problem}}
+\only<1>{\begin{block}{Training objective: risk minimization}
+Given a joint distribution of clean and undersampled images $p(\rvx,\rvy)$,\\
+$$ \min_\theta \mathbb{E}_{(\vx,\vy)\sim p(\rvx,\rvy)} \big[\|\vf_\theta(\vy_i) - \vx_i \|_2^2\big]$$
+\vspace{.25cm}
+\end{block}}
+\only<2->{\begin{block}{Training objective: \textit{empirical} risk minimization}
+Given a set of pairs of clean and undersampled images $\{(\vx_i, \vy_i)\}_{i=1}^m$,\\
+$$ \min_\theta \frac{1}{m}\sum_{i=1}^m  \|\vf_\theta(\vy_i) - \vx_i \|_2^2$$
+\end{block}}
+\visible<3>{
+\begin{itemize}
+\item Deep learning approaches propose different architectures, but the training remains the same: 
+$$\theta \leftarrow \theta + \alpha \nabla_\theta \left(\frac{1}{m} \sum_{b\in\mathcal{B}} F_{\theta, b}\right), ~~~F_{\theta, b} = \|\vf_\theta(\vy_b) - \vx_b \|_2^2$$
+\item The different approaches embed problem specific insights into the architecture in a variety of ways. 
+\end{itemize}}
+% Deep learning: training parameters: take gradient.	
+\end{frame}
+	
+\begin{frame}{Reconstruction\\[-3mm] {\normalsize Recap so far}}
+\begin{itemize}
+\item Data-driven techniques are in the continuity of the compressed sensing approach.
+\item Most data-driven techniques \textit{require} training data.
+\item Data-driven technique shift the computational burden from reconstruction to training.
+\end{itemize}
+\visible<2>{\begin{block}{The elephant in the room?}
+What kind of sampling masks $\omega$ can we or should we use for these methods?
+\end{block}}
+% Deeper than it can appear at first sight: if we want a mask that performs well, we need to define a performance metric, and also some target for which it should perform: some specific anatomy, something generic? 
+\end{frame}
+
+%\begin{frame}{Optimization techniques}
+%\begin{itemize}
+%\item Conjugate gradient \parencite{lustig2007sparse}
+%\item Proximal algorithm (e.g. iterative soft-thresholding) \parencite{otazo2012combination}
+%\item ADMM 
+%\end{itemize}
+%	
+%\end{frame}
+
+%!TEX root = Neurospin_2020.tex
+
+% \begin{frame}{Sampling\\[-3mm]{\normalsize  Compressed Sensing -- Random sampling}}
+%     \begin{columns}
+%     \column{0.6\textwidth}
+%     \begin{block}{Reconstruction method }
+%     \vspace{-8mm}
+%     \begin{align*}
+%     \min_\vx~&~\|\mW \vx \|_1 \\
+%     \textrm{s.t.}~&~\|\mAo \vx-\vy\|_2 \leq \varepsilon.
+%     \end{align*}
+%     \vspace{-7mm}
+    
+%     \end{block}	
+%     \begin{block}{Recovery guarantee}
+%     Perfect reconstruction is guaranteed with probability $ >1-\epsilon$ if $|\omega| := N $ satsifies
+%     $$N \gtrsim  \mu(\mU)\cdot P \cdot S \cdot (1+\log(1/\epsilon))\cdot \log(P)$$
+%     $S$: number of nonzero coefficients, $\mU := \mAo \mW^\dagger$
+%     \end{block}
+    
+    
+%     \column{0.35\textwidth}
+%     \centering
+%     \includegraphics[scale=.27]{neurospin/figs/cs_random_sampling.png}
+%     \end{columns}
+    
+%     \let\thefootnote\relax\footnote{\tiny From: M. Lustig, D. Donoho, and J. M. Pauly, ``Sparse MRI: The application of compressed sensing
+%     for rapid MR imaging,'' \textit{Magnetic Resonance in Medicine}, vol. 58, no. 6, pp. 1182--1195, 2007.\\[-2mm]}
+%     \end{frame}
+    
+    
+%     \begin{frame}{Sampling\\[-3mm]{\normalsize  Compressed Sensing -- Random sampling}}
+%     % \begin{block}{Coherence}
+%     % $$\mu(\mU) := \max_{i,j}|u_{ij}|^2 \in \left[1/P,1\right]$$
+%     %\end{block}
+%     Bad news: in the case of MRI, we have \textit{coherence}.%: $\mu(\mU) = \mathcal{O}(1)$
+    
+%     \begin{figure}
+%     \begin{tabular}{ccc}
+%     Ground truth& Random Mask& Reconstruction\\
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_mask_rand}\hspace{.3cm}&
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_recon_rand}
+%     \end{tabular}
+%     \end{figure}
+    
+    
+%     \end{frame}
+%     \begin{frame}{Variable-density sampling   \\[-3mm]{\normalsize From theory to practice}}
+    
+%     \begin{block}{}
+%       {\parbox{\linewidth}{``Representations of natural images exhibit a variety of \alt<1>{\textbf{significant nonrandom structures}}{significant nonrandom structures}. First, \alt<2>{\textbf{most of the energy of images is concentrated close to the $k$-space origin}}{most of the energy of images is concentrated close to the $k$-space origin}. Furthermore, using wavelet analysis one can observe that \alt<2>{\textbf{coarse-scale image components tend to be less sparse than fine-scale components}}{coarse-scale image components tend to be less sparse than fine-scale components}. [...]\\
+%      These observations show that, for a \alt<3>{\textbf{better performance with ``real images,'' one should be undersampling less near the k-space origin and more in the periphery of $k$-space}}{better performance with ``real images,'' one should be undersampling less near the k-space origin and more in the periphery of $k$-space}. For example, one may \alt<4>{\textbf{choose samples randomly with sampling density scaling according to a power of distance from the origin}}{choose samples randomly with sampling density scaling according to a power of distance from the origin}. Empirically, using density powers of $1$-$6$ greatly reduces the total interference and, as a result, iterative algorithms converge faster with better reconstruction. \alt<5>{\textbf{The optimal sampling density is beyond the scope of this article, and should be investigated in future research}}{The optimal sampling density is beyond the scope of this article, and should be investigated in future research}.''}}
+%     \end{block}
+%       \hspace*\fill{\small--- M. Lustig, D. Donoho, and J. M. Pauly}\\
+%       \hspace*\fill{\small \textit{Sparse MRI: The application of compressed sensing
+%     for rapid MR imaging.}}
+    
+    
+%     %{\footnotesize \flushright M. Lustig, D. Donoho, and J. M. Pauly,\\[0mm] ``Sparse MRI: The application of compressed sensing
+%     %for rapid MR imaging.''\\}
+%     %\let\thefootnote\relax\footnote{\tiny From: M. Lustig, D. Donoho, and J. M. Pauly, ``Sparse MRI: The application of compressed sensing
+%     %for rapid MR imaging,'' \textit{Magnetic Resonance in Medicine}, vol. 58, no. 6, pp. 1182--1195, 2007.\\[-2mm]}
+%     \end{frame}
+    
+%     \begin{frame}{Variable-density sampling}
+%     \begin{itemize}
+%     \item Used in practice since the beginning of CS-MRI \parencite{lustig2007sparse}.
+%     \item Theoretical justification came later, along several lines
+%     \begin{itemize}
+%     \item Draw coherent samples more often than incoherent ones\footnote{\tiny $^{\text{\tiny 3}}$ N. Chauffert, P. Ciuciu, J. Kahn, et al., ``Variable density sampling with continuous trajectories,'' \textit{SIAM Journal on Imaging Sciences}, vol. 7, no. 4, pp. 1962--1992, 2014.}.
+%     \item Exploit structured sparsity \parencite{adcock2017breaking}
+%     \end{itemize}
+%     \end{itemize}
+    
+%     \alt<2>{
+%     \begin{figure}
+%     \begin{tabular}{ccc}
+%     Ground truth& VD Mask& Reconstruction\\
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_mask_vd}\hspace{.3cm}&
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_recon_vd}
+%     \end{tabular}
+%     \end{figure}}{
+%     \begin{figure}
+%     \begin{tabular}{ccc}
+%     Ground truth& Random Mask& Reconstruction\\
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_gt}\hspace{.3cm}&
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_mask_rand}\hspace{.3cm}&
+%     \includegraphics[width=.25\linewidth]{neurospin/figs/knee_recon_rand}
+%     \end{tabular}
+%     \end{figure}}
+%     %\begin{figure}[!t]
+%     %\centering
+%     %\begin{minipage}[c]{.21\linewidth}
+%     %\includegraphics[width=\textwidth]{FIGURES_REV/mask_coherence.pdf} 
+%     %\vspace{-2mm}
+%     % \end{minipage}
+%     % \begin{minipage}[c]{.275\linewidth}
+%     %\includegraphics[width=\textwidth]{figures/gaussianpdf}  
+%     % \end{minipage}
+%     % \end{figure}
+%     \end{frame}
+    
+    \begin{frame}[t]{Variable-density sampling\\[-3mm]{\normalsize formalization}}
+    Consider
+    \begin{itemize}
+    \item a probability mass function $f \in \Delta^{P}$%, where $\Delta^{P}:= \{f \in [0,1]^P: \sum_i f_i = 1\}$
+    \item \alt<1>{a fixed distribution $p(\rvx)$ from which MRI images are drawn}{a set of samples $\{\vx_i\}_{i=1}^m$ from a fixed distribution $p(\rvx)$}.
+    \item a reconstruction algorithm $g$.\\\quad {\footnotesize It forms an estimate ${\hat{\vx}}  = g(\vy, \omega) $ of $\vx$.} \\
+    \item a performance metric $\eta$\\%\quad
+    %{\footnotesize Examples: PSNR,  negative MSE, SSIM }
+    \end{itemize}
+    \begin{block}{Variable-density sampling (VDS) optimization}
+    \only<1>{$$
+    \max_{f\in \Delta^{P}} \eta(f), 
+    \qquad \eta(f) :=  \mathbb{E}_{\substack{\omega(f,N)\\ \vx \sim p(\rvx)}}\left[\eta\left(\vx, {\hat{\vx}}\left(\vy, \omega\right)\right)\right],
+    $$}
+    \only<2>{$$\max_{f\in \Delta^P}  \eta_m (f), \text{~~~~} \eta_m (f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right].$$}
+    
+    \end{block}
+    
+    % note: maximization of eta f -> Change of perspective: maximize performance, minimize error
+    \end{frame}
+    
+    \begin{frame}[t]{Variable-density sampling\\[-3mm]{\normalsize formalization}}
+    \vspace{-2mm}
+    \begin{block}{Variable-density sampling optimization}
+    $$\max_{f\in \Delta^P}  \eta_m (f), \text{~~~~} \eta_m (f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right].$$
+    \end{block}
+    %Sample N times from $f$
+    \begin{itemize}
+    \item Parametric VDS\only<1>{:
+    \begin{itemize}
+    \item \textbf{Coherence}: Tune the parameters of the distribution to minimize coherence \parencite{lustig2007sparse}
+    \begin{itemize}
+    \item Model-based approach.
+    \end{itemize}
+    \item \textbf{Learning-based VD (LB-VD)}: Tune the parameters of the distribution to optimize performance on a training set.
+    
+    \begin{itemize}
+    \item Model-based,data-driven approach.
+    \end{itemize}
+    %Grid search $\to$ combinatorial
+    %  (e.g. variance, rate of decay, number of low frequency phase encodes)
+    % Bound to the family of distributions you consider
+    %MASK DRAWN W/O repetition
+    \end{itemize}
+    \vspace{-4mm}
+    \begin{figure}[!t]
+    \centering
+    \begin{minipage}[c]{.21\linewidth}
+    \includegraphics[width=\textwidth]{neurospin/figs/mask_coherence.pdf} 
+    \vspace{-2mm}
+     \end{minipage}
+     \begin{minipage}[c]{.275\linewidth}
+    \includegraphics[width=\textwidth]{neurospin/figs/gaussianpdf}  
+     \end{minipage}
+     \end{figure}}
+     
+    %\only<2>{\item Which performance metric do we want?
+    %\item Do we want to perform optimization for each set of training data?}
+    \only<2>{\item Nonparametric approach \parencite{knoll2011adapted,vellagoundar2015robust}:
+    \begin{itemize}
+    \item Construct a distribution directly from the data.
+    \item Model-free, data-driven approach.
+    %Cannot be optimized for a specific reconstruction method
+    \end{itemize}
+    \begin{figure}[!t]
+    \centering
+    \begin{minipage}[t]{.21\linewidth}
+    \includegraphics[width=\textwidth]{neurospin/figs/dd_mask} 
+    \vspace{-2mm}
+     \end{minipage}
+     \begin{minipage}[t]{.275\linewidth}
+    \hspace{.2cm}\includegraphics[width=.65\textwidth]{neurospin/figs/dd_sampling}  
+     \end{minipage}
+     \end{figure}}
+    \end{itemize}
+    \end{frame}
+        
+        %Which performance metric do we want?
+        % Do we want to perform optimization for each set of training data?
+    %\begin{frame}[t]{Compressed Sensing MRI\\[-3mm]{\normalsize Learning-based VD (LB-VD) sampling}}
+    %\begin{itemize}
+    %\item Parametric approach:
+    %
+    %\begin{itemize}
+    %\item Tune the parameters of the distribution to optimize performance.
+    %\item Grid search $\to$ combinatorial
+    %%  (e.g. variance, rate of decay, number of low frequency phase encodes)
+    %% Bound to the family of distributions you consider
+    %%MASK DRAWN W/O repetition
+    %\end{itemize}
+    %
+    %\item Nonparametric approach:
+    %\begin{itemize}
+    %\item Construct a distribution directly from the data.
+    %%Cannot be optimized for a specific reconstruction method
+    %\end{itemize}
+    %	
+    %	
+    % 
+    %\only<2>{\item Which performance metric do we want?
+    %\item Do we want to perform optimization for each set of training data?
+    %\item Do we want an inherently probabilistic mask design?}
+    %\end{itemize}
+    %% TODO: VDS vs data-driven sampling example -> VDS optimized vs simply construct from fourier spectrum
+    %\end{frame}
+    
+    
+    
+    
+    
+    
+    
+    
+    %\frame{\frametitle{Sampling: Model-driven approaches}
+    %
+    %\begin{itemize}
+    %\item \textbf{Theory:} random sampling to obtain incoherent (noise-like) artifacts\\%Requires the aliasing artifacts due to subsampling to be incoherent (noise-like)\\
+    %\begin{itemize}
+    %\item Low image quality \\[.1cm]
+    %
+    %\end{itemize}
+    %\visible<2->{
+    %\item \textbf{Practice:} 
+    %%(measure of coherence: side-to-peak ratio of point spread function)
+    %\begin{itemize}
+    %\item Select a mask with minimal coherence from a family of \textit{variable-density (VD) parametric distributions}\parencite{lustig2007sparse}. Parameters include:
+    %\begin{enumerate}
+    %\item Speed of decay away from the center of k-space
+    %\item Size of fully-sampled region at low frequencies 
+    %\end{enumerate}
+    %\visible<3>{
+    %\item Data-driven alternatives:
+    %\begin{enumerate}
+    %\item \textit{learning-based variable density (\textbf{LB-VD})}\\
+    %Optimize the parameters above for best performance on a training set.\\
+    %\item  construct a probability distribution from a reference image \parencite{knoll2011adapted,vellagoundar2015robust} \\[1mm]
+    %\end{enumerate}}}
+    %
+    %\end{itemize}
+    %\end{itemize}
+    %	
+    %
+    %%$\circ$ \textbf{Parametric distribution:} Family of distribution which rely on some parameters. \\[.3cm]
+    %
+    %%\begin{itemize}
+    %%\item Typically: zero-mean Gaussian distributions where the standard deviation can change.
+    %%\end{itemize}
+    %
+    %% $\circ$ Allows to obtain masks which sample more heavily the center of the k-space.
+    %
+    %\vspace{-3mm}
+    %\visible<2->{
+    %\begin{figure}[!t]
+    %\centering
+    %\begin{minipage}[c]{.21\linewidth}
+    %\includegraphics[width=\textwidth]{FIGURES_REV/mask_coherence.pdf} 
+    %\vspace{-2mm}
+    % \end{minipage}
+    % \begin{minipage}[c]{.275\linewidth}
+    %\includegraphics[width=\textwidth]{figures/gaussianpdf}  
+    % \end{minipage}
+    % \end{figure}}
+    % 
+    % 
+    %% $\circ$ Training data can be used to find a model as well. State-of-the-art:  \\
+    %%	\begin{itemize}
+    %%	\item $\triangleright$  Adaptive random sampling (heuristical, single reference image is used)   [\mblue{\mblue{Vellagoundar et. al., 2015}}].  \\[2mm]
+    %%	\item $\triangleright$ Learning-based variable-density random sampling: search over the parameter space for the best reconstruction (parameter sweep).
+    %%\end{itemize}
+    %}
+
+%!TEX root = Neurospin_2020.tex
+\section{Greedy mask optimization\\[-3mm]{\footnotesize B. G\"ozc\"u et al. ``Learning-based compressive MRI,'' (2018).\\[-6mm] B. G\"ozc\"u, S. et al. ``Rethinking Sampling in Parallel MRI: A Data-Driven Approach,'' (2019).\\[-6mm] S. et al. ``Scalable learning-based sampling optimization for compressive dynamic MRI,''\\[-6mm] (2020b).}}
+
+\begin{frame}{Combinatorial optimization}
+\begin{block}{Variable-density sampling optimization}
+$$\max_{f\in \Delta^P}  \eta_m (f), \text{~~~~} \eta_m (f) :=\frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right].$$
+\end{block}
+
+\begin{block}{Combinatorial sampling optimization \parencite{gozcu2018learning}}
+$$ \max_{|\omega|=N}  \frac{1}{m}\sum_{i=1}^m \eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right) $$
+\end{block}
+\pause
+\begin{itemize}
+\item Still a hard problem
+\item Approximate solution through greedy optimization (optimal for submodular functions \parencite{minoux1978accelerated})
+\end{itemize}
+
+\end{frame}
+\begin{frame}{Theoretical foundation}
+\begin{itemize}
+\item Can we relate both problems?\\
+\end{itemize}
+
+\begin{block}{Proposition \parencite{sanchez2019scalable}}
+$$ \max_{f\in \Delta^P}  \frac{1}{m} \sum_{i=1}^m \mathbb{E}_{\omega(f,N)}\left[\eta\left(\vx_i, {\hat{\vx}}\left(\vy_i, \omega\right)\right)\right] =  \max_{|\omega|=N}  \frac{1}{m}\sum_{i=1}^m \eta(\vy_{i}, \omega)$$
+\end{block}
+\end{frame}
+
+
+\begin{frame}{Algorithmic approach\\[-3mm] {\normalsize greedy mask optimization}}
+
+\begin{columns}[T]
+\column{0.68\linewidth}
+\vspace{-.6cm}
+\begin{algorithm}[H] 
+\caption{Greedy mask optimization for MRI\\ \parencite{gozcu2018learning}}
+\label{alg:g1}
+{\footnotesize \textbf{Input}: Training data $\{\vx\}_{i=1}^m$, recon. rule $g$, sampling set $\mathcal{S}$, max. cardinality $N$}% \\
+%\textbf{Output}: Sampling pattern $\omega$
+\begin{algorithmic}[1]
+\State $\omega \leftarrow \emptyset$;
+\While{$ |\omega| \leq  \Gamma$}
+
+    \For{$S \in \mathcal{S}$ such that  $|\omega \cup S| \le N$}
+        \State $\omega' = \omega \cup S$
+   	 \State For $\ell = 1,\ldots,m$, set ${\hat{\vx}}_\ell\leftarrow g(\omega', \mF_{\omega'} \vx_\ell)$
+        \State   $\eta(\omega') \leftarrow \frac{1}{m} \sum_{\ell=1}^m \eta(\vx_\ell, {\hat{\vx}}_\ell)$
+    \EndFor
+%    \For{ $S \in \mathcal{S}$ not yet selected s.t.~$c(\omega \cup S) \le \Gamma$ }
+%        \State $\Delta_{\eta}(S) \leftarrow \eta(\omega \cup S) - \eta(\omega)$
+%        \State $\Delta_{c}(S) \leftarrow c(\omega \cup S) - c(\omega)$
+%    \EndFor
+    \State $\omega \leftarrow \omega \cup S^*$, where %$S^* = \argmax_{S\,:\,c(\omega \cup S) \le \Gamma} \frac{ \eta(\omega \cup S) - \eta(\omega) }{ c(\omega \cup S) - c(\omega) }$
+    \vspace{-3mm}
+    \begin{equation*}
+        S^* = \argmax_{S\,:\,|\omega \cup S| \le \Gamma}  \eta(\omega \cup S) - \eta(\omega)%\frac{ \eta(\omega \cup S) - \eta(\omega) }{ c(\omega \cup S) - c(\omega) }
+    \end{equation*}\vspace{-5mm}
+ \EndWhile
+ \State {\bf return} $\omega$
+\end{algorithmic}
+\end{algorithm}
+\column{0.3\linewidth}
+
+%\begin{center}
+\vspace{-1.5mm}
+\begin{animateinline}[autoplay,loop]{2} %Change here if you want the animation to be faster
+\multiframe{64}{i=1+1}{%
+ \includegraphics[width=1\textwidth]{eusipco/figures/maskEvolution/mask-\i}}
+\end{animateinline}
+\vspace{3mm}
+%\end{center}
+\begin{itemize}
+\item Complexity: $\Theta(mP)$ 
+%\item \hspace{-7mm} $\triangleright$ (Size: $N \times N$)
+\item Parallelization
+\item No parameters
+\item  Nestedness
+\end{itemize}
+\end{columns}	
+
+\end{frame}
+
+
+\begin{frame}{Algorithmic approach\\[-3mm] {\normalsize \textit{stochastic} greedy mask optimization}}
+\begin{columns}[T]
+\column{0.68\linewidth}
+\vspace{-.6cm}
+\begin{algorithm}[H]
+\caption{Stochastic greedy mask optimization algorithms for dMRI \parencite{sanchez2019scalable}}\label{alg:1}
+{\footnotesize  \textbf{Input}: Training data $\{\vx\}_{i=1}^m$, recon. rule $g$, sampling set $\mathcal{S}$, max. cardinality $N$,  {\color{red} samp. batch size $k$, train. batch size $l$}} %\\
+%\textbf{Output}: Sampling pattern $\omega$
+\begin{algorithmic}[1]
+\State $\omega \leftarrow \emptyset$;
+ %\begin{tabular}{ccc} 
+%\textbf{(SG) }  Initialize $t=1$  
+  %  \end{tabular}
+ \While{$|\omega| \leq n$}
+        
+        \State    {\color{red} Pick $\mathcal{S}_{iter}\subseteq \mathcal{S}_t$ at random, with $|\mathcal{S}_{iter}| = k$  }
+        \State    {\color{red} Pick $\mathcal{L} \subseteq \{1,\ldots,m\} $, with $|\mathcal{L}| = l $}
+         \For{$S \in  {\color{red} \mathcal{S}_{iter}} \text{ such that } |\omega \cup S| \leq N$} 
+     
+        \State  $\omega' = \omega \cup S$ 
+        \State For each $ \color{red} \ell \in \mathcal{L}$ set ${\hat{\vx}}_\ell\leftarrow g(\omega', \mF_{\omega'} \vx_\ell)$
+        \State   $\eta(\omega') \leftarrow  {\color{red} \frac{1}{|\mathcal{L}|} \sum_{\ell\in\mathcal{L}} }\eta(\vx_\ell, {\hat{\vx}}_\ell)$
+ \EndFor
+ \State $\displaystyle\omega \leftarrow \omega \cup S^*,  \text{ where }$    
+    \vspace{-3mm}
+    \begin{equation*}
+        S^* = \argmax_{S\,:\,|\omega \cup S| \le N}  \eta(\omega \cup S) - \eta(\omega)%\frac{ \eta(\omega \cup S) - \eta(\omega) }{ c(\omega \cup S) - c(\omega) }
+    \end{equation*}\vspace{-5mm}
+%\State   \textbf{ (SG) }   $t= (t \bmod T)+1$  
+    \EndWhile
+\State {\bf return} $\omega$ 
+\end{algorithmic}
+\end{algorithm} 
+\column{0.3\linewidth}
+\vspace{-1.5mm}
+\begin{animateinline}[autoplay,loop]{2} %Change here if you want the animation to be faster
+\multiframe{64}{i=1+1}{%
+ \includegraphics[width=1\textwidth]{eusipco/figures/maskEvolution/mask-\i}}
+\end{animateinline}
+\vspace{3mm}
+%\end{center}
+\begin{itemize}
+\item Complexity: $\Theta(l k \sqrt{P})$
+\item Gain: $\Theta\left(\frac{m}{l}\frac{\sqrt{P}}{k}\right)$
+%\item \hspace{-7mm} $\triangleright$ (Size: $N \times N$)
+\item Parallelization
+\item \textit{Few} parameters
+\item  Nestedness
+\end{itemize}
+\end{columns}	
+\end{frame}
+
+
+
+\begin{frame}{Take home messages}
+
+\begin{itemize}	
+\item Deterministic model-free vs probabilistic model-based
+\item Optimizing the sampling pattern: take data \textit{and}  reconstruction into account 
+\item Performance of an algorithm tied to the sampling pattern used: should be considered jointly
+%\item Major question left: metrics not adapted: could we use something more meaningful?
+\end{itemize}
+\end{frame}
+	
+%!TEX root = Neurospin_2020.tex
+\section{Uncertainty driven sampling\\[-3mm]{\footnotesize S. et al. ``Closed loop deep Bayesian inversion: Uncertainty driven acquisition for fast\\[-6mm] MRI''.}}
+
+\begin{frame}[t]{Generative Adversarial Networks (GANs)}
+\begin{itemize}
+\item Introduced in 2014 by \cite{goodfellow2014generative}
+%\item Introduced in 2014 by \cite{goodfellow2014generative}
+\item Relies on the idea that natural images lie on a low-dimensional manifold
+\end{itemize}
+
+\only<2>{
+\vspace{1.5cm}
+{\centering \includegraphics[width=0.8\linewidth]{neurospin/figs/gan_example.png}\\}
+\let\thefootnote\relax\footnote{\tiny  From: X. Yi, E. Walia, P. Babyn, ``Generative adversarial network in medical imaging: A review'', \textit{Medical Image Analysis}, 2019\\[3mm]}}
+
+\only<3>{
+\vspace{1cm}
+{\centering \includegraphics[width=0.5\linewidth]{neurospin/figs/gans.png}\\}
+\let\thefootnote\relax\footnote{\tiny  From: T. Karras,  T. Aila, S. Laine, and J. Lehtinen, ``Progressive growing of gans for improved quality, stability, and variation'', \textit{ICLR}, 2018\\[3mm]}}
+
+\end{frame}
+
+\begin{frame}{Deep Bayesian Inversion \parencite{adler2018deep}}
+\begin{columns}
+\column{0.3\textwidth}
+\begin{block}{Main idea}
+ Given a distribution of MR images $p(\rvx)$ and some measuring operator, use a GAN to learn the posterior distribution $p(\rvx)Y$.
+\end{block}
+
+\column{0.7\textwidth}
+\begin{figure}[!ht]
+\hspace{-1.3cm}\rotatebox{90}{\small\hspace{0mm} \textbf{Ground truth}}\includegraphics[width=.8\linewidth]{neurospin/figs/GT}
+\end{figure}
+\vspace{-.3cm}
+
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=\linewidth]{neurospin/figs/UQ}
+\end{figure}
+\end{columns}
+	
+\end{frame}
+
+
+\begin{frame}{Uncertainty driven sampling for accelerated MRI \parencite{sanchez2020closed}}
+\begin{columns}
+\column{.6\linewidth}
+\centering
+\includegraphics[width=\linewidth]{neurospin/figs/CLUDAS.png}
+
+\column{.5\linewidth}
+\centering
+% \hspace{-.2cm}\includemedia[width=\linewidth,height=.8\linewidth,
+%activate=pageopen,
+%passcontext,
+%transparent,
+%deactivate=onclick,
+%addresource=neurospin/figs/UQ_mask.mp4,
+%flashvars={source=neurospin/figs/UQ_mask.mp4
+%&autoPlay=true      % optional configuration
+%&loop=true }         % variables}
+%]{}{VPlayer9.swf}
+
+\embedvideo*{\includegraphics[width=\linewidth, height=.67\linewidth,page=1]{example-movie}}{neurospin/figs/UQ_mask.mp4}
+%\hspace{-.2cm}\includemovie[poster,text={\includegraphics[width=\linewidth, height=.8\linewidth]
+%{}},autoplay,mouse=true]{\linewidth}{.8\linewidth}
+%{neurospin/figs/UQ_mask.mp4}
+\end{columns}
+\end{frame}
+	
+	
+
+
+
+\begin{frame}{Related recent work (Cartesian) }
+
+
+\begin{itemize}
+\item Generic approaches:
+\begin{itemize}
+\item Experiment design \parencite{haldar2019oedipus}
+\item Bi-level optimization \parencite{sherry2019learning}
+\end{itemize}
+\pause
+\item For Deep learning reconstruction methods:
+\begin{itemize}
+\item Integrate a binary masking layer to the training process \parencite{weiss2019learning}
+\item Optimize Bernoulli weights of a distribution and sample a mask \parencite{bahadir2019learning}
+\item Use reinforcement learning \parencite{jin2019self}
+\end{itemize}
+\end{itemize}
+\end{frame}
+\begin{frame}{Summary and conclusion}
+\begin{block}{Our data-driven framework}
+\begin{itemize}
+\item Adapts well to different settings (single/multi-coil, static/dynamic, 2D/3D), reconstruction algorithms, anatomies and sampling rates. 
+\item Is nearly parameter-free, yields deterministic masks and is scalable.
+\item Shows the importance of optimizing the sampling mask for the reconstruction algorithm at hand.
+\end{itemize}
+\end{block}
+
+Code available at \href{https://github.com/t-sanchez/stochasticGreedyMRI}{\texttt{https://github.com/t-sanchez/stochasticGreedyMRI}} (stochastic greedy)\\ \href{https://www.epfl.ch/labs/lions/technology/lb-csmri-2/}{\texttt{https://www.epfl.ch/labs/lions/technology/lb-csmri-2/}} (full greedy)
+	
+\let\thefootnote\relax\footnote{\tiny  G\"ozc\"u, B. et al. (2018). ``Learning-based compressive MRI''. \textit{IEEE TMI}, 2018.\\
+ G\"ozc\"u, B., \textit{S.} et al. ``Rethinking Sampling in Parallel MRI: A Data-Driven Approach''. \textit{EUSIPCO}, 2019.\\
+\textit{S.} et al. ``Scalable learning-based sampling optimization for compressive dynamic MRI''.  \textit{ICASSP}, 2020. \\[3mm]}
+\end{frame}
+
+
+	
+	
+\begin{frame}{Summary and conclusion}
+\begin{block}{Our GAN framework}
+\begin{itemize}
+\item Provides an alternative quality metric: variance around the mean 
+\item Has the capability to be run online 
+\end{itemize}
+\end{block}
+\let\thefootnote\relax\footnote{\tiny \textit{S.} et al. ``Closed loop deep Bayesian inversion: Uncertainty driven acquisition for fast MRI''. \textit{preprint.} (2020) \\[3mm]}
+
+\end{frame}
+
+\begin{frame}{Summary and conclusion}
+\begin{block}{Challenges ahead}
+\begin{itemize}
+\item Extension to the non-Cartesian setting through reinforcement learning (RL) (cf. \cite{jin2019self} for the Cartesian setting)
+\begin{itemize}
+\item Realistic implementation through robust RL.
+\item Possibility to design both fixed and patient-adaptive trajectories.
+\item Space-filling curves like SPARKLING\footnote{$^{\text{\tiny 7}}$\tiny  C. Lazarus, P. Weiss, N. Chauffert, F. Mauconduit,
+L. El Gueddari, C. Destrieux, I.  Zemmoura, A. Vignaud, P. Ciuciu, ``Sparkling: Variable-density k-space filling curves for accelerated T2*-weighted MRI,'' \textit {Magnetic resonance in medicine}, vol. 81, no. 6,
+pp. 3643--3661, 2019.}, but model-free?
+\end{itemize}
+
+\item Optimize sampling for downstream tasks \parencite{weiss2019pilot}
+\end{itemize}
+\end{block}
+
+\end{frame}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%
+
+
+\begin{frame}
+        Thank you for your attention!\\[2cm]
+        
+        Questions?\\[2cm]
+        
+        \href{https://github.com/t-sanchez/stochasticGreedyMRI}{\normalsize \texttt{https://github.com/t-sanchez/stochasticGreedyMRI}}
+    \end{frame}
+
+

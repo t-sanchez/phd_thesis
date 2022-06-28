@@ -1,0 +1,30 @@
+\begin{tabular}{lcccc|cccc}
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c|}{\texttt{c+rhz}} & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c}{\texttt{c+rhz}} \\
+  \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c|}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} \\
+\midrule
+\textbf{Random}    & {0.5608}            & {0.5659}  & {0.7292} & {0.7338}  &  0.4348 & 0.4432&0.5860& 0.5885\\
+\textbf{LtH}         & {0.5719}            & 0.5764         & 0.7309      & 0.7412   & 0.4849   & 0.5107&0.6678 &0.6902      \\
+\textbf{LBCS}        &{0.5732}            & 0.5828           & \textbf{0.7430} & \textbf{0.7526} & 0.5134& \textbf{0.5243}&\textbf{0.7035} &0.7096 \\
+\textbf{RL }         & \textbf{0.5738}            & \textbf{0.5830}   & \textbf{0.7430} & 0.7524 &\textbf{0.5142} & \textbf{0.5242} &\textbf{0.7035}&\textbf{0.7111} \\
+\midrule
+\textbf{NA Oracle}          & \multicolumn{1}{l}{0.5738} & {0.5832}  & 0.7430          & 0.7527& 0.5140& 0.5247  & 0.7038 &0.7099\\[2mm]
+\bottomrule
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c|}{\texttt{c+rvz}} & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c}{\texttt{c+rvz}} \\
+ \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c|}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} \\
+ \midrule
+\textbf{Random } & {0.5580} & 0.5661 & 0.6851 & 0.6984 & 0.4483 & 0.4621 & 0.5252 & 0.5276 \\
+\textbf{LtH } & {0.5663} & 0.5759 & {0.6739} & {0.7028} & 0.5122 & 0.5218 & 0.6292 & 0.6444 \\
+\textbf{LBCS } & {0.5712} & {0.5822} & {0.7034} & 0.7235 & 0.5174 & 0.5328 & 0.6568 & 0.6712 \\
+\textbf{RL } & \textbf{0.5717} & \textbf{0.5829} & \textbf{0.7042} & \textbf{0.7239} & \textbf{0.5183} & \textbf{0.5334} & \textbf{0.6582} & \textbf{0.6733} \\
+\midrule
+\textbf{NA Oracle } & 0.5718 & 0.5835 & 0.7038 & 0.7236 & 0.5180 & 0.5336 & 0.6568 & 0.6717\\
+\bottomrule
+\end{tabular}

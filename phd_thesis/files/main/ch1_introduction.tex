@@ -1,0 +1,210 @@
+%!TEX root = ../../thesis.tex
+
+\cleardoublepage
+\chapter{Introduction}
+\markboth{Introduction}{Introduction}
+%\addcontentsline{toc}{chapter}{Introduction}
+%A non-numbered chapter\dots
+
+Since its inception in the 1970s, Magnetic Resonance Imaging (MRI) has deeply impacted radiology and medicine. It allows for a non-invasive, non-ionizing imaging of the body, and enables among other things to visualize anatomical structures, physiological functions and metabolic information with unmatched precision \citep{wright1997magnetic,feng2016compressed}.  Magnetic Resonance Imaging, as its name indicates,  constructs an image of an object of interest by exploiting magnetic resonance. Namely, when submitted to a strong static magnetic field $B_0$, the protons in the object, mostly in water molecules, will resonate when excited through a radio frequency pulse. In order to encode spatial information in the observed signal instead of a receiving global response, additional time and spatially varying magnetic fields, referred to as gradient fields, are superimposed to the original magnetic field $B_0$.
+
+However, this process does not give direct access to an image, but rather informs us about the different \textit{frequencies} that construct it. By varying the gradient fields, it is possible to obtain frequency information relating to different locations and represent them in what is known as the Fourier space, or \textit{k-space}. Figure \ref{fig:fourier_representation} shows the difference between an image and its Fourier space representation. The object of interest is excited several times using different varying gradient fields, which defines a \textit{k-space trajectory} along which data are acquired. When sufficient information has been acquired, an image can be readily obtained by computing the inverse Fourier transform of the signal.
+
+There is considerable flexibility in the design of k-space trajectories, but a particularly common approach is to cover the k-space in a grid-like fashion, known as \textit{Cartesian} sampling. A grid-like covering of k-space implies that the image can be directly obtained by applying a fast Fourier transform (FFT). Other approaches, known as non-Cartesian, do not cover k-space in a grid-like fashion, but can consist of radial spokes \citep{lauterbur1973image}, spirals \citep{meyer1992fast} or space-filling curves \citep{lazarus2019sparkling}. They can provide a faster acquisition than Cartesian sampling and benefits such as resistance to motion artifacts, but require a more involved and slower reconstruction through techniques such as gridding \citep{o1985fast,jackson1991selection} or non-uniform fast Fourier transform (NUFFT) \citep{fessler2003nonuniform}, as well as density compensation \citep{pipe1999sampling,pauly2007non}. In addition to this, non-Cartesian trajectories can be sensitive to errors in the magnetic field gradients, due to field imperfections of various sources \citep{vannesjo2013gradient}. As a result, Cartesian trajectories have been the most popular in practice \citep{lustig2008compressed,feng2016compressed}.
+
+
+%Oui ça fait partie des raisons. Reconstruction plus longue, plus complexe car souvent le non-cartésien fait de la densité variable donc on doit corriger la densité (par exemple density compensated non-Cartesian MR image reconstruction à la Pipe, MRM 1999) par des poids adaptés sur les mesures à la reconstruction.  Aussi parce que ces trajectoires peuvent être sensibles à des erreurs sur les gradients de champ magnétiques qui encodent l'espace et il faut idéalement avoir un dispositif tel qu'une caméra dynamique de champ (dispositif Skope par exemple) pour pouvoir monitorer ces trajectoires et accéder aux trajectoires réelles et non à celles prescrites : là-dessus, tu peux regarder les anciens travaux de Johanna Vannesjö dans MRM (papiers de 2013 à 2016) quand elle était encore chez Pruessmann à Zürich.
+
+%. While they can provide benefits such as resistance to motion artifact, they also suffer from other challenges %such as being sensitive to inhomogeneities in the magnetic field \citep{brown2014magnetic}. As a result, Cartesian trajectories have been the most popular in practice \citep{lustig2008compressed,feng2016compressed}.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=.75\linewidth]{fourier_representation.pdf}
+    \caption{Fourier domain and image domain representation of a knee MRI scan.}\label{fig:fourier_representation}
+\end{figure}
+%\citep{wright1997magnetic,lustig2008compressed}. 
+
+However, MRI examinations suffer from being relatively slow compared to other imaging modalities, due to the sequential nature of the acquisition. For instance, MRI acquisition can easily exceed 30 minutes \citep{zbontarFastMRIOpenDataset2019}. Improving imaging speed has been a major concern for researchers of the community and has led to many innovations along the years, such as rapid imaging sequences \citep{frahm1986rapid,hennig1986rare} or parallel/multi-coil imaging \citep{sodickson1997simultaneous,pruessmann1999sense,griswold2002generalized}. But there is a need to further accelerate imaging. As scanning time is directly related to the number of acquisitions, collecting fewer of them directly enables faster imaging. In Cartesian imaging,
+ this can be achieved by \textit{undersampling} the Fourier space, which is implemented by \textit{not} acquiring some lines in Fourier space. However, as we see on Figure \ref{fig:fourier_undersampled}, such undersampling degrades the quality of the image by introducing artifacts. This is called \textit{aliasing}. As a result, an additional step of \textit{reconstruction} is required in order to obtain a cleaner estimation of the original image. 
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{fourier_undersampled}
+    \caption{Accelerated MRI by undersampling. Undersampling is governed by a \textit{sampling mask} that tells what locations are acquired. The undersampled Fourier spectrum is then mapped back to image domain through an inverse Fourier transform, which gives an aliased image which needs to go through a reconstruction method in order to obtain a de-aliased estimation of the original, unobserved image. Here \texttt{ifft} stands for inverse fast Fourier transform.}\label{fig:fourier_undersampled}
+\end{figure}
+
+The problem of reconstructing data from undersampled measurements is a typical instance of an \textit{ill-posed inverse problem}. It is called an \textit{inverse problem} because we aim at constructing an image of an object of interest from \textit{indirect measurements}, in this case frequency information about the image. It is \textit{ill-posed} because there is not sufficient information to directly retrieve the image of interest from the undersampled measurements. More precisely, there are infinitely many signals that could produce these partial measurements.
+
+The typical way of solving this problem is by exploiting \textit{prior knowledge} about the data, by leveraging some \textit{structure} that is present in them. A particularly successful approach relies on \textit{sparsity}-based priors, where it is assumed that if the signal can be represented sparsely, or compactly in some transform domain, then, it can be reconstructed from undersampled measurements. This approach is known as Compressed Sensing (CS) \citep{donoho2006compressed,candes2006robust}, and has been successfully applied to MRI \citep{lustig2008compressed}, for instance by representing the signal sparsely in the Wavelets domain. The signal is retrieved by solving an optimization problem with two components: a \textit{data-fidelity} term that ensures that the reconstructed image is close to the measurements, and a \textit{regularization} term that encourages the reconstructed to be sparse in some domain. 
+
+In the latter half of 2010s, deep learning-based approaches allowed pushing even further the boundaries of the state-of-the-art in MRI reconstruction \citep{sun2016deep,schlemper2017deep,mardani2018neural}. By leveraging increasingly large amount of data, these methods are able to learn the structure directly from data, rather than imposing it through a mathematical model such as sparsity. These methods not only improved the quality of reconstruction, but also enabled fast reconstruction times, where CS methods often relied on slow iterative procedures.
+
+However, in parallel to these developments, only few works tackled the problem of \textit{how} the k-space should be undersampled. Although CS prescribed random sampling, practitioners quickly turned to heuristics favoring low frequency sampling, where a lot of energy and information about the structure of the signal is located \citep{lustig2008compressed}. Nevertheless, there were only a few works in the early 2010s aiming at directly optimizing the sampling mask\footnote{We will refer to this problem interchangeably as the problem of mask design, sampling optimization, mask optimization, sampling mask optimization, sampling pattern optimization, or optimizing the acquisition trajectory.}, which can be attributed to the difficulty of the problem. Optimizing a sampling mask is a \textit{combinatorial} problem, for which commonly used gradient-based optimization techniques are not readily available. As a result, two main trends emerged: approximate solutions to the combinatorial problem \citep{ravishankar2011adaptive,liu2012under}, or the optimization of an underlying probability distribution from which a random mask is then sampled \citep{knoll2011adapted,chauffert2013variable}.
+
+In more recent years, there has been a renewed interest in this problem, and a flurry of approaches have been proposed \citep{gozcu2018learning,jin2019self,sherry2019learning,bahadir2019learning,Huijben2020Deep,pineda2020active,bakker2020experimental,yin2021end}. This is mainly due to the wide availability of training data, the fast reconstruction times of deep learning-based methods and the wider use of auto-differentiation frameworks such as PyTorch and TensorFlow, which facilitate the routine computation of derivatives through complex models. While these methods are very diverse, they fit under two distinctive categories. Whereas previous approaches leveraged an underlying \textit{model} from which candidate sampling masks were drawn, modern approaches are \textit{learning-based} in the sense that they learn this model directly from data. Furthermore, earlier methods were \textit{model-driven}, designing masks to minimize a mathematical criterion such as coherence \citep{lustig2008compressed}. In contrast, recent works are \textit{data-driven}, as they learn policies that minimize the reconstruction error against a ground truth.
+
+In this thesis, we aim at contributing to the problem of optimizing sampling masks along two complementary directions. 
+
+First, we will provide novel \textit{methodological} contributions to the problem of sampling optimization. More specifically, we aim at developing mask optimization algorithms that do not depend on a specific reconstruction algorithm, as this will allow the method to remain usable in a field where the state-of-the-art evolves very quickly. In addition, we are concerned with designing \textit{scalable} methods. Most clinically relevant settings involve high resolution, multi-coil images, and it is imperative for sampling optimization methods to scale up to such challenging settings in order to provide practical value.
+
+Secondly, we aim at deepening the \textit{understanding} of the kind of structures or assumptions that enable mask design algorithms to perform well in practice. It is not clear from the current literature what components are fundamental in a mask design algorithm.
+%For instance, the following questions cannot be answered satisfactorily in the current state of the literature. 
+Should the mask design algorithm plan several steps of ahead? Should it adapt to each different patient?
+% How should the reconstruction algorithm used impact the design of the mask? 
+What kind of feedback should be available to the mask design algorithm in order to achieve the best performance? Amidst the race to develop ever more complex models, we aim at identifying the key components that drive the performance of modern mask design algorithms, in order to \textit{efficiently} reach state-of-the-art performance.
+
+%\todoi{This needs to be further refined.}
+%\todoi{Idea: Although these methods provide a step in the good direction, they are still found lacking in several regards. At first, several works propose methodologies that are tied to a given reconstruction algorithms, making the extension of their mask optimization method at best impractical.\\
+%-> Want a reconstruction indep. method\\
+%Moreover, these contributions do not make clear what kind of structure or assumptions are important in order to guarantee good performance. Should the mask design algorithm make its decisions based on the current error in the k-space? Should it integrate several steps of planning in its decision? Should the mask adapt to each different patient? How should the reconstruction algorithm used impact the design of the mask?
+
+%The question of efficiency should still be addressed
+
+%The aim of this thesis is then twofold: First, in terms of methodological contributions, we aim at proposing an algorithm that is able to achieve state-of-the-art performance while enabling an efficient and scalable optimization. Secondly, what mainly drives the performance of a mask design algorithm.}
+
+%However, with the availability of strong reconstruction methods with fast reconstruction times, the question of optimizing the sampling masks is becoming ever more pressing, as it is increasingly clear that the quality of sampling patterns greatly affects the quality of the reconstructed image \citep{chauffert2013variable,zijlstra2016evaluation}. This naturally raises the question:
+
+%\textit{Given a fixed acquisition budget and a reconstruction algorithm, how can we design the best performing sampling mask?}
+
+%\textit{Given a fixed acquisition budget and a reconstruction algorithm, how can we efficiently design the best performing sampling mask?}
+
+%In this thesis, we aim at exploring this question in the case of Cartesian MRI, but we will first need to refine its scope. We aim at providing concrete answers to the following questions. How can we design sampling masks in an \textit{efficient} and \textit{scalable} fashion? What are the minimal set of components that a policy need to incorporate in order to perform optimally? 
+
+% This is now obvious from the fact that many approaches were proposed I think. //Indeed, naïve or brute force algorithms aiming at finding the best performing mask by exhaustively evaluating different candidates are not adequate solutions, as the space of candidates grows exponentially with the resolution of the images considered. As a result, it is imperative to be able to design such masks in an efficient and scalable way. Similarly, in identifying the minimal set of components or the kind of feedback that a policy requires, we will be able to design algorithms that make an efficient use of the resources available, and that will be able to scale to the size of the problems encountered in clinical settings. 
+
+%\todoi{Given also a reconstruction algorithm.}
+
+%With the revolution of deep learning and thanks to the availability of increasing amounts of data, these reconstruction models were further improved by learning the structure directly from data, rather than imposing it through a mathematical model such as sparsity. This allowed to further improve reconstruction performance.
+
+%But one question that has not been discussed until now is \textit{how} the k-space should be undersampled. Although Compressed Sensing prescribed random sampling, practitioners quickly turned to heuristics favoring low frequency sampling, which contain a lot of energy and information about the structure of the signal \citep{lustig2008compressed}. However, with the arrival of increasingly strong reconstruction methods, the question of optimizing the sampling masks is starting to become ever more pressing, as it is increasingly clear that the quality of sampling patterns greatly affects the quality of the reconstructed image \citep{chauffert2013variable,zijlstra2016evaluation}. 
+
+%A question then naturally arises: 
+
+
+
+%In this thesis, we aim at providing answers to this question and some related ones. In particular, how can we design sampling masks in an \textit{efficient} and \textit{scalable} fashion? What are the minimal set of elements that a policy need to incorporate in order to perform optimally? 
+
+%In this thesis, we will consider this question under the angle of \textit{efficiency}. Our concerns are threefold. We want to design algorithms that are efficient and scalable, in order to tackle the large scale optimization problems to optimize masks for practical acquisitions. In order to achieve this first goal, we need to understand what is the minimal amount of structure and assumptions that need to be embedded in a mask design algorithm in order for it to achieve the best performance. The third concern goes beyond purely algorithm to optimize mask design, and the question is how to best utilize the available training data in order to train reconstruction algorithms that are able to perform best.
+
+%We are concerned with the efficient use of limited resources: How can we design the best performing sampling mask at the lowest computational cost?
+
+%by proposing novel methodological approaches, as well as by providing empirical evidence to establish 
+%Although this question is very generic, more specific questions are also related. In particular, 
+%achieve the image quality?
+%How can we design the best performing sampling mask given a fixed acquisition budget? 
+
+%However, most of the important questions are still open: What is the best way to optimize sampling patterns? How can we find it in an efficient and scalable fashion? 
+
+%\todoi{I don't have ideas here....}
+
+%\todoi{How to learn what kind of information is relevant from data? How to do better sampling? How to learn to sample in an efficient and scalable way? What kind of information would a given reconstruction model require to obtain a good performance? 
+
+%Need to develop an understanding of why some models perform well, what structures in the data are relevant to this question. }
+
+%Compressed Sensing: From Research to Clinical Practice With Deep Neural Networks - MRI enables noninvasive visualization of soft tissue anatomy but is limited by long scan times and sensitivity to motion arti- facts. Scan durations are directly related to the number of data samples measured; therefore, collecting fewer measurements enables faster imaging. However, sampling below the Nyquist rate will introduce aliasing artifacts, which may obscure anat- omy and reduce diagnostic confidence. In fully sampled imag- ing, tradeoffs between the resolution and signal-to-noise ratio (SNR) are necessary to achieve shorter scan times and reduce sensitivity to patient motion.
+
+% Over the past decade since CS was introduced to MRI, many developments have been made to extend this idea and bring it into clinical practice [7], [8]. One area in which significant research and clinical activity have been done is in multidimensional imag- ing. [...] For example, a volumetric time-resolved blood-flow imaging sequence (4D flow) can be performed in a 5–10-min scan instead of the hour-long scan needed to satisfy the Nyquist criterion [9]. [...] Additionally, rapid imaging has a significant impact on the clinical workflow. Exam times can be significantly shortened to reduce patient burden and discomfort. For pediatric imag- ing, the shortened exam time enables the reduction of the depth and length of anesthesia [7]. For extremely short scan times (less than 15 min), anesthesia can be entirely eliminated.
+
+%[7] S. S. Vasanawala, M. T. Alley, B. A. Hargreaves, R. A. Barth, J. M. Pauly, and M. Lustig, “Improved pediatric MR imaging with compressed sensing,” Radiology, vol. 256, no. 2, pp. 607–616, 2010.
+%[8] T. A. Basha, M. Akçakaya, C. Liew, C. W. Tsao, F. N. Delling, G. Addae, L. Ngo, W. J. Manning et al., “Clinical performance of high-resolution late gadolinium enhancement imaging with compressed sensing,” J. Magn. Reson. Imaging, vol. 46, no. 6, pp. 1829–1838, 2017.
+%[9] J. Y. Cheng, K. Hanneman, T. Zhang, M. T. Alley, P. Lai, J. I. Tamir, M. Uecker, J. M. Pauly et al., “Comprehensive motion-compensated highly accelerated 4D flow MRI with ferumoxytol enhancement for pediatric congenital heart disease,” J. Magn. Reson. Imaging, vol. 43, no. 6, pp. 1355–1368, 2016.
+
+%In CS, the regularization function is typically designed to promote sparsity of the signal in a manually chosen transform domain, such as wavelet or finite differences [2]. However, depending on the choice of transform, this assumption may not accurately model the underlying distribution of the data.
+% [14] F. Chen, V. Taviani, I. Malkiel, J. Y. Cheng, J. I. Tamir, J. Shaikh, S. T. Chang, C. J. Hardy et al., “Variable-density single-shot fast spin-echo MRI with deep learn- ing reconstruction by using variational networks,” Radiology, vol. 289, no. 2, pp. 366–373, 2018. -> Clinical study
+
+
+%CS MRI - MR acquisition is inherently a process of traversing curves in multidimensional k-space. The speed of k-space traversal is lim- ited by physical constraints. In current systems, gradients are limited by maximum amplitude and maximum slew-rate (see Figure 1). In addition, high gradient amplitudes and rapid switching can produce peripheral nerve stimulation [1]. Since this must be avoided, physiology provides a fundamental limit to gradient system performance.
+%This fundamental limit has caused many researchers to search for methods to reduce the amount of acquired data with- out degrading image quality. Many such efforts are inspired by the idea that MRI data are redundant. Such redundancy can be created by design. For example, using multiple receiver coils [6], [7] provides more useful data per MR acquisition, requiring fewer acquisitions per scan. Redundancy can be a known or modeled signal property such as spatial-temporal correlation [8]–[11] or a redundancy learned and extracted from the data itself [12]–[14].
+%All efforts at reduced data acquisition might well be labeled “compressive sampling,” however, the underlying phenomena being exploited are often quite different. In this article, we focus on approaches rooted in the theory described in [15]–[17]; such approaches are called here CS approaches. Much ongoing work is based on such approaches [18]–[23].
+
+% Compressed Sensing MRI:  We have considerable freedom in designing the k-space trajectory for each acquisition. Some trajectories are illustrated in Figure 2. By far the most popular trajectory uses straight lines from a Cartesian grid. Most pulse sequences used in clinical imaging today are Cartesian. Reconstruction from such acquisitions is wonderfully simple: apply the inverse fast Fourier transform (FFT). More importantly, reconstructions from Cartesian sampling are robust to many sources of system imperfections. While Cartesian trajectories are by far the most popular, some other trajectories are in use, including sampling along radial lines and sampling along spiral trajectories. Radial acquisitions are less susceptible to motion artifacts than Cartesian trajectories and can be significantly undersampled [2], especially for high contrast objects [3]. Spirals make efficient use of the gradient system hardware and are used in real-time and rapid imaging applications [4]. Efficient reconstruction from such non-Cartesian trajectories requires using filtered back-projection or interpolation schemes (e.g., gridding [5]).
+
+%[2] K. Scheffler and J. Hennig, “Reduced circular field-of-view imaging,” Magn. Reson. Med., vol. 40, no. 3, pp. 474–480, 1998
+%[3] D.C. Peters, F.R. Korosec, T.M. Grist, W.F. Block, J.E. Holden, K.K. Vigen, and C.A. Mistretta, “Undersampled projection reconstruction applied to MR angiography,” Magn. Reson. Med., vol. 43, no. 1, pp. 91–101, 2000.
+%[4] C.H. Meyer, B.S. Hu, D.G. Nishimura, and A. Macovski, “Fast spiral coronary artery imaging,” Magn. Reson. Med., vol. 28, no. 2, pp. 202–213, 1992.
+%[5] J.I. Jackson, C.H. Meyer, D.G. Nishimura, and A. Macovski, “Selection of a convolution function for Fourier inversion using gridding,” IEEE Trans. Med. Imag. , vol. 10, no. 3, pp. 473–478, 1991.
+
+
+% Compressed Sensing for Body MRI - Since the introduction of MRI, efforts have beendevoted to improving imaging speed, and the speed atwhich MR images can be acquired today has increased dra-matically with a combination of advances in MR hardwareand innovations in both imaging acquisition and reconstruc-tion strategies. For example, fast switching magnetic fieldgradients have substantially reduced the time intervals sepa-rating adjacent data points. The invention of rapid imagingstrategies, such as fast low angle shot (FLASH) imaging,1fast spin-echo (FSE) imaging,2echo-planar imaging (EPI),3and many others has further increased imaging efficiencyand motivated many new MR applications. Beginning inthe late 1990s, a variety of so-called parallel-imaging techni-ques were proposed to accelerate data acquisition in MRIusing arrays of receiver coils with spatially varying sensitivi-ties.4–6
+
+%1.  Frahm J, Haase A, Matthaei D. Rapid NMR imaging of dynamic processesusing the FLASH technique. Magn Reson Med 1986;3:321–327.2.  Hennig J, Nauerth A, Friedburg H. RARE imaging: a fast imagingmethod for clinical MR. Magn Reson Med 1986;3:823–833.3.  Mansfield P. Real-time echo-planar imaging by NMR. Br Med Bull1984;40:187–190.4.  Sodickson DK, Manning WJ. Simultaneous acquisition of spatial har-monics (SMASH): fast imaging with radiofrequency coil arrays. MagnReson Med 1997;38:591–603.5.  Pruessmann KP, Weiger M, Scheidegger MB, Boesiger P. SENSE: sen-sitivity encoding for fast MRI. Magn Reson Med 1999;42:952–962.6.  Griswold MA, Jakob PM, Heidemann RM, et al. Generalized autocali-brating partially parallel acquisitions (GRAPPA). Magn Reson Med2002;47:1202–1210.
+
+% The concept of compressed sensing, which was origi-nally proposed in the early 2000s by Donoho14and Cande`set al,15and was soon translated to MRI by Lustig et al,16represents another powerful approach for increasing imagingspeed in MRI by exploiting image redundancy in a differentway. Compressed sensing takes advantage of the fact that animage is usually sparse in some appropriate transform basisand enables reconstruction from a reduced number ofk-space samples if they are acquired in an incoherent fashion.Incoherence is a key component that aims to break the usu-al regularity in sampling patterns and enables the use ofsparsity-based reconstruction
+\newpage
+
+\begin{figure}[!t]
+    \centering
+    %\vspace{-.5cm}
+    \includegraphics[width=\linewidth]{intro_outline.pdf}
+    \caption{Outline of the different chapters in this thesis. \textbf{Grey} boxes refer to chapters dealing with background material. \textbf{Red} boxes denote chapters with \textit{methodological} contributions, and \textbf{blue} boxes denote chapters that contribute to a better \textit{understanding} of the problem of optimizing sampling. Arrows show particular, direct dependencies between chapters.}\label{fig:organization}
+    \vspace{-.5cm}
+\end{figure}
+
+\section*{Organization and contributions}
+Figure \ref{fig:organization} illustrates the organization of this thesis, and each chapter is briefly described below, along with their respective contributions.
+
+\subsection*{Chapter \ref{ch:mri_background} --  MRI Background}
+In this chapter, we provide a brief introduction to the physics underlying image acquisition in MRI, focusing on {Cartesian} sampling. We introduce {multi-coil} acquisition as well as dynamic imaging. We then provide the mathematical model that will be used to describe the acquisition in accelerated MRI. 
+
+\subsection*{Chapter \ref{chap:rec} -- Reconstruction methods}
+In this chapter, we review the algorithms used to reconstruct images from undersampled measurements. We describe the shift that has taken place from {\textit{model-driven}} approaches based on Compressed Sensing \citep{lustig2007sparse} towards {\textit{data-driven}} approaches that construct a model from training data. We then focus on the different trends that have taken place within data-driven approaches, focusing on trained reconstruction models and generative approaches. Finally, we conclude by highlighting the trade-offs between the {speed of reconstruction} and the dependence on large training datasets.
+
+\subsection*{Chapter \ref{ch:sampling} -- Optimizing sampling patterns}
+In this last introductory chapter, we review the different approaches that have been taken to optimize {sampling masks}. We argue that, in a similar way that reconstruction methods moved from model-driven to data-driven approaches, a double shift has taken place in mask design. We show that mask design methods gradually moved from {\textit{model-based}, \textit{model-driven} to \textit{learning-based}, \textit{data-driven} approaches}. We discuss how this trend can be seen in the literature, and how it ties in with the empirical performance of these methods. 
+Then, we proceed to formalizing the problem of learning-based, data-driven mask design and show how this problem changes when one aims at designing {\textit{fixed policies}} -- where a mask is trained and re-used as is at test time -- or {\textit{adaptive policies}} -- that adapt to the current patient by integrating on-the-fly the information as it acquired. We conclude by proving the optimality of the discrete mask optimization problem, compared to the problem of finding the optimal {sampling \textit{distribution}}.
+
+%Initially, mask optimization methods required a prior distribution from which candidate masks were drawn, and used mathematical criteria such as coherence \citep{candes2008introduction} to assess their performance. We refer to such approaches as being \textit{model-based} - through a parametric prior distribution from which candidates are constructed - and \textit{model-driven} - as the optimization procedure is driven by a mathematical model. With the shift to data-driven reconstruction methods, 
+\textbf{Related publication.} 
+\begin{adjustwidth}{.5cm}{}
+Sanchez, T., G{\"o}zc{\"u}, B., van Heeswijk, R. B., Eftekhari, A., Il{\i}cak, E., \c{C}ukur, T., and Cevher, V. (2020a). Scalable learning-based sampling optimization for compressive dynamic MRI. In \textit{ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, pages 8584–8588.
+\end{adjustwidth}
+\subsection*{Chapter \ref{chap:lbcs} -- Scalable learning-based sampling optimization}
+In this chapter, we extend the Learning-Based Compressive Sensing (LBCS) approach of \citet{gozcu2018learning}. We primarily aim at \textit{drastically} improving their scalability of their method. We first discuss how their approach is rooted in submodular optimization \citep{krause2014submodular} and how algorithms proposed in this field could provide solutions to the limitation of LBCS. Their method scales as $O(P^2)$, where $P$ is the resolution of the image, such a complexity is prohibitive in high dimensional settings such as 3D MRI or dynamic MRI, and is not convenient when reconstruction becomes slow, such as in multi-coil MRI. To address this, we first propose \textit{lazy LBCS} (lLBCS), for the multi-coil and 3D settings. This algorithm leverages lazy evaluations \citep{minoux1978accelerated}, where a list of upper bounds is \textit{precomputed} and then traversed sequentially, drastically reducing the amount of computation over LBCS. Secondly, in the context of dynamic (multi-coil) MRI and large datasets, we propose\textit{ stochastic LBCS} (sLBCS) and show that it can achieve a very significant computational gain compared to LBCS, while retaining its performance.
+
+\textbf{Related publications.} 
+\begin{adjustwidth}{.5cm}{}
+G{\"o}zc{\"u}, B., Sanchez, T., and Cevher, V. (2019). Rethinking sampling in parallel MRI: A data-driven approach. In \textit{27th European Signal Processing Conference (EUSIPCO)}.\\[0.4cm]
+Sanchez, T., G{\"o}zc{\"u}, B., van Heeswijk, R. B., Eftekhari, A., Il{\i}cak, E., \c{C}ukur, T., and Cevher, V. (2020a). Scalable learning-based sampling optimization for compressive dynamic MRI. In \textit{ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, pages 8584–8588.
+\end{adjustwidth}
+
+\subsection*{Chapter \ref{ch:rl_mri} -- On the benefits of deep RL in accelerated MRI sampling}
+In this chapter, we assess the performance of state-of-the-art (SotA) deep reinforcement learning (RL) methods for mask designs. These methods improve in principle over LBCS by designing policies that \textit{adapt} to the patient at hand and leverage \textit{long-horizon} planning in order to make better decisions. We mainly aim at making sense of seemingly contradictory conclusions. The work of \citet{pineda2020active} seems to indicate that long term planning could be the most important component in deep RL, as their results show that a non-adaptive, long term planning policy model trained on the dataset can perform as well as an adaptive, long-term planning policy. On the contrary, the contribution of \citet{bakker2020experimental} highlights the importance of adaptivity, as a greedy policy, that does not do long-term planning is found to closely match policies that do long term planning.
+
+Our results, surprisingly show that sLBCS, a non-adaptive method that does not attempt long term planning, can perform as well as the state-of-the-art approaches of \citet{pineda2020active,bakker2020experimental}. We further show that the current SotA RL methods only bring at best a limited added value, and that other factors such as the architecture of the reconstruction algorithm or the masks used to train it have a much larger impact on the overall performance. This work  highlights the need for further discussions in the community about standardized metrics, strong baselines, and careful design of experimental pipelines to evaluate MRI sampling policies fairly.
+
+\textbf{Related preprint.}
+\begin{adjustwidth}{.5cm}{}
+Sanchez, T.$^{*}$, Krawczuk, I.$^{*}$ and Cevher, V. (2021). On the benefits of deep RL in accelerated MRI sampling. \textit{Available at \url{https://openreview.net/pdf?id=fRb9LBWUo56}}. $^{*}$ denotes equal contribution.
+\end{adjustwidth}
+
+\subsection*{Chapter \ref{ch:gans} -- Uncertainty driven adaptive sampling via GANs}
+In this chapter, we take a step back from the question of designing the best sampling policy, and primarily aim at exploring how conditional Generative Adversarial Networks (GANs) \citep{goodfellow2014generative} can be used to model inverse problems in a Bayesian fashion. 
+%\todoi{Why is it relevant to model inverse problems in a Bayesian fashion?}
+%AO: Exploring the posterior not only allows for recovering the model parameter in a reliable man- ner by computing suitable estimators, it also opens up for a complete statistical analysis including quantification of the uncertainty.}
+GANs have been used mainly as reconstruction models in the context of inverse problems \citep{yang_dagan_2018,chen2022ai}, but a few works took an additional step to show the value of learning the full posterior distribution in order to have the ability to provide uncertainty quantification as well \citep{adler2018deep}. 
+
+We argue that they do more and that conditional GANs for MRI reconstruction can naturally provide a criterion for adaptive sampling: by sequentially observing the location with the largest posterior variance in the measurement domain, the GAN provides an adaptive sampling policy without ever being trained for it.
+
+Such a criterion is not restricted to acquisition in Fourier domain, like in MRI, but can also be readily used for image domain sampling. In this context, we show that our GAN-based policy can strongly outperform the non-adaptive greedy policy from sLBCS. However, in Fourier domain, the GAN-based policy does not match the performance of sLBCS. We provide an explanation to this phenomenon rooted in the concept of the information horizon used to make a decision at each step. We show that our model uses less information than LBCS to design its policy, and argue that this is the reason leading to its inferior performance. However, when compared with models that use the same amount of information to inform their policy, our model largely outperforms the competition.
+
+\textbf{Related preprint and workshop paper.}
+\begin{adjustwidth}{.5cm}{}
+
+Sanchez, T., Krawczuk I., Sun, Z. and Cevher V. (2019). Closed loop deep Bayesian inversion: Uncertainty driven acquisition for fast MRI. \textit{Preprint available at} \url{https://openreview.net/pdf?id=BJlPOlBKDB}.\\[0.4cm]
+Sanchez, T., Krawczuk, I., Sun, Z. and Cevher V. (2020). Uncertainty-Driven Adaptive Sampling via GANs. In \textit{NeurIPS 2020 Workshop on Deep Learning and Inverse Problems}. Available at \url{https://openreview.net/pdf?id=lWLYCQmtvW}.
+\end{adjustwidth}
+
+\subsection*{Chapter \ref{ch:conclusion} -- Conclusion and future works}
+In this last chapter, we review the contributions of the different chapters and summarize the insights that our contributions bring to the design of masks for Cartesian MRI sampling. We then provide an outlook of the opportunities for future works. 
+%\vspace{1cm}
+
+\begin{remark}[Bibliographic note]
+    At the end of Chapters \ref{ch:sampling}, \ref{chap:lbcs}, \ref{ch:rl_mri} and \ref{ch:gans}, we include a ``bibliographic note'' section, where we distinguish the contributions of the co-authors of the abovementioned publications. 
+\end{remark}
+
+%\vspace{5cm}
+
+\textbf{Additional publication not included in this thesis.} 
+\begin{adjustwidth}{.5cm}{}
+Sun, Z., Latorre, F., Sanchez, T., and Cevher, V. (2021). A plug-and-play deep image prior. In \textit{ICASSP 2021 - 2021 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, pp. 8103-8107.
+\end{adjustwidth}

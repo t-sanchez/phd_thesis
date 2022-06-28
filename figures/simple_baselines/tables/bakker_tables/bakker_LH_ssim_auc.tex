@@ -1,0 +1,18 @@
+\begin{tabular}{lcccc}
+    \toprule
+    
+   \multirow{2}{*}{\textbf{Policy}}& \multicolumn{2}{c}{\texttt{cropped, vert., Bakker}} & \multicolumn{2}{c}{\texttt{cropped+resized, horiz., Zhang}}\\
+   \cmidrule(l){2-3} \cmidrule(l){4-5}
+   & UNet  & cResNet & UNet  & cResNet \\
+   \midrule
+   \textbf{Random}  &  $0.4348\pm 0.0001$  & $0.4432\pm 0.0002$ &$0.5860\pm 0.0002$&$0.5885\pm 0.0002$ \\
+   \textbf{LtH}  & $0.4849$                & $0.5107$&$0.6678$ &$0.6902$ \\
+   \textbf{LBCS}  & $0.5134\pm0.0004$      & $\mathbf{0.5243\pm 0.0003}$& $\mathbf{0.7035\pm 0.0001}$ &$0.7096 \pm 0.0001$\\
+   \textbf{RL} & $\mathbf{0.5142\pm 0.0001}$        & $\mathbf{0.5242\pm0 .0002}$ &$\mathbf{0.7035 \pm 0.0002}$&$\mathbf{0.7111\pm 0.0009}$\\
+   \midrule
+   \textbf{NA Oracle}  & $0.5140$          & $0.5247$          & $0.7038$    &$0.7099$\\
+   
+   \bottomrule
+   \end{tabular}
+   
+   

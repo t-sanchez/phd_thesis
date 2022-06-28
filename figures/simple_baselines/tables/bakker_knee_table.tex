@@ -1,0 +1,71 @@
+\begin{figure}[h]
+    \begin{minipage}[c]{0.48\textwidth}
+    \begin{center}
+        \begin{tabular}{lcc}
+         \toprule
+        \multirow{1}{*}{\textbf{Policy}}& Base horizon& Long horizon\\
+        \midrule
+        \textbf{Random} & $24.22$ & $20.68$ \\
+        \textbf{LtH} & $24.25$ & $23.63$\\
+        \textbf{LBCS} & $24.57$& $23.82$\\
+        \textbf{NA Oracle}& $24.56$& $23.82$\\           
+        \textbf{Bakker} & $24.37$& $22.50$ \\
+        \bottomrule
+        \end{tabular}
+        \captionof{table}{Average PSNR test set AUC (one AUC per image) on Bakker 128x128 knee setting.}\label{tab:bakker_comp_knee_psnr}     \end{center}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.48\textwidth}
+    \begin{center}
+        \begin{tabular}{lcc}
+            \toprule
+           \multirow{1}{*}{\textbf{Policy}}& Base horizon& Long horizon\\
+           \midrule
+            \textbf{Random}& $0.6251$& $0.5557$ \\
+            \textbf{LtH}& $0.6073$& $0.5687$\\
+            \textbf{LBCS}& $0.6355$& $0.5894$\\
+            \textbf{NA Oracle}& $0.6355$& $0.5886$\\           
+            \textbf{Bakker}& $0.6387$& $0.6153$ \\
+           \bottomrule
+           \end{tabular}
+           \captionof{table}{Average SSIM test set AUC (one AUC per image) on Bakker 128x128 knee setting.}\label{tab:bakker_comp_knee_ssim} 
+    \end{center}
+    \end{minipage}
+    \end{figure}
+    
+    
+    
+    \begin{figure}[h]
+    \begin{minipage}[c]{0.48\textwidth}
+    \begin{center}
+        \begin{tabular}{lcc}
+         \toprule
+        \multirow{1}{*}{\textbf{Policy}}& Base horizon& Long horizon\\
+        \midrule
+        \textbf{Random} & $24.84$ & $21.66$ \\
+        \textbf{LtH} & $24.81$ & $24.81$\\
+        \textbf{LBCS} & $25.40$& $25.40$\\
+        \textbf{NA Oracle}& $25.39$& $25.40$\\           
+        \textbf{Bakker} & $25.18$& $24.60$ \\
+        \bottomrule
+        \end{tabular}
+        \captionof{table}{Average PSNR at $25\%$ on Bakker 128x128 knee setting.}\label{tab:bakker_comp_knee_psnr_25}     \end{center}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.48\textwidth}
+    \begin{center}
+        \begin{tabular}{lcc}
+            \toprule
+           \multirow{1}{*}{\textbf{Policy}}& Base horizon& Long horizon\\
+           \midrule
+            \textbf{Random}& $0.6896$& $0.6589$ \\
+            \textbf{LtH}& $0.6586$& $0.6586$\\
+            \textbf{LBCS}& $0.7086$& $0.7095$\\
+            \textbf{NA Oracle}& $0.7099$& $0.7097$\\           
+            \textbf{Bakker}& $0.7165$& $0.7400$ \\
+           \bottomrule
+           \end{tabular}
+           \captionof{table}{Average SSIM at $25\%$ on Bakker 128x128 knee setting.}\label{tab:bakker_comp_knee_ssim_25} 
+    \end{center}
+    \end{minipage}
+    \end{figure}

@@ -1,0 +1,211 @@
+%!TEX root = thesis_presentation.tex
+\usetheme{minimalist}
+\usepackage{multimedia}
+\usepackage{array}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Video embedding on Adobe reader without flash player
+%https://tex.stackexchange.com/questions/516029/media9-is-becoming-obsolete-dec-2020-any-alternatives-for-embedding-video-audio
+% \embedvideo{<poster or text>}{<video file (MP4+H264)>}
+% \embedvideo*{...}{...}                     % auto-play
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage{media9}
+%\usepackage[bigfiles]{pdfbase}
+\ExplSyntaxOn
+\NewDocumentCommand\embedvideo{smm}{
+  \group_begin:
+  \leavevmode
+  \tl_if_exist:cTF{file_\file_mdfive_hash:n{#3}}{
+    \tl_set_eq:Nc\video{file_\file_mdfive_hash:n{#3}}
+  }{
+    \IfFileExists{#3}{}{\GenericError{}{File~`#3'~not~found}{}{}}
+    \pbs_pdfobj:nnn{}{fstream}{{}{#3}}
+    \pbs_pdfobj:nnn{}{dict}{
+      /Type/Filespec/F~(#3)/UF~(#3)
+      /EF~<</F~\pbs_pdflastobj:>>
+    }
+    \tl_set:Nx\video{\pbs_pdflastobj:}
+    \tl_gset_eq:cN{file_\file_mdfive_hash:n{#3}}\video
+  }
+  %
+  \pbs_pdfobj:nnn{}{dict}{
+    /Type/RichMediaInstance/Subtype/Video
+    /Asset~\video
+    /Params~<</FlashVars (
+      source=#3&
+      skin=SkinOverAllNoFullNoCaption.swf&
+      skinAutoHide=true&
+      skinBackgroundColor=0x5F5F5F&
+      skinBackgroundAlpha=0.75
+    )>>
+  }
+  %
+  \pbs_pdfobj:nnn{}{dict}{
+    /Type/RichMediaConfiguration/Subtype/Video
+    /Instances~[\pbs_pdflastobj:]
+  }
+  %
+  \pbs_pdfobj:nnn{}{dict}{
+    /Type/RichMediaContent
+    /Assets~<<
+      /Names~[(#3)~\video]
+    >>
+    /Configurations~[\pbs_pdflastobj:]
+  }
+  \tl_set:Nx\rmcontent{\pbs_pdflastobj:}
+  %
+  \pbs_pdfobj:nnn{}{dict}{
+    /Activation~<<
+      /Condition/\IfBooleanTF{#1}{PV}{XA}
+      /Presentation~<</Style/Embedded>>
+    >>
+    /Deactivation~<</Condition/PI>>
+  }
+  %
+  \hbox_set:Nn\l_tmpa_box{#2}
+  \tl_set:Nx\l_box_wd_tl{\dim_use:N\box_wd:N\l_tmpa_box}
+  \tl_set:Nx\l_box_ht_tl{\dim_use:N\box_ht:N\l_tmpa_box}
+  \tl_set:Nx\l_box_dp_tl{\dim_use:N\box_dp:N\l_tmpa_box}
+  \pbs_pdfxform:nnnnn{1}{1}{}{}{\l_tmpa_box}
+  %
+  \pbs_pdfannot:nnnn{\l_box_wd_tl}{\l_box_ht_tl}{\l_box_dp_tl}{
+    /Subtype/RichMedia
+    /BS~<</W~0/S/S>>
+    /Contents~(embedded~video~file:#3)
+    /NM~(rma:#3)
+    /AP~<</N~\pbs_pdflastxform:>>
+    /RichMediaSettings~\pbs_pdflastobj:
+    /RichMediaContent~\rmcontent
+  }
+  \phantom{#2}
+  \group_end:
+}
+\ExplSyntaxOff
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{graphicx}
+
+%% Define checkmarks 
+\usepackage{amssymb}% http://ctan.org/pkg/amssymb
+\usepackage{pifont}% http://ctan.org/pkg/pifont
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+
+% Use serif fonts in math.
+\usefonttheme[onlymath]{serif}
+
+% Citing-related commands.
+\usepackage[style=authoryear,backend=bibtex,maxcitenames=1,maxbibnames=3,giveninits]{biblatex}
+\renewcommand*{\bibfont}{\footnotesize}
+\setbeamertemplate{itemize items}{$\circ$}
+\setbeamertemplate{itemize subitem}{--}
+\newcommand{\btVFill}{\vskip0pt plus 1filll}
+
+
+% Algorithm-related
+\usepackage{algorithm} 
+\usepackage{algorithmicx} 
+\usepackage{algpseudocode}  
+\renewcommand{\thealgorithm}{}% No algorithm numbering
+
+% Parencite with squared brackets
+\makeatletter
+\newrobustcmd*{\parentexttrack}[1]{%
+  \begingroup
+  \blx@blxinit
+  \blx@setsfcodes
+  \blx@bibopenparen#1\blx@bibcloseparen
+  \endgroup}
+
+\AtEveryCite{%
+  \let\parentext=\parentexttrack%
+  \let\bibopenparen=\bibopenbracket%
+  \let\bibcloseparen=\bibclosebracket}
+
+\makeatother
+%Coloring citations to blue
+\definecolor{bleu_cite}{RGB}{34,111,212}
+%\DeclareCiteCommand{\cite}
+  %{\color{bleu_cite}\usebibmacro{prenote}}%
+  %{\usebibmacro{citeindex}%
+  % \usebibmacro{cite}}
+  %{\multicitedelim}
+  %{\usebibmacro{postnote}}
+
+\DeclareCiteCommand{\parencite}[\mkcolorbibparens]
+  {\color{bleu_cite}\usebibmacro{prenote}}%
+  {\usebibmacro{citeindex}%
+   \usebibmacro{cite}}
+  {\multicitedelim}
+  {\usebibmacro{postnote}}
+
+\makeatletter
+\newrobustcmd{\mkcolorbibparens}[1]{%
+  \begingroup
+  \color{bleu_cite}%
+  \blx@blxinit
+  \blx@setsfcodes
+  \bibopenparen#1\bibcloseparen
+  \endgroup}
+\makeatother
+%\hypersetup{
+%    colorlinks,
+%    citecolor=bleu_cite,
+%    linkcolor=black
+%}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{mdframed}
+\setlength{\itemsep}{\fill}
+
+%For animations
+\usepackage{animate}%Media9 does not seem to work.
+% For backslashbox
+\usepackage{slashbox}
+
+%For diagbox
+\usepackage{diagbox}
+\newtheorem{proposition}{Proposition}
+
+
+
+\input{../phd_thesis/files/head/math_commands}
+
+
+% Change standard block width
+%\addtobeamertemplate{block begin}{%
+%    \centering\setlength{\textwidth}{0.9\textwidth}
+%}{}
+
+\addbibresource{../phd_thesis/files/tail/bibliography.bib}
+\graphicspath{{../figures/}}
+
+% Custom commands
+\def \yo{\vy_\omega}
+\def \Po{\mP_\omega}
+\def \mAo{\mA_\omega}
+\def \bepsilon{\boldsymbol{\epsilon}}
+%Custom footnote
+\makeatletter
+\def\blfootnote{\gdef\@thefnmark{}\@footnotetext}
+\makeatother
+
+%Text highlighting. Commands needs to be re-defined to work in beamer + change width
+\usepackage{soul}
+\renewcommand<>{\hl}[1]{\only#2{\beameroriginal{\hl}}{#1}}
+\makeatletter
+\let\HL\hl
+\renewcommand\hl{%
+  \let\set@color\beamerorig@set@color
+  \let\reset@color\beamerorig@reset@color
+  \HL}
+\makeatother
+
+\makeatletter
+ \def\SOUL@hlpreamble{%
+ \setul{}{2ex}%         !!!change this value!!! default is 2.5ex
+ \let\SOUL@stcolor\SOUL@hlcolor
+ \SOUL@stpreamble
+ }
+\makeatother

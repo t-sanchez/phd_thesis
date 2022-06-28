@@ -1,0 +1,61 @@
+    \centering
+    \resizebox{\textwidth}{!}{\begin{tabular}{lll|ccc}
+    \toprule
+    Algorithm & Model & Architecture & PSNR [dB]$~(\uparrow)$  &SSIM $(\uparrow)$& Accuracy  $ [\%]~(\uparrow)$\\
+    \midrule
+    \multirow{2}{*}{VDS}
+     & NC &ResUNet& $21.61$  & $0.55$ & $0.84$ \\
+     & WGAN &c-ResNet& $21.59$  & $0.57$ & $0.77$ \\    
+    \midrule
+    
+    \multirow{4}{*}{LBC \cite{sanchez2019scalable}} 
+     & NC & ResUNet & $25.61\pm 2.42$  & $0.60\pm 0.07$ & $0.97\pm 0.11$ \\
+     & NC & c-ResNet& $25.79\pm 2.30$  & $0.63 \pm 0.07$ & $0.98 \pm 0.12$ \\
+     & WGAN& ResUNet & $25.33 \pm 2.2$2   & $0.58\pm 0.06$ & $0.97\pm 0.12$ \\
+     & WGAN& c-ResNet& $\mathbf{28.10\pm 2.08}$  & $\mathbf{0.78\pm 0.05}$ & $0.98 \pm 0.12$\\  
+     
+    \midrule
+     \multicolumn{2}{l}{Zhang et al.\cite{zhang2019reducing}} &c-ResNet& $23.99 \pm 2.40$ & $0.74 \pm 0.07$& $0.96 \pm 0.14$\\
+    \midrule
+    \multirow{4}{*}{\begin{minipage}{1cm}GAS (Ours)\end{minipage}}  
+     & NC&ResUNet & $25.02\pm 2.06$  & $0.60\pm 0.07$ & $0.98 \pm 0.12$ \\
+     & NC& c-ResNet& $24.70\pm 2.50$  & $0.62 \pm 0.07$ & $0.98 \pm 0.12$ \\   
+     & WGAN& ResUNet &  $24.19 \pm 1.95$  & $0.53 \pm 0.06$ & $0.97 \pm 0.12$ \\
+     & WGAN& c-ResNet & $\mathbf{27.74 \pm 1.94}$  & $\mathbf{0.74\pm 0.06}$ & $0.98 \pm 0.12$ \\ 
+
+    \bottomrule
+    \end{tabular}}
+    \captionof{table}{Average test set AUC with standard deviation (one AUC per image) on MNIST, in Fourier domain.}\label{tab:comp_mnist_f}    
+
+
+\begin{comment}
+\resizebox{\textwidth}{!}{\begin{tabular}{ll|ccc}
+    \toprule
+    \multirow{2}{*}{Algorithm} & \multirow{2}{*}{Model}  & PSNR  &SSIM & Accuracy  \\
+    & & [dB]$~(\uparrow)$ &  $(\uparrow)$ &  $ [\%]~(\uparrow)$ \\
+    \midrule
+    \multirow{5}{*}{Baseline} 
+     & FWR & $19.99$  & $0.47$  & $0.79$ \\
+     & FNR & $20.96$  & $0.53$ & $0.81$ \\
+     & FWC & $20.86$  & $0.55$ & $0.75$ \\    
+     & FNC & $20.10$  & $0.50$  & $0.77$  \\  
+    \midrule
+    
+    \multirow{5}{*}{LBC} 
+     & FWR & $23.70 \pm 0.24$   & $0.53\pm 0.01$ & - \\
+     & FNR & $24.17\pm 0.24$  & $0.57\pm 0.01$ & - \\
+     & FWC & $\mathbf{26.35\pm 0.26}$  & $\mathbf{0.74\pm 0.01}$ & $0.92 \pm 0.004$\\  
+     & FNC & $25.64\pm 0.61$  & $0.59 \pm 0.24$ & $0.92 \pm 0.004$ \\
+    \midrule
+    \multirow{5}{*}{GUD-ACS}  
+     & FWR &  $23.59\pm 0.24$  & $0.52 \pm 0.01$ & $0.86 \pm 0.004$ \\
+     & FNR & $24.41 \pm 0.25$  & $0.58\pm 0.01$ & $0.951 \pm 0.004$ \\
+     & FWC & $\mathbf{27.01 \pm 0.27}$  & $\mathbf{0.74\pm 0.01}$ & $\mathbf{0.960 \pm 0.004}$ \\ 
+     & FNC & $24.19 \pm 0.24$  & $0.61 \pm 0.01$ & $\mathbf{0.962 \pm 0.004}$ \\   
+     \midrule
+     \multicolumn{2}{l|}{Zhang baseline} & $21.83$& $0.61$ & $0.81$\\
+     \multicolumn{2}{l|}{Zhang adaptive} & $23.44 \pm 0.24$ & $0.72 \pm 0.01$& $0.928 \pm 0.004$\\
+    \bottomrule
+    \end{tabular}}
+    \captionof{table}{Average test set AUC with standard deviation (one AUC per image) on MNIST, in Fourier domain.}\label{tab:comp_mnist_f}    
+    \end{comment}

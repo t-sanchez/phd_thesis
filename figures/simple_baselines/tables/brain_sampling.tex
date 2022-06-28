@@ -1,0 +1,42 @@
+\begin{figure}[h]
+\begin{minipage}[c]{0.48\textwidth}
+\begin{center}
+    \begin{tabular}{lcc}
+     \toprule
+    \multirow{1}{*}{\textbf{Policy}}& \multicolumn{2}{c}{\textbf{Model}}\\
+    \cmidrule{2-3} & AO & Zhang\\
+    \midrule
+    VDS & $31.7$1& $28.78$ \\
+    LBCS & $\mathbf{34.03}$& $\mathbf{32.03}$\\
+    Zhang Gaussian  & - & $25.37$\\
+    Zhang Evaluator & $32.19$& $29.95$\\
+    Bakker & $31.45$& $28.23$ \\
+    Uncertainty (Ours) & $33.77$& $31.18$\\
+    \midrule
+    MSE Oracle &$34.21$ & $30.69$\\
+    \bottomrule
+    \end{tabular}
+    \captionof{table}{Average PSNR test set AUC (one AUC per image) on Brain 256.}\label{tab:comp_brain_psnr} 
+\end{center}
+\end{minipage}
+\hfill
+\begin{minipage}[c]{0.48\textwidth}
+\begin{center}
+     \begin{tabular}{lcc}
+     \toprule
+    \multirow{1}{*}{\textbf{Policy}}& \multicolumn{2}{c}{\textbf{Model}}\\
+    \cmidrule{2-3} &AO & Zhang\\
+    \midrule
+    VDS & $0.82$ &$0.82$ \\
+    LBCS &  $\mathbf{0.88}$& $0.84$\\
+    Zhang Gaussian & - & $0.72$\\
+    Zhang Evaluator & $0.83$& $0.85$\\
+    Bakker &$0.80$ & $0.80$\\
+    Uncertainty (Ours) & $\mathbf{0.88}$ & $\mathbf{0.87}$\\
+    \midrule
+    MSE Oracle & $0.89$& $0.87$\\
+    \end{tabular}
+    \captionof{table}{Average SSIM set AUC (one AUC per image) on Brain 256.}\label{tab:comp_brain_ssim} 
+\end{center}
+\end{minipage}
+\end{figure}

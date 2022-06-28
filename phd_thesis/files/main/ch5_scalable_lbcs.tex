@@ -1,0 +1,682 @@
+%!TEX root = ../../thesis.tex
+\chapter{Scalable learning-based sampling optimization}\label{chap:lbcs}
+In this chapter, we present our extensions to the framework of \citet{gozcu2018learning}. We primarily aim at drastically improving the scalability of their method. We begin by presenting in detail their learning-based CS (LBCS) framework in Section \ref{sec:LBCS_baran}. In Section \ref{sec:submodularity}, we take a short detour in the field of submodular function maximization, from which \citet{gozcu2018learning} took inspiration, and discuss how algorithms that have been proposed in this context could help improve the LBCS method. In Section \ref{sec:improved_LBCS}, we present our two improvements over LBCS, namely \textit{lazy} LBCS and \textit{stochastic} LBCS. We then carry out extensive validation of these methods in Sections \ref{s:exp_slbcs} and \ref{s:exp_llbcs}, and discuss the results in Section \ref{s:lbcs_discussion}\footnote{The work in this chapter is based on the following publications:\\
+G{\"o}zc{\"u}, B., Sanchez, T., and Cevher, V. (2019). Rethinking sampling in parallel MRI: A data-driven approach. In \textit{27th European Signal Processing Conference (EUSIPCO)}.\\
+Sanchez, T., G{\"o}zc{\"u}, B., van Heeswijk, R. B., Eftekhari, A., Il{\i}cak, E., \c{C}ukur, T., and Cevher, V. (2020a). Scalable learning-based sampling optimization for compressive dynamic MRI. In \textit{ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, pages 8584–8588.}.
+
+%Motivation:  While all these approaches allow to quickly design masks which yield a great improvement over fully random sampling, prescribed by the theory of CS, they \di remain largely heuristic; \ii ignore the anatomy of interest; \iii ignore the reconstruction algorithm; \iv require careful tuning of their various parameters
+
+%\todoi{I think that there is an issue of definition. If we have a $P$-dim vector where $P = HW$, we have a total of $H$ lines considered, and H candidates where we add W elements at once: so we have $N/W$ rounds where at each round, we consider $H$ candidate lines: complexity is $HN/W = N$ if $H=W$ and $N = N_l * W \to O(mrHW)$ so in the case of dMRI, we have $P = HWT$ and $N/W$ rounds with candidates $HT N/W$, $N= N_l*W = O(HT)*W  \to HT O(HT) = O((HT)^2)$, but we need to be precise. I think that assuming H=W makes the whole analysis simpler.}
+\section{Learning-based Compressive Sensing (LBCS)}\label{sec:LBCS_baran}
+LBCS aims at designing a non-adaptive mask in a sequential fashion, and tackles Problem \ref{eq:emp_perf}. Indeed, solving this problem in a naive, brute-force approaches would only be possible in very simple cases, as the total number of masks grows exponentially, with a rate $O(2^P)$. Therefore, one must use \textit{approximate} solutions to this problem. \citet{gozcu2018learning} proposed a greedy, parameter-free approach, where a mask is grown sequentially by adding elements to the mask in an iterative fashion. This approach, called Learning-Based Compressed Sensing (LBCS) allows to reduce the number of configurations evaluated to a complexity $O(P^2)$. The simplified procedure is illustrated on Figure \ref{fig:lbcs}.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{LBCS}
+    \caption{Illustration of the LBCS greedy approach. On the right, we start from an empty mask, and select the line that yields to the best performance. Once it is acquired, we keep this mask, try adding to it the line that yields the best performance given what has been acquired, and continue until the final sampling budget is reached. On the left, we see how the performance is assessed: we use a set $\mathcal{D}$ of training data, that are subsampled according to the current mask, then reconstructed and evaluated using the performance metric $\eta$. The computation is repeated for each different mask.}\label{fig:lbcs}
+\end{figure}
+
+A couple of elements must be introduced in order to formally define their algorithm. To implement the constraints of sampling in MRI, typically acquiring full lines in the Fourier space at once, we define a \textit{set of subsets} $\mathcal{S}$ of $\{1, \ldots, P\}$ and assume that the final mask will be constructed as 
+\begin{equation}
+    \omega = \bigcup_{j=1}^t S_j, \text{~~s.t.~} S_j \in \mathcal{S}
+\end{equation}
+for some $t>0$. \citet{gozcu2018learning} also introduce a \textit{cost function} $c(\omega)\geq 0$ and a \textit{maximal cost} $\Gamma$ that the final mask $\omega$ must not exceed. In the case of Problem \ref{eq:emp_perf}, we have $c(\omega) = |\omega|$ and $\Gamma = N$. With these two additions, the LBCS method \citep{gozcu2018learning} is displayed in Algorithm \ref{alg:lbcs}. The procedure is very simple: while budget is available (l.2), the algorithm tests all feasible candidates $S\in \mathcal{S}$ (l.3-7) and adds permanently to the sampling mask the candidate that yields the largest performance gain (l.8). 
+
+\begin{figure}[!ht]
+    \centering
+    \begin{minipage}[b]{.7\textwidth}
+    \begin{algorithm}[H]
+        %\vspace{3mm}
+        \caption{LBCS}\label{alg:lbcs}
+        \textbf{Input}: Training data $\x_1, \dotsc, \x_m$, decoder $\vf_\theta$,\\ sampling subsets $\mathcal{S}$, cost function $c$, maximum cost $\Gamma$ \\
+        \textbf{Output}: Sampling pattern $\omega$
+        \begin{algorithmic}[1]
+            \State $\omega \leftarrow \emptyset$
+            \While{$ c(\omega) \leq  \Gamma$}
+            
+                \For{$S \in \mathcal{S}$ such that  $c(\omega \cup S) \le \Gamma$}
+                    \State $\omega' = \omega \cup S$
+                    \State For each $j$, set  $\vy_{j} \leftarrow \mP_{\omega'}\mF\x_j$, $\hat{\vx}_j \leftarrow \vf_\theta(\vy_j,\omega')$ 
+                    \State $\eta(\omega') \leftarrow \frac{1}{m}\sum_{j=1}^m \eta(\vx_j,\hat{\vx}_j)$
+                \EndFor
+                \State $\displaystyle  \omega \leftarrow \omega \cup S^*, \mbox{ ~~~}
+                S^* = \argmax_{S\,:\,c(\omega \cup S) \le \Gamma} \eta(\omega \cup S) - \eta(\omega)$
+            \EndWhile
+            \State {\bf return} $\omega$
+        \end{algorithmic}
+    \end{algorithm}
+\end{minipage}
+\end{figure}
+
+The greedy approach of LBCS brings multiple advantages over previous heuristics such as variable-density sampling. First, the mask $\omega$ has a \textit{nested} structure: by recording the order in which elements were added to the mask, it is possible to immediately adapt to different costs $\Gamma$. This feature is not possible for many approaches that directly optimize the sampling mask for a given sampling rate. In addition, this approach does not have any parameter that requires to be tuned, making it particular easy to implement in practice. It also does not rely on any probability distribution from which candidate masks are drawn, which makes it fully learning-based. Finally, the algorithm is not tied to a specific reconstruction method or performance metric, which makes it easy to integrate in novel approaches. 
+
+%\todot{I think that it might be beneficial to illustrate LBCS by a cartoon of selecting a new line, ...}
+
+
+
+\section{LBCS motivation: Submodularity}\label{sec:submodularity}
+
+The idea to apply a greedy approach to the problem of mask design was initially motivated by techniques used in the field of submodular function maximization \citep{baldassarre2016learning,krause2014submodular}. We discuss in greater depth these concepts here as the motivation for scaling up LBCS are also motivated by algorithms proposed in the context of submodular function maximization. 
+
+Submodular functions have been studied for a long time \citep{nemhauser1978analysis, minoux1978accelerated}, and formalize among other things the idea of \textit{diminishing returns}. This is the idea that adding an element to a smaller set increases the objective more than when it is added to a larger set. Formally
+\begin{definition}[Submodularity] 
+    A set function $\eta(\omega)$ mapping subsets $\omega \in [P] $ to real numbers is said to be \textbf{submodular} if, for all $\omega_1,\omega_2 \subset [P]$ with $\omega_1 \subseteq \omega_2$ and all $i \in [P]$, it holds that
+    \begin{equation}
+        \eta(\omega_1 \cup \{i\}) - \eta(\omega_1) \geq \eta(\omega_2 \cup \{i\}) - \eta(\omega_2).
+    \end{equation}
+    The function is said to be \textbf{modular} if the same holds true with equality in place of inequality
+\end{definition}
+An example of this is sensor placement. As one places more sensors to cover an area more fully, often, the area covered by sensors will be overlapping, and so adding a new sensor will bring less information if a large set of sensors is already available. This is illustrated on Figure \ref{fig:submodularity}. 
+
+This typically translates into problems of submodular function maximization, where a common constraint lies on the cardinality of the solution:
+\begin{equation}
+    \max_{\omega \subseteq [P]} \eta(\omega) \text{~subject to~}|\omega| \leq N.
+\end{equation}
+
+In the case of linear reconstruction in MRI, it can be shown that the problem of finding the sampling mask that gives minimal mean squared error is a \textit{modular} optimization problem: there is no diminishing returns, but each component can be optimized individually \citep{baldassarre2016learning}. In the case of a non-linear reconstruction in MRI, there is no formal proof that shows that submodularity exactly holds, but empirical results show a diminishing return throughout acquisition. This is what motivated \citet{gozcu2018learning} to leverage tools from submodular optimization for mask design in MRI. 
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.7\linewidth]{plot_submodularity.pdf}
+    \caption{Illustration of the diminishing return property of submodular functions. If $h$ quantifies the total coverage of sensors, we see that adding sensor $3$ to sensor $1$ increases the total coverage more than when adding it to the set $\{1,2\}$, as there is more surface coverage surface overlapping in this case.} \label{fig:submodularity}
+\end{figure}
+
+Indeed, greedy algorithms have a special place in submodular optimization because of the celebrated result by \citet{nemhauser1978analysis}, who proved that the greedy algorithm provides a good approximation to the optimal solution of NP-hard instances of submodular function maximization \citep{krause2014submodular}. 
+
+\begin{theorem}[\citet{nemhauser1978analysis}]
+    Let $\eta:2^P \to \mathbb{R}_+$ be a nonnegative monotone submodular function. Let ${\omega_t}$, ${t\geq 0}$ be the sequence obtained by the greedy algorithm. Then, for all positive $t, N$,
+    \begin{equation}
+        \eta(\omega_t) \geq \left(1- e^{-t/N}\right) \max_{\omega:|\omega|\leq N} \eta(\omega).
+    \end{equation}
+    In particular, for $t=N$, $\eta(\omega_N) \geq  \left(1- 1/e\right) \max_{\omega:|\omega|\leq N} \eta(\omega)$.
+\end{theorem}
+For many classes of submodular functions $h$, this result is the best that can be achieved  with any efficient algorithm \citep{krause2014submodular}. In particular, \citet{nemhauser1978best} proved that any algorithm that can only evaluate $h$ on a polynomial number of set will not be able to obtain an approximation guarantee that is better than $(1-1/e)$. This property could be key to explaining the strong empirical performance of the LBCS algorithm of \citet{gozcu2018learning} in the context of MRI.
+
+Although the approximation guarantee cannot be generally improved, many works have proposed more \textit{efficient} approaches than the simple greedy algorithm. Two works are of particular interest to us, as they serve as the motivation to the algorithms that we will describe in the next section. These algorithms are the \textit{lazy greedy} \citep{minoux1978accelerated} and \textit{stochastic greedy}, called lazier than lazy greedy \citep{mirzasoleiman2015lazier}. 
+
+The lazy greedy algorithm relies on the fact that if at the $i$-th iteration of the greedy algorithm, an element $S$ is expected to bring a marginal benefit $ \Delta(S|\omega_{i}) = \eta(\omega_{i}\cup S) - \eta(\omega_{i})$, then it holds that $\Delta(S|\omega_{j}) \le \Delta(S|\omega_{i})$  for all $j \ge i$ for a submodular function $\eta$. Exploiting this fact, one can keep a list of upper bounds on the marginal benefits of each element $S$, called $\rho(S)$, initialized at $+\infty$.  Then, at each iteration, the element S with largest value $\rho(S)$ is picked and updated as $\rho(S) = \Delta(S|\omega)$.  If $\rho(S) \ge \rho(S')$ $\forall S' \in \mathcal S$, the marginal benefit of this element $S$ is larger than  the upper bounds of each other marginal contribution, and is consequently added permanently to $\omega$. This can speed up the algorithm by several orders of magnitude, since $\rho(S) \ge \rho(S')$ can be satisfied after a few trials, instead of trying each available $S$ at every iteration \citep{krause2014submodular}. 
+
+The stochastic greedy algorithm \citep{mirzasoleiman2015lazier} samples at each step of the greedy algorithm a subset of candidates $\mathcal{S}_{iter} \subseteq \mathcal{S}$, with $|\mathcal{S}_{iter}|=k$ at line 3 of Algorithm \ref{alg:lbcs}. As a result, given a nonnegative monotone submodular function $\eta:2^P \to \mathbb{R}_+$ and taking $k=\frac{P}{N} \log\left(1/\epsilon\right)$,  the stochastic greedy algorithm achieves a $(1-1/e-\epsilon)$ approximation guarantee in expectation to the optimum, using only $O\left(P\log(1/\epsilon)\right)$ evaluations. 
+
+Both of these algorithms inspired the methods that we proposed to scale up LBCS, and their implementation in the context of MRI will be respectively covered in Sections \ref{ss:llbcs} and \ref{ss:slbcs}.
+
+\begin{remark}[Submodular optimization under noise]
+    Although the cases so far mostly discussed optimizing submodular functions without measurement noise, such a setting is not realistic in the case of prospective MRI acquisitions, where repeated lines will have a different noise, and resampling can improve the average signal. Nonetheless, submodular optimization under noise has been studied, and algorithms that adapt to such settings have been proposed \citep{singla2016noisy,hassidim2017submodular}.
+\end{remark}
+
+\section{Scaling up LBCS}\label{sec:improved_LBCS}
+\subsection{Limitations of LBCS}
+As we have hinted above, in many practical scenarios, evaluating $O(P^2)$ configurations remains very expensive. This is also due to the fact that each configuration requires reconstructing $m$ data points. In particular, the LBCS approach becomes prohibitively expensive when either of the following occurs: 
+\begin{enumerate}
+    \item When the number of candidate locations grows significantly. This is particularly the case, in 3D MRI, where one needs to undersample entire volumes, or dynamic MRI, where one undersamples multiple frames for a single 2D image.
+    \item When the size of the dataset grows, it becomes impractical to evaluate LBCS on the whole testing set at once.
+    \item When the running time of the reconstruction method becomes large. This is particularly the case for multi-coil MRI, which is the setting most commonly used in practice. This issue also occurs when dealing with larger data, from 3D or dynamic MRI. 
+\end{enumerate} 
+
+As a result, we wish to develop variants of LBCS that allow to tackle these different settings, while retaining the performance of LBCS as much as possible. We will discuss two variants of LBCS that were respectively proposed in \citet{gozcu2019rethinking} and \citet{sanchez2019scalable}, and that aim at tackling mostly the issues of multi-coil and 3D MRI as well as dynamic MRI. We start by explaining how they differ from LBCS.
+
+\subsection{Stochastic LBCS}\label{ss:slbcs}
+With stochastic LBCS (sLBCS), we aim at addressing two fundamental drawbacks of the approach of \citet{gozcu2018learning}, namely that \textbf{1.} its scaling is  quadratic with respect to the total number of readout lines, \textbf{2.} its scaling is linearly with respect to the size of the dataset. With this approach, we also aim at integrating a specific constraint of dynamic MRI (dMRI), namely that the sampling mask should have a fixed number of readouts by temporal frame. 
+
+Scalability with respect to the size of the dataset is essential for the applicability of sLBCS to modern datasets, which can contain several thousands of images, making it impractical to go through the entire dataset at each inner loop of the algorithm. 
+
+Before describing the algorithm, let us briefly recall the dynamic MRI setting. The main difference with static MRI is that the signal will be a vectorized video, i.e. $\vx \in \mathbb{C}^{P}$, where $P = H \times W \times T$ instead of $H \times W$. As a result, the operator $\mA_\omega$ will be constructed differently, and in particular, the Fourier transform will be applied frame-wise. In addition, the mask $\omega$ will be constructed as a union of elements from a set $\mathcal{S}$ that will represent lines at different time frames, and will be described as $\mathcal{S}= \mathcal{S}_1 \cup \ldots \cup \mathcal{S}_T$. We also define the set $\mathcal{L} \subseteq \{1,\ldots,m\}$ as a set of indices where the training data $\{\vx\}_{i=1}^m$ will be subsampled. 
+
+Let us now detail \textit{how} our proposed stochastic greedy method solves the limitations \textbf{1.} and \textbf{2.} of LBCS (Algo. \ref{alg:lbcs}). The issue \textbf{1.} is solved by picking uniformly at random at each iteration a batch possible readout lines $\mathcal{S}_{iter}$ of constant size $k$ from a given frame $\mathcal{S}_t$, instead of considering the full set of possible lines $\mathcal{S}$ (line 3 in Alg. \ref{alg:dslbcs}), and is inspired from the stochastic greedy of \citet{mirzasoleiman2015lazier}; 
+the number of candidate locations is further reduced by iterating through the lines to be added from each frame $\mathcal{S}_t$ sequentially (lines 1, 3 and 11 in Algorithm \ref{alg:dslbcs});
+\textbf{2.} is addressed by considering a fixed batch of training data $\mathcal{L}$ of size $l$ instead of the whole training set of size $m$ at each iteration (line 4 in Algorithm \ref{alg:dslbcs}); 
+\begin{remark}
+    We will discuss the impact of introducing the batch size $k$ for the readout lines and the subset $\mathcal{L}$ to subsample training data in the results. However, we want to mention here that one has to be careful to pick the subset $\mathcal{L}$ before the \texttt{for} loop of line 5 in Algorithm \ref{alg:dslbcs}. Indeed, failing to do this would result in the different candidates $S$ would be evaluated on different subsets of the data. As there is some variation within the data, for instance in terms of SNR, such an approach would yield performances that are \textit{not} comparable among different candidates. In turn, this would skew the results towards picking the candidate location $S$ with an associated subset $\mathcal{L}_S$ with high signal-to-noise ratio, at the expense of selecting a readout location for the performance improvement that it actually brings. This would be especially the case if $|\mathcal{L}|$ were small. Picking $\mathcal{L}$ before this \texttt{for} loop ensures that the readout line selected will indeed be the one that brings the largest performance gain among the candidates for the subset of data $\mathcal{L}$.     
+\end{remark}
+
+
+The improvements of sLBCS allow to reduce the computational complexity from\linebreak $\Theta\left(mr(HT)^2\right)$ to $\Theta\left(lrkHT\right)$, effectively speeding up the computation by a factor $\mathbf{\Theta(\frac{m}{l}\frac{HT}{k})}$, where $r$ denotes the cost of a single reconstruction. Our results show that this is achieved without sacrificing any reconstruction quality. We will see that the improvement is particularly significant for large datasets, as the batch size $l$ will typically remain small, typically up to 100 samples, whereas MRI datasets can contain more than 15\,000 data points \citep{zbontarFastMRIOpenDataset2019}.
+
+
+
+
+%Our stochastic greedy method (\textbf{SG-v2}) addresses the three main limitations of the greedy method of \citep{gozcu2018learning} (\textbf{G-v1}).  The issue \di is solved by picking uniformly at random  at each iteration a batch possible lines $\mathcal{S}_{iter}$ of size $k$  from a given frame $\mathcal{S}_t$, instead of considering the full set of possible lines $\mathcal{S}$ (line 3 in Alg. \ref{alg:1}); \ii is addressed by considering  a fixed batch of training data $\mathcal{L}$ of size $l$ instead of the whole training set of size $m$ at each iteration (line 4 in Alg. \ref{alg:1}); \iii is solved by iterating through the lines to be added from each frame $\mathcal{S}_t$ sequentially (lines 1, 3 and 10 in Alg. \ref{alg:1}).  These improvements are inspired by the refinements done to the standard greedy algorithm in the field of submodular optimization \citep{mirzasoleiman2015lazier}, and allow to move the computational complexity from $\Theta\left(mr(NT)^2\right)$ to $\Theta\left(lrkNT\right)$, effectively speeding up the computation by a factor $\mathbf{\Theta(\frac{m}{l}\frac{NT}{k})}$. Our results show that this is achieved without sacrificing any reconstruction quality.\vspace{-.2cm}
+
+\begin{figure}[!ht]
+    \centering
+    \begin{minipage}[b]{.8\textwidth}
+    \begin{algorithm}[H]
+        \caption{sLBCS: Greedy mask optimization algorithm for (d)MRI}\label{alg:dslbcs}
+        \textbf{Input}: Training data $\{\vx\}_{i=1}^m$, recon. rule $g$, sampling set $\mathcal{S}$, max. cardinality $n$, samp. batch size $k$, train. batch size $l$ \\
+        \textbf{Output}: Sampling pattern $\omega$
+        \begin{algorithmic}[1]
+        \State \textcolor{red}{\textbf{(dMRI)}  Initialize $t=1$}  
+        \While{$|\omega| \leq n$}
+                \State \textcolor{red}{Pick $ \left \{\begin{tabular}{l}
+                    $\mathcal{S}_{iter}\subseteq \mathcal{S}$ \textbf{(MRI)} \\
+                    $\mathcal{S}_{iter}\subseteq \mathcal{S}_t$ \textbf{(dMRI)}\end{tabular}\right.$  at random, with $|\mathcal{S}_{iter}| = k$}
+
+
+                \State \textcolor{red}{Pick $\mathcal{L} \subseteq \{1,\ldots,m\} $, with $|\mathcal{L}| = l$}
+                \For{$S \in \mathcal{S}_{iter} \text{ such that } |\omega \cup S| \leq \Gamma$} 
+            
+                \State  $\omega' = \omega \cup S$ 
+                \State \textcolor{red}{For each $\ell \in \mathcal{L}$} set ${\hat{\vx}}_\ell\leftarrow \vf_\theta(\mP_{\omega'}\mF\vx_\ell,\omega')$
+                \State \textcolor{red}{$\eta(\omega') \leftarrow \frac{1}{|\mathcal{L}|} \sum_{\ell\in\mathcal{L}} \eta(\vx_\ell, {\hat{\vx}}_\ell)$}
+            \EndFor
+            \State $\displaystyle\omega \leftarrow \omega \cup S^*,  \text{ where }$   $\displaystyle S^* = \argmax_{\substack{S:|\omega \cup S| \leq n\\ S \in \mathcal{S}_{iter}}} \eta(\omega\cup S)$
+            \State   \textcolor{red}{\textbf{ (dMRI) }   $t= (t \bmod T)+1$}
+            \EndWhile
+        \State {\bf return} $\omega$ 
+        \end{algorithmic}
+    \end{algorithm} 
+\end{minipage}
+\end{figure}
+
+
+
+
+
+\subsection{Lazy LBCS}\label{ss:llbcs}
+In cases where the cardinality of the candidate elements $\mathcal{S}$ grows extremely large, even Algorithm \ref{alg:dslbcs} can become impractical. In 2D MRI, LBCS deals with images of size $H \times W$ while having a candidate set of size $H$, with $H$ different lines. However, in the case of 3D MRI, the number of candidate locations explodes, as we move to images of size $P= H \times W \times S$, where $S$ is the number of slices, with a candidate set of size $H \times W$, i.e., one is allowed to sample in both phase and frequency encoding directions. While in 2D dynamic MRI, the candidate set is of size $H \times T$ with $T$ typically much smaller than $H$, in the case of 3D MRI, we often have $H \approx W$. In addition, we have less structure than in dMRI, as there is no option to cycle through frames. This implies that the batch of randomly sampled locations must be much larger to enable a good performance, which results in the cost remaining overall prohibitive.
+% typically only a fraction of the total number of candidate samples, which still makes the cost overall prohibitive. 
+%\todoi{Continue integrating leello's comments.}
+An additional reason for this increased cost is the reconstruction time of 3D methods. The number of slices can be much larger than the number of frames in dMRI, slowing down reconstruction considerably.
+%This is also due to the expensive reconstruction time of 3D methods, that contend with larger images than in dMRI, due to the number of slices often being in the order of the height and width of the image. A
+Moving from single coil to multi-coil data further increases this cost, although this change does \textit{not} increase the complexity of the sampling optimization problem. 
+
+
+Lazy LBCS proposes a solution to this limitation by leveraging another approach to speed up LBCS. It uses \textit{lazy} evaluations \citep{minoux1978accelerated} which is equivalent to but faster than the greedy algorithm for submodular functions, and possess optimization guarantees for such functions \citep{nemhauser1978analysis}. While in our present setting, verifying submodularity is difficult because writing the performance of reconstructions in a closed form is generally not possible, we were motivated by the fact that Algorithm \ref{alg:llbcs} works well in practice even if the objective function is not exactly submodular. Indeed, as we will observe in the experiments, lazy evaluations also perform well for mask optimization. 
+
+The implementation of lazy evaluations for LBCS is described in Algorithm \ref{alg:llbcs}. We see that a list of upper bounds is initially computed (l.2), and that we sequentially traverse the list of upper bounds until we find a candidate sample $S$ that brings a larger improvement than any of the upper bounds in $\rho$ (ll.8-9). 
+
+%The lazy greedy Algorithm \ref{alg:llbcs} relies on the fact that if at the $i$-th iteration of the greedy algorithm, an element $S$ is expected to bring a marginal benefit $ \Delta(S|\omega_{i}) = \frac{ \eta(\omega_{i}\cup S) - \eta(\omega_{i}) }{ c(\omega\cup S) - c(\omega_{i}) }$, then it holds that $\Delta(S|\omega_{j}) \le \Delta(S|\omega_{i})$  for all $j \ge i$ for a submodular function $f$. Exploiting this fact, one can keep a list of upper bounds on the marginal benefits of each element $S$, called $\rho(S)$, initialized at $+\infty$.  Then, at each iteration, the element S with largest value $\rho(S)$ is picked and updated as $\rho(S) = \Delta(S|\omega)$.  If $\rho(S) \ge \rho(S')$ $\forall S' \in \mathcal S$, the marginal benefit of this element $S$ is larger than  the upper bounds of each other marginal contribution, and is consequently added permanently to $\omega$. This speeds up the algorithm, since $\rho(S) \ge \rho(S')$ can be satisfied after a few trials, instead of trying each available S at every iteration \citep{krause2014submodular}.
+
+\begin{algorithm}
+    \begin{minipage}[b]{.8\textwidth}
+    \caption{Lazy Learning-based Compressive Sensing (lLBCS)}
+    \label{alg:llbcs}
+    \textbf{Input}: Training data $\x_1, \dotsc, \x_m$, decoder $\vf$, sampling subsets $\mathcal{S}$, cost function $c$, maximum cost $\Gamma$ \\
+    \textbf{Output}: Sampling pattern $\omega$
+    \begin{algorithmic}[1]
+    \State $\omega \leftarrow \emptyset$
+    \State $\rho(S) \leftarrow +\infty \text{~}\forall S \in \mathcal S \text{ s.t. } c(\omega \cup S) \le \Gamma$
+    
+    \While{$ c(\omega) \leq  \Gamma$}
+         \State $\displaystyle\omega' \leftarrow \omega \cup S, \text{where } S = \argmax_{S' \in \mathcal S\,:\,c(\omega \cup S') \le \Gamma} \rho(S')$	 
+            \State For each $j$, set  $\vy_{j} \leftarrow \mP_{\omega'}\mF\x_j$, $\hat{\x}_j \leftarrow \vf_\theta(\vy_j,\omega')$ 
+            \State $\displaystyle\eta(\omega') \leftarrow \frac{1}{m}\sum_{j=1}^m \eta(\x_j,\hat{\x}_j)$
+            \State $\displaystyle\rho(S) \leftarrow \eta(\omega') - \eta(\omega)$
+        \If{$\rho(S) \ge \rho(S') \text{~}\forall S' \in \mathcal S \text{ s.t. }c(\omega \cup S') \le \Gamma$}
+        \State $\omega = \omega \cup S$
+        \EndIf 
+     \EndWhile
+     \State {\bf return} $\omega$
+    \end{algorithmic}
+    \end{minipage}
+    \end{algorithm}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% Stochastic LBCS results
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experiments - Stochastic LBCS}\label{s:exp_slbcs}
+In this Section, we validate the performance of sLBCS, and will discuss lLBCS in Section \ref{s:exp_llbcs}. We carry out extensive experiments to validate our stochastic LBCS method. We first compare sLBCS against the vanilla LBCS methods of \citet{gozcu2018learning}, paying particular attention to how it compares to the original method in terms of performance and computational complexity. We study the influence on the batch sizes $k$ and $l$ on performance and on the design of the mask. Then, we carry out experiments on both single coil and multicoil data, as well as noise free and noisy data. Finally, we show the benefit of our method on large scale datasets, for which LBCS is prohibitively expensive. 
+
+\subsection{Experimental setting}
+
+\textbf{Dataset.} Our experiments were carried out on three different datasets. 
+\begin{itemize}
+    \item \textit{Cardiac dataset.} The data set was acquired in seven healthy adult volunteers with a balanced steady-state free precession (bSSFP) pulse sequence on a whole-body Siemens 3T scanner using a 34-element matrix coil array. Several short-axis cine images were acquired during a breath-hold scan. Fully sampled Cartesian data were acquired using a $256\times 256$ grid, with relevant imaging parameters including $320 \times 320$ mm field of view (FoV), \SI{6}{\milli\meter} slice thickness, $1.37 \times 1.37$ mm spatial resolution, \SI{42.38}{\milli\second} temporal resolution, $1.63/3.26$ ms TE/TR, \ang{36} flip angle, \SI{1395}{\hertz}\mbox{/px} readout bandwidth. There were $13$ phase encodes acquired for a frame during one heartbeat, for a total of $25$ frames after the scan. 
+     
+    The Cartesian cardiac scans were then combined to single coil data from the initial $256\times 256 \times 25 \times 34$ size, using adaptive coil combination \citep{walsh2000adaptive, griswold2002use}. This single coil image was then cropped to a $152 \times 152 \times 17$ image. This was done because a large portion of the periphery of the images are static or void, and also to enable a greater computational efficiency. In the experiments, we used three volumes for training and four for testing. 
+    
+    \item \textit{Vocal dataset.} The vocal dataset that we used in the experiments comprised $4$ vocaltract scans with a 2D HASTE sequence (T2 weighted single-shot turbo spin-echo) on a 3T Siemens Tim Trio using a 4-channel body matrix coil array. The study  was  approved  by  the  local  institutional  review  board,  and  informed  consent  was  obtained  from  all  subjects  prior  to  imaging.  Fully sampled Cartesian data were acquired using a $256 \times 256$ grid, with $256 \times 256$ mm field of view (FoV), \SI{5}{\milli\meter} slice thickness, $1 \times 1$ mm spatial resolution, $98/1000$ ms TE/TR, \ang{150} flip angle,  \SI{391}{\hertz}\mbox{/px} readout bandwidth, \SI{5.44}{\milli\second} echo spacing ($256$ turbo factor). There was a total of $10$ frames acquired, which were recombined to single coil data using adaptive coil combination as well \citep{walsh2000adaptive, griswold2002use}.  
+     
+    \item \textit{fastMRI.} The fastMRI dataset was obtained from the NYU fastMRI initiative \citep{zbontarFastMRIOpenDataset2019}. The anonymized dataset comprises raw k-space data from more than 1,500 fully sampled knee MRIs obtained on 3 and 1.5 Tesla magnets. The dataset includes coronal proton density-weighted images with and without fat suppression. 
+\end{itemize}
+
+
+\textbf{Reconstruction algorithms.}  We consider two reconstruction algorithms, namely \textit{k-t FOCUSS} (KTF) \citep{jung2009k},  and \textit{ALOHA} \citep{jin2016general}.  Their parameters were selected to maintain a good empirical performance across all sampling rates considered.
+
+KTF aims at reconstructing a dynamic sequence by enforcing its sparsity in the x-f domain. Formally, it aims at solving
+$$
+\min_\vz \|\vz\|_1 \text{~subject to~} \|\yo - \Po \mF \mF_t^{-1} \vz  \|_2 \leq \epsilon
+$$
+where $\mF_t^{-1}$ denotes the inverse temporal Fourier transform. It tackles the problem by using a reweighted quadratic approach \citep{jung2007generalized}.
+
+ALOHA \citep{jin2016general} is an annihilating filter based low-rank Hankel matrix approach. ALOHA exploits the duality between sparse signals and their transform domain representations, cast as a low-rank Hankel matrix, and effectively transforms CS reconstruction into a low-rank matrix completion problem.  We refer the reader to their detailed derivation for further details.
+
+\textbf{Mask selection baselines:}
+
+\begin{itemize}
+\item\textit{Coherence-VD} \citep{lustig2007sparse}: We consider a random \textit{variable-density} sampling mask with Gaussian density and optimize its parameters to minimize coherence. This is an instance of a \textit{model-based}, \textit{model-driven} approach.
+
+\item \textit{Golden} \citep{li2018dynamic}: This approach designs a Cartesian mask by adding progressively lines according to the golden ratio. This is a \textit{model-based}, \textit{model-driven} approach.
+
+\item\textit{LB-VD} \citep{gozcu2018learning,gozcu2019rethinking}: Instead of minimizing the coherence as in \textit{Coherence-VD}, we perform a grid search on the parameters using the training set to optimize reconstruction according to the same performance metric as our method. This makes this approach \textit{model-based}, \textit{data-driven}.
+
+\end{itemize}
+
+We also consider several variants of LBCS and sLBCS that we will use throughout the experiments. We define abbreviations for conciseness:
+\begin{itemize}
+    \item \textbf{G-v1} is the original LBCS algorithm.
+    \item \textbf{G-v2} is a version of sLBCS that uses a batch of training data $l$ and cycles through the frames.
+    \item \textbf{SG-v1} is a version of the stochastic LBCS algorithm that considers a batch of sampling locations $k$ but uses all training data, i.e. $l = |m|$.
+    \item \textbf{SG-v2} is sLBCS, using a batch of sampling locations $k$, a batch of training data $l$ and cycling through the frames.
+\end{itemize}
+
+\begin{remark}
+    In this work, we mainly focused on small scale datasets with a large set of candidate sampling locations. Our experiments therefore are carried out using SG-v1 and SG-v2. We did not observe any significant performance difference between these variants of sLBCS. 
+    
+    However, we note that G-v2 might be of interest in deep-learning based settings, where one deals with large datasets, such as fastMRI \citep{zbontarFastMRIOpenDataset2019}. This will be further discussed in Section \ref{sec:fastMRI_sLBCS}.
+\end{remark}
+
+
+\subsection{Comparison of greedy algorithms}
+We first evaluate SG-v1 and SG-v2 against G-v1 to establish how sensitive our proposed method is to its parameters $k$ and $l$. We carry out this experiment on the cardiac data, and report only the results on KTF, although similar trends can be observed with other reconstruction algorithms.
+
+\begin{wrapfigure}{L}{0.45\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{scalable_mri/main-figure4}
+    \caption{PSNR as a function of the rate for KTF, comparing the effect of the batch size on the quality of the reconstruction for SG-v1. The result is averaged on $4$ testing images of size $152\times 152\times 17$.}\label{fig:psnr_batch2}
+\end{wrapfigure}
+
+\textbf{Influence of the batch size $k$ on the mask design.}  We first discuss the tuning of the batch size used in SG-v1, to specifically study the effect of different batch sizes. Figure \ref{fig:psnr_batch2} provides quantitative results of the performance, while Figure \ref{fig:mask_sto_cycling} shows the shapes of the masks obtained with various batch sizes. Unsurprisingly, small batch sizes yield poor results, as this algorithm has to choose from a very small set of randomly sampled candidates, being likely to miss out on important frequencies, such as the center ones. It is interesting to see however that the PSNR reaches the result from G-v1 with as few as 38 samples (out of the $152$ candidates of a frame, and $152 \times 17 = 2584$ candidates overall).
+
+In some cases, such as $k=38$, SG-v1 can even yield an \textit{improved} performance over G-v1, with $60$ times less computation that G-v1. We hypothesize that it is due to the noise introduced by sLBCS allowing to avoid suboptimal configurations encountered by G-v1. Note that this might not be expected if the problem was to be exactly submodular, but this is \textit{not} the case in practice. 
+
+Focusing on Figure \ref{fig:mask_sto_cycling}, one can make several observations. First of all, as expected, taking a batch size of $1$ yields a totally random mask, and taking a batch size of $5$ yields a mask that is more centered towards low frequency than the one with $k=1$ but it still has a large variance. Then, as the batch size increases, resulting masks seem to converge to very similar designs, but those are slightly different from the ones obtained with G-v1. Overall, our initial experiments suggest, as a rule of thumb, that roughly sampling $25\%$ of a frame enables sLBCS to match the performance of G-v1.
+
+\begin{figure}[!ht]
+    \centering
+    \begin{minipage}[c]{.6\linewidth}
+        \includegraphics[width=\linewidth]{scalable_mri/main-figure5}
+    \end{minipage}\hfill
+    \begin{minipage}[c]{.38\linewidth}
+        \caption{Learning-based masks obtained with SG-v1 for different batch sizes $k$ using KTF as a reconstruction algorithm, shown in the title of each column, for $15\%$ and $25\%$ sampling rate. The optimization used data of size $152\times 152 \times 17$, with a total of $2584$ possible phase encoding lines for the masks to pick from.}\label{fig:mask_sto_cycling}
+    \end{minipage} 
+\end{figure}
+
+%\newpage
+\textbf{Influence of the batch size $l$.} We then include the effect of using a smaller data batch size $l$ into the equation, comparing the performances of G-v1 with SG-v1 and SG-v2. The results are presented on Figure \ref{fig:psnr_batch}. Both SG-v1 and SG-v2 behave similarly, and for $k=38$, both methods end up outperforming G-v1, with respectively $60$ times less and $180$ times less computation. As seen before, using a \textit{too} small batch size $k$ (e.g. $10$) yields a drop in performance. Using a batch of training images $l$ (SG-v2) does not seem to significantly reduce the performance compared to SG-v1, while substantially reducing computations. As a result, in the sequel, we use $k=38$ and $l=1$ for SG-v2.
+
+\begin{wrapfigure}{L}{0.45\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{scalable_mri/main-figure0}
+    \caption{PSNR as a function of the sampling rate for KTF, comparing the different reconstruction methods as well as the effect of the batch size on the quality of the reconstruction for SG. }\label{fig:psnr_batch}
+\end{wrapfigure}
+
+\textbf{Computational costs.} We discuss now the computational costs for the different variations of the greedy methods used in the single coil experiments. Table \ref{tab:runtime}  provides the running times and empirically measured speedup for the greedy variation, and Table \ref{tab:LB-VD} provides the computational times required to obtain the learning-based variable density (LB-VD) parameters through an extensive grid-search. The empirical speedup is computed as 
+\begin{equation}
+\text{Speedup} = \frac{t_{\text{G-v1}}\cdot n_{\text{procs, G-v1}}}{t_{\text{SG-v2}}\cdot n_{\text{procs, SG-v2}}}
+\end{equation}
+where $t_{\text{G-v1}}$, $t_{\text{SG-v2}}$ refer to the measured running times of the algorithms, and $n_{\text{procs, G-v1}}$, $n_{\text{procs, SG-v2}}$ to the number of CPU processes used to carry out the computations. 
+
+The main point of these tables is to show that the computational improvement is very significant in terms of resources, and that our approach improves greatly the efficiency of the method of \citet{gozcu2018learning}. This ratio might differ from the predicted speedup factor of $\mathbf{\Theta\left(\frac{m}{l}\frac{NT}{k}\right)}$ due to computational considerations. Table \ref{tab:runtime} shows that we have roughly a factor $1.2$ between the predicted and the measured speedup, mainly due to the communication between the multiple processes as well as I/O operations.
+
+Moving to the grid search computations for LB-VD, displayed in Table \ref{tab:LB-VD}, we ought to do several remarks. The number of parameters was chosen in order to ensure the same order of magnitude of computations to be carried out for both LB-VD and sLBCS. Note also that in opposition to SG-v2, the grid search cannot be sped up by using a batch of training data: all the evaluation should be done on the same data. In the case of SG-v2 however, one can draw a new batch of training data at each sampling round of the algorithm.
+
+\begin{table}[!t]
+\centering
+  
+  \resizebox{\textwidth}{!}{
+  \begin{tabular}{>{\bfseries}c crccrcccc}
+    \toprule
+     \multirow{2}{*}{\textbf{Algorithm}} &\multirow{2}{*}{\textbf{Setting}} & \multicolumn{2}{c}{\textbf{G-v1} (LBCS)}  & \multicolumn{3}{c}{\textbf{SG-v1} (sLBCS-v1)} &  \multicolumn{3}{c}{\textbf{SG-v2}  (sLBCS-v2)}\\
+     \cmidrule(r){3-4} \cmidrule(l){5-7} \cmidrule(l){8-10}
+    &  &  \multicolumn{1}{c}{Time} &  $n_{\text{procs}}$  &  \multicolumn{1}{c}{Time} & $n_{\text{procs}}$ &  Speedup& \multicolumn{1}{c}{Time} & $n_{\text{procs}}$ &Speedup\\ 
+    \midrule
+
+     \multirow{2}{*}{KTF}  &152$\times$152$\times$17$\times$3 & $6\text{d }23\text{h~}$& $152$ & $11\text{h } 40$ & $38$ &$58$ $(68)$& $3\text{h } 25$&$38$& $\mathbf{170}$ $(204)$\\
+     %\cline{2-7}
+     & 256$\times$256$\times$10$\times$2 &  $\sim 7\text{d~~}8\text{h}^*$ & $256$& $12\text{h } 20$ &$64$&$57$ $(68)$ & $5\text{h } 20$ &$64$& $\mathbf{173}$ $(204)$\\ \cmidrule(l){2-10}
+     %\hline
+     IST &152$\times$152$\times$17$\times$3 &  $3\text{d~}11\text{h~}$ &$152$& $5\text{h } 30$ &$38$&$60$ $(68)$& $1\text{h } 37$ &$38$& $\mathbf{184}$ $(204)$\\ \cmidrule(l){2-10}
+     %\hline
+     ALOHA  &152$\times$152$\times$17$\times$3 &   $\sim 25\text{d~~}1\text{h}^*$&$152$& $1\text{d }14\text{h } 25$ &$38$ &$62$ $(68)$& $18\text{h } 13$&$38$& $\mathbf{133}$ $(204)$\\ 
+     \bottomrule
+  \end{tabular}}
+  \caption{Running time of the greedy algorithms for different decoders and training data sizes. The setting corresponds to  $n_{x}$, $n_{y}$, $n_{\text{frames}}$, $n_{\text{train}}$. The number $n_{\text{procs}}$ denotes how many parallel processes are used by each simulation. $^*$ means that the runtime was extrapolated from a few iterations. We used $k=n_{\text{procs}}$ for SG-v1 and SG-v2 and $l=1$ for SG-v2. The speedup column contains the measured speedup and the theoretical speedup in parentheses.}\label{tab:runtime}
+\end{table}
+
+\begin{table}[!t]
+\centering
+  
+  \begin{tabular}{>{\bfseries}c cccr}
+  	\toprule
+	Algo. & Setting  & $n_{\text{pars}}$  & $n_{\text{procs}}$ & Time \\
+	\midrule
+	  \multirow{2}{*}{KTF}  & 152$\times$152$\times$17$\times$3~~ & 1200  &38 & $6$h~$30$ \\
+	  					    & 256$\times$256$\times$10$\times$2$^*$ & 2400  &64 & $6$h~$45$ \\ \cmidrule(l){2-5}
+	IST  					& 152$\times$152$\times$17$\times$3~~ & 1200 &38 & $3$h~$20$\\ \cmidrule(l){2-5}
+	ALOHA 				    & 152$\times$152$\times$17$\times$3~~ & 1200  &38 & $1$d~$8$h\\
+	\bottomrule
+  \end{tabular}
+  \caption{Comparison of the learning-based random variable-density Gaussian sampling optimization for different settings. $n_{\text{pars}}$ denotes the size of the grid used to optimize the parameters. For each set of parameters, the results were averaged on $20$ masks drawn at random from the distribution considered. The $n_{\text{pars}}$ include a grid made of $12$ sampling rates (uniformly spread in $[0.025,0.3]$), $10$ different low frequency phase encodes (from $2$ to $18$ lines), and different widths of the Gaussian density (uniformly spread in $[0.05, 0.3]$) -- $10$ for the images of size $152\times 152$, 
+  $20$ in the other case. }\label{tab:LB-VD}
+\end{table}
+
+
+\FloatBarrier
+\subsection{Single coil results}\label{sec:baseline_main} 
+
+
+
+\textbf{Main results.} We see on Figures \ref{fig:psnr_cross} and \ref{fig:plot_cross} that the SG-v2 brings a consistent improvement over all baselines considered, even though some variable-density techniques are able to provide good results for some sampling rates and algorithms. Compared to Coherence-VD, there is always at least $1$ dB improvement at any sampling rate, and it can be as much as $6.7$ dB at $5\%$ sampling rate for ALOHA. For the rest, the improvement is over $0.5$ dB. Figure \ref{fig:psnr_cross} also clearly indicates that the benefits of our learning-based framework become more apparent towards higher sampling rates, where the performance improvement over LB-VD reaches up to $1$ dB. Towards lower sampling rates, with much fewer degrees of freedom to achieve good mask designs, the greedy method and LB-VD yield similar performance, which is expected\footnote{At low sampling rates, learning-based approaches will prioritize low-frequency phase encoding lines, as those contain most of the energy at a given frame.}. 
+
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.75\linewidth]{scalable_mri/main-figure1}
+    \caption{PSNR as a function of sampling rate, evaluating the different masks (Coherence-VD, LB-VD, SG-v2-KTF, SG-v2-ALOHA) on both reconstruction methods (KTF and ALOHA). The results are averaged over $4$ images.}\label{fig:psnr_cross}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.6\linewidth]{scalable_mri/main-figure2}
+    \caption{Comparison of the different reconstruction masks and decoders, for a sampling rate of $15\%$ on a single sample with its PSNR/SSIM performances.}\label{fig:plot_cross}
+\end{figure}
+
+
+
+
+Focusing on Figure \ref{fig:plot_cross}, we observe that comparing reconstruction algorithms using the model-based, model-driven approach Coherence-VD does not allow for a faithful comparison of their performance. In this case, the performance difference between KTH and ALOHA is marginal. However, when moving to the model-based, data-driven approach LB-VD, the difference becomes quantitatively clearer. Moving to the learning-based, data-driven approach SG-v2 makes the difference even more noticeable: ALOHA with its corresponding mask clearly outperforms KTF, and this conclusion could not be made by looking solely at reconstructions with VD-based masks. This trend is also reflected on Figure \ref{fig:psnr_cross}. 
+
+This is an important observation, as most works have developed new reconstruction algorithms that were then tested using random masks designed with criteria such as minimal coherence. However, our results suggest that this approach does not reflect the \textit{true} performance of a reconstruction method, and that one should look to optimize the mask and the reconstruction algorithm jointly.
+
+The results on Figure \ref{fig:psnr_cross} highlight also an interesting asymmetry between the performance of the SG-v2 mask optimized on KTF (SG-v2-KTF) or ALOHA (SG-v2-ALOHA): the one from KTF is more centered towards low frequencies than the one of ALOHA, and also performs well, and better than LB-VD on ALOHA. However, the reverse is not true: the mask from ALOHA is very scattered throughout k-space and leads to a very poor performance when applied to KTF. This trend is also observed on multi-coil data, as highlighted on Table \ref{tab:cross_recon}. This suggests that ALOHA, not relying explicitly on $\ell_1$ sparsity, might succeed in exploiting varied information, from both low-frequency emphasizing masks from models promoting sparsity, but also higher frequency information.
+
+\begin{remark}
+    This point does not hold directly for deep learning methods, that will be discussed in later chapters. Indeed, the reconstruction methods that we use in these experiments are all based on an underlying \textit{model}, such as sparsity or low-rank. They are \textit{not} data-driven approaches to reconstruction. 
+
+    The question of what truly reflects the performance of a reconstruction method becomes even more complex in the case of deep learning-based reconstruction method, where the model is trained on a distribution of different sampling masks, making reconstruction and sampling even more intricate. We will come back to this question in Chapter \ref{ch:rl_mri}. 
+\end{remark}
+
+%Remark: But the trend is *not* consistent throughout the results: on Figure X.6, we see that KTF is below ALOHA in all cases: if this is the case for this image, then it means that the reverse happens on another image.
+
+\begin{remark}
+    The results in the sequel are obtained with the SG-v1 algorithm, rather than SG-v2. Recall that SG-v1 already accelerated G-v1 by a factor $60$, and that we did not observe, in our experiments, a significant performance difference between SG-v1 and SG-v2\footnotemark.
+\end{remark}
+\footnotetext{{The main reason of having these experiments on SG-v1 is that they were obtained from an earlier set of results. However, we believe that they remain insightful on the behavior of sLBCS, highlighting not only application on different settings, but we expect that such insights would also carry out to SG-v2.}}
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+%% CROSS-PERFORMANCES PERF. MEASURES
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+\FloatBarrier
+\textbf{Cross-performances of performance measures.} Up to here, we used PSNR as the performance measure, and we now compare it with the results of the greedy algorithm paired with SSIM, a metric that more closely reflects perceptual similarity \citep{wang2004image}. For brevity, we only consider ALOHA in this section. In the case where we optimized for SSIM, we noticed that unless a low-frequency initial mask is given, the reconstruction quality would mostly stagnate. This is why we chose to start the greedy algorithm with $4$ low-frequency phase encodes at each frame in the SSIM case.
+
+The reconstructions for PSNR and SSIM are shown on Figure \ref{fig:plot_ssim}, where we see that the learning-based masks outperform the baselines across all sampling rates except at $2.5\%$ in the SSIM case. The quality of the results is very close for both masks, but each tends to perform slightly better with the performance metric for which it was trained. The fact that the ALOHA-SSIM result at $2.5\%$ has a very low SSIM is due to the fact that we impose $4$ phase encodes across all frames, and the resulting sampling mask at $2.5\%$ is a low pass mask in this case.
+
+A visual reconstruction is provided in Figure \ref{fig:ssim}, we see that there is almost no difference in reconstruction quality, and that the masks remain very similar. Overall, we observe in this case that the performance metric selection does not have a dramatic effect on the quality of reconstruction, and our greedy framework is still able to produce masks that outperform the baselines when optimizing SSIM instead of PSNR. 
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=.75\linewidth]{scalable_mri/main-figure8}
+    \caption{PSNR and SSIM as a function of sampling rate for ALOHA, comparing the SG-v1 results optimized for PSNR and SSIM with the three baselines, averaged on $4$ testing images of size 152$\times$152$\times$17.}\label{fig:plot_ssim}
+\end{figure}
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=.7\linewidth]{scalable_mri/main-figure9}
+    \caption{Comparison of the sampling masks optimized for PSNR and SSIM with ALOHA, at $15\%$ sampling. The images and masks can be compared to those of Figure \ref{fig:plot_cross}, as the settings are the same.} \label{fig:ssim}
+\end{figure}
+%\todoi{Comment on Golden?}
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=.7\linewidth]{scalable_mri/main-figure10}
+    \caption{PSNR as a function of sampling rate for KTF, comparing SG-v1 with both baselines, averaged on $2$ testing images for both cardiac and vocal data sets of size 256$\times$256$\times$10.}\label{fig:psnr_anat}
+\end{figure}
+
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+%% LARGER EXPERIMENTS
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+\textbf{Experiments with different anatomies.} In these experiments, we consider both the single coil cardiac dataset and the vocal imaging dataset, both of size $256\times 256 \times 10$. The cardiac dataset was trained on $5$ samples and tested on $2$, using only the first ten frames of each scan, whereas the vocal one used $2$ training samples and $2$ testing samples. In this setup, the k-space of the cardiac dataset tends to vary more from one sample to another than the vocal one, making the generalization of the mask more complicated. This issue would require more training samples, but imposing SG-v1 algorithm to start with $4$ central phase encoding lines on each frame was found to be sufficient to acquire the peaks in the k-space across the whole dataset. \textit{SGv1-Cardiac} refers to the stochastic greedy algorithm using cardiac data, and \textit{SGv1-Vocal} is its vocal counterpart. The algorithm used a batch of size $k = 64$ at each iteration\footnote{This follows the rule of thumb of using $25\%$ of the number of lines in a given frame for $k$.}, and the results were obtained using only KTF.
+
+\begin{figure}[!ht]
+    \centering
+    \vspace{1.5cm}
+    \includegraphics[width=.6\linewidth]{scalable_mri/main-figure11}
+    \caption{Reconstruction for KTF at $15\%$ sampling for the cardiac and vocal anatomies of size 256$\times$256$\times$10. Figures showing different frames for the vocal and cardiac images are available in Figures \ref{fig:cardiac} and \ref{fig:vocal}.}\label{fig:plot_cross_anat}
+    \vspace{1.5cm}
+\end{figure}
+
+The results are reported on the Figures \ref{fig:psnr_anat} and \ref{fig:plot_cross_anat}, and we see that, for the both datasets, the greedy approach provides superior results against VD sampling methods across all sampling rates. It is striking that, in this setting, the SG-v1 approach outperforms even more convincingly all the baselines, and the LB-VD approach, in this case, is outperformed by more than $2$dB by SG-v1, where it remained very competitive in the other settings. This difference is clear in the temporal fidelity of both reconstructions on Figure \ref{fig:plot_cross_anat}, where we see that the LB-VD approach loses sharpness and accuracy compared to SG-v1.
+
+
+
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+%% CROSS-ANATOMY COMPARISON
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+\textbf{Comparison across anatomies.}\label{sec:anatomies} The main complication coming from applying the masks across anatomies is that the form of the k-space might vary heavily across datasets: the vocal spectrum is very sharply peaked, while the cardiac one is much broader.  Comparing the cross-performances on Figures \ref{fig:plot_cross_anat}, we see that the and \textit{SGv1-vocal} masks generalizes much better on the cardiac datasets than the other way around. This can be explained from the differences in the spectra: the cardiac one being more spread out, the cardiac mask less faithfully captures the very low frequencies of the k-space, which are absolutely crucial to a successful reconstruction on the vocal dataset, thus hindering the reconstruction quality. Also, we see that it is important for the trained mask to be paired with its anatomy to obtain the best performance.
+
+\textbf{Additional visual reconstructions for cardiac and vocal dataset.} We show in Figures \ref{fig:cardiac} and \ref{fig:vocal} reconstruction at different frames which provide clearer visual information to the quality of reconstruction compared to the temporal profiles.
+\begin{figure}[!ht]
+    \centering
+	\includegraphics[width=.95\linewidth]{scalable_mri/main-figure12}
+	\caption{Reconstruction with KTF \citep{jung2009k} at $15\%$ sampling rate for the cardiac anatomy of size 256$\times$256$\times$10. It unfolds the temporal profile of Figure \ref{fig:plot_cross_anat}. The PSNR and SSIM displayed are computed for each image individually, and the overall PSNR for each image is the one of Figure \ref{fig:plot_cross_anat}. The ground truth is added at the end of each line for comparison.}\label{fig:cardiac}
+\end{figure}
+\begin{figure}[!ht]
+    \centering
+	\includegraphics[width=.95\linewidth]{scalable_mri/main-figure13}
+	\caption{Reconstruction with KTF at $15\%$  \citep{jung2009k} sampling rate for the vocal anatomy of size 256$\times$256$\times$10. It unfolds the temporal profile of Figure \ref{fig:plot_cross_anat}. The PSNR and SSIM displayed are computed for each image individually, and the overall PSNR for each image is the one of Figure \ref{fig:plot_cross_anat}. The ground truth is added at the end of each line for comparison. }\label{fig:vocal}
+
+\end{figure}
+
+For these images, the PSNR and SSIM are computed with respect to each individual frame, showing the quality of the reconstruction in a much more detailed fashion than before, where we considered each dynamic scan as a whole. Generally, we as previously observed, the mask trained for a specific anatomy will most faithfully capture the sharp contrast transitions in the dynamic regions of the images. For the vocal images, we see that sampling the first frame more heavily is important in order to avoid having a very large PSNR discrepancy, as observed for the other masks.  The PSNR remains quite stable across the frames otherwise. 
+
+
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+%% NOISY EXPERIMENTS
+% % % % % % % % % % % % % % % % % % % % % % % % % %
+\newpage
+\textbf{Noisy experiments.}
+In order to test the robustness of our framework to noise, we artificially added bivariate circularly symmetric complex random Gaussian noise to the normalized complex images, with a standard deviation $\sigma = 0.05$ for both the real and imaginary components. We then tested to see whether the greedy framework is able to adapt to the level of noise by prescribing a different sampling pattern than in the previous experiments.
+
+We chose to use V-BM4D \citep{maggioni2012video} as denoiser with its default suggested mode using Wiener filtering and low-complexity profile, and provided the algorithm the standard deviation of the noise as the denoising parameter. The comparison between the fully sampled denoised images and the original ones yields an average PSNR of $24.95$ dB across the whole dataset. Due to the fact that none of the reconstruction algorithms that we used have a denoising parameter incorporated, we simply apply the V-BM4D respectively to the real and the imaginary parts of the result of the reconstruction. The results that we obtain are presented on the Figures \ref{fig:psnr_noisy} and \ref{fig:plot_noisy}. 
+
+It is interesting to notice on Figure \ref{fig:plot_noisy} that the sLBCS framework outperforms the baselines that are not data-driven by a larger margin than in the noiseless case, and this is again especially true at low sampling rates. In this case however, the difference between SG-v1 and LB-VD methods is much smaller, and this might be explained by the fact that noise corrupts the high frequency samples, and thus the masks concentrate more around low-frequencies, leaving less room for designs that substantially differ.% At higher sampling rates, the centre of the k-space is densely sampled in both variable-density approaches and learning-based ones, %and the quality of the reconstruction becomes nearly undistinguishable between the learning-based mask and those obtained using VISTA and golden ratio sampling. 
+
+We see a clear adaptation of the resulting learning-based mask, as shown by comparing Figures \ref{fig:plot_cross} and \ref{fig:plot_noisy}: the masks SGv1-KTF and SGv1-ALOHA, which are trained on the noisy data, are closer to low-pass masks, due to the high-frequency details being lost to noise, and hence, no very high frequency samples are added to the mask. 
+
+ Also, notice than even if the discrepancy in PSNR is only around $0.8-1$ dB between the golden ratio sampling and the optimized one, the temporal details are much more faithfully preserved by the learning-based approach, which is crucial in dynamic applications. The inadequacy of coherence-based sampling is highlighted in this case, as very little temporal information is captured in the reconstruction with both decoders. Also, for both decoders, there is a clear improvement on the preservation of the temporal profile when using learning-based masks compared to the baselines; the improvement of the SGv1-ALOHA mask of around $3$dB also shows how well our framework is able to adapt to this noisy situation, whereas Coherence-VD yields results of unacceptable quality.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=.7\linewidth]{scalable_mri/main-figure14}
+    \caption{PSNR as a function of sampling rate for both reconstruction algorithms considered, comparing SG-v1 with the three baselines, averaged on $4$ noisy testing images of size 152$\times$152$\times$17. The PSNR is computed between the denoised reconstructed image and the original (not noisy) ground truth.}\label{fig:psnr_noisy}
+\end{figure}
+
+
+\begin{figure}[!t]
+    \begin{minipage}[t]{.48\linewidth}
+        \centering
+        \vspace{1.4cm}
+        \includegraphics[width=\linewidth]{scalable_mri/main-figure15}
+        \caption{Reconstructed denoised version from the noisy ground truth on the first line, at $15\%$ sampling. The PSNR is computed with respect to the original ground truth on the top right.}\label{fig:plot_noisy}
+    \end{minipage}
+    \begin{minipage}[t]{.48\linewidth}
+        \centering
+        \vspace{1cm}
+        \includegraphics[width=\linewidth]{scalable_mri/main-figure7}
+        \caption{Reconstruction with KTSS \protect\citep{otazo2010combination} and ALOHA \citep{jin2016general} at $15\%$  sampling rate for a 4 coil parallel acquisition of cardiac cine size 256$\times$256$\times$12. The setting is otherwise similar as the one presented in Figure 5 of \citep{sanchez2019scalable}.}\label{fig:multi}
+    \end{minipage}
+
+    \vspace{1.3cm}
+    \end{figure}
+
+\subsection{Multicoil experiment}
+We now illustrate the applicability of our SG-v1 algorithm to multicoil data, a setting much more representative of routine clinical practice than single coil.
+
+For the multicoil experiment, we used the previously described cardiac dataset, but we did not crop the images. We took the first $12$ frames for all subjects, and selected $4$ coils that cover the region of interest. Each image was then normalized in order for the resulting sum-of-squares image to have at most unit intensity.  When required, the coil sensitivities were self-calibrated according to the idea proposed by \citet{feng2013highly}, which averages the signal acquired over time in the k-space and subsequently performs adaptive coil combination \citep{walsh2000adaptive,griswold2002use}.
+
+The advantage of using self-calibration is that the greedy optimization procedure can simultaneously take into account the need for accurate coil estimation as well as accurate reconstruction, thus potentially eliminating the need for a calibration scan prior to the acquisition. A more complete discussion of the accuracy of self-calibrated coil sensitivities is presented in \citet{feng2013highly}.
+
+We used k-t SPARSE-SENSE \citep{otazo2010combination} and ALOHA \citep{jin2016general} for reconstruction. While the first requires coil sensitivities, the second reconstructs the images directly in k-space before combining the reconstructed data. 
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=.75\linewidth]{scalable_mri/main-figure6}
+    \caption{PSNR as a function of sampling rate for KTSS \protect\citep{otazo2010combination} and ALOHA \citep{jin2016general} in the multicoil setting, comparing SG-v1 with the coherence-VD \citep{lustig2007sparse}, LB-VD  and golden ratio Cartesian sampling \protect\citep{li2018dynamic}, averaged on 4 testing images of size 256$\times$256$\times$12 with 4 coils. }\label{fig:psnr_multi}
+\end{figure}
+
+
+
+
+\subsection{Large scale static results}\label{sec:fastMRI_sLBCS}
+This last experiment shows the scalability of our method to very large datasets. We used the fastMRI dataset \citep{zbontarFastMRIOpenDataset2019} consisting of knee volumes  and trained the mask for reconstructing the $13$ most central slices of size $320\times 320$, which yielded a training set containing 12\,649 slices. For the sake of brevity, we only report computations performed using total variation (TV) minimization with NESTA \citep{becker2011nesta}. For mask design, we used the SG-v2 method with $k=80$ and $l=20$ (2\,500 fewer computations compared to G-v1). The LB-VD method was trained using 80 representative slices and optimizing the parameters with a similar computational budget as SG-v2. The result on Figure \ref{fig:psnr_fastmri} shows a uniform improvement of our method over the LB-VD approach.
+
+\begin{figure}[!t]
+    \centering
+    \begin{minipage}[c]{.55\linewidth}
+        \includegraphics[width=\linewidth]{scalable_mri/main-figure3}
+    \end{minipage}\hfill
+    \begin{minipage}[c]{.4\linewidth}
+        \caption{PSNR as a function of the sampling rate for TV, averaged on the 13 most central slices of the fastMRI validation set \citep{zbontarFastMRIOpenDataset2019} (2587 slices). SGv2 outperforms LB-VD over all sampling rates.}\label{fig:psnr_fastmri}
+    \end{minipage} 
+\end{figure}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%% LAZY LBCS RESULTS
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Experiments - Lazy LBCS}\label{s:exp_llbcs}
+\textbf{Dataset.} Our experiments were carried out on two datasets.
+\begin{itemize}
+    \item \textit{Brain data.} The data were acquired on a 3T MRI system (Siemens), and the protocols were approved by the local ethics committee. The dataset consists of 2D T1-weighted brain scans of seven healthy subjects, which were scanned with a FLASH pulse sequence and a 12-channel receive-only head coil.  In our experiments, we use 4 different slices {of sizes 256$\times$256} from two subjects as training data and 100 slices from 5 subjects as test data. To speed up the computations, we compressed our $12$-channel data into $4$-channel data. 
+    \item \textit{Knee data.} The data were acquired by a 3T system (GE Healthcare) using FSE CUBE sequence with the proton density weighting. The number of channels is 8 and the matrix size is 320 $\times$ 320. We used the data of 8 subjects as training data and remaining 12 subjects as test data. This dataset is publicly available at \textit{http://mridata.org}.
+\end{itemize}
+ We used PSNR as the image quality metric $\eta$, but also reported the results evaluated on SSIM \citep{wang2004image}.
+
+
+\textbf{Reconstruction algorithms.} We consider the following decoders: Basis Pursuit (BP) \citep{donoho2006compressed}, Total Variation (TV), SENSE \citep{pruessmann1999sense}, and ALOHA \citep{jin2016general}. For BP, we let the sparsifying transform to be the Shearlet transform \citep{kutyniok2016shearlab}. For SENSE, we used ESPIRiT \citep{uecker2014espirit} method to estimate coil sensitivities. 
+
+Basis pursuit is a method that directly minimizes the $\ell_1$ norm of the image in a sparse domain. A similar type of convex optimization formulation is {\em total variation} (TV) minimization. 
+SENSE is a method that requires the knowledge of coil sensitivities to retrieve an unaliased image from parallel acquisitions \citep{pruessmann1999sense}. We use its implementation in the BART toolbox \citep{uecker2015berkeley} to iteratively solve % based on FISTA \citep{beck2009fast} 
+\begin{equation}
+\min_\z \|\vy_\omega - \Po \mF \mS \z\|_2^2 + \lambda \|\mW\z\|_1 \label{eq:opti}
+\end{equation}
+where $\vy_\omega \in \mathbb{C}^{CP}$ is the coil-wise subsampled Fourier measurements, $\mS =  \begin{bmatrix} \mS_1 \ldots \mS_C \end{bmatrix}^T \in \R^{CP\times P}$ are the stacked coil sensitivities,  $\mP_\omega \mF$ is the subsampled Fourier transform applied coil-wise to the product of the image with the stacked coil sensitivities and $\mW$ is a sparsifying operator. Recall that the multicoil formulation was discussed in greater depth in Equation \ref{eq:acquisition_parallel_compact}. 
+%Recently, annihilating filter based low-rank Hankel matrix approach (ALOHA) has been also shown to be effective as a parallel MRI algorithm that exploits low-rankness property \citep{jin2016general}. 
+Other compressed sensing multicoil algoritms include \citep{uecker2014espirit,chaari2011wavelet}. Recall that ALOHA exploits the duality between sparse signals and their transform domain representations cast as a low-rank Hankel matrix, and transforms the problem into a low-rank matrix completion.
+
+\subsection{2D multicoil setting}
+We first compare the performances of lLBCS with various baselines.  As it can be seen in Figure \ref{fig:figu1} for a range of subsampling rates, the coherence-based VD masks can perform better than low-pass (LP) mask. However, they have weaker performance compared to the parameter sweep with PSNR as the objective function (LB-VD). This is expected as the LB-VD masks exploit the knowledge of the training set, whereas the coherence-based VD masks do not. The best performance is provided by our proposed approach, lLBCS (LB in the results). Indeed, the greedy LB algorithm is free from the constraint of a parametric distribution, which allows the data to decide which mask is best suited to a given decoder. Also, the VD-based masks result in artifacts especially visible in the ALOHA reconstructions that are suppressed in the LB-case.
+
+
+\begin{figure}[!ht]
+    \hspace{4mm}
+    \begin{minipage}[c]{.55\linewidth}
+      \centering
+      \includegraphics[width=\linewidth]{rethinking_pmri/figure_1_new.pdf}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.3\linewidth}
+        \centering
+        \caption{PSNR performances of various masks averaged over 100 test images: LP (low-pass mask), VD (variable density), LB-VD and lLBCS (LB).}\label{fig:figu1}
+    \end{minipage}    
+\end{figure}
+    
+    \textbf{Cross-performances of single and multi-coil masks.}
+    
+    In Figure \ref{fig:recons}, we have also included single coil masks (TV and BP) obtained from using LBCS on single coil data. They result in inferior performance when used with the multi-coil SENSE and ALOHA reconstruction algorithms. Compared to these single coil masks, the optimal multi-coils masks are found to be more spread in k-space. As expected, one obtains the best performances in terms of visual quality and performance metrics when the LB-mask is paired with the reconstruction algorithm for which it was trained.  In Table \ref{tab:cross_recon}, we provide an average cross-performance of single/multi-coil masks and reconstruction algorithms. We see that it is important to optimize single and multi-coil masks separately as they are quite different from each other, which was also observed by \citet{haldar2019oedipus}.  % We also see that it's ideal to use a reconstruction algorithm along with the mask that is specifically optimized for the algorithm. 
+    
+    
+    \begin{table} 
+    %\vspace{-.1cm}
+    \centering
+ 
+    
+    \begin{tabular}{>{\bfseries}lcccc}\hline
+    \toprule
+    \multirow{2}{*}{Mask} & \multicolumn{2}{c}{\textit{Single-coil}}  & \multicolumn{2}{c}{\textit{Multicoil}}  \\ 
+      \cmidrule(l){2-3}\cmidrule(l){4-5}
+      & TV & BP &SENSE&ALOHA  \\
+      \midrule
+    Coherence&29.04&29.60&33.10&32.61\\
+    Low pass&30.59&30.78&30.21&29.91\\
+    \midrule
+    TV LB&{\bf32.82}&34.23&34.56&35.17\\
+    BP LB&32.90&{\bf34.27}&35.02&35.07\\
+    SENSE LB&31.51&31.82&{\bf36.88}&36.61\\
+    ALOHA LB&29.00&26.95&30.73&{\bf37.15}\\
+    \bottomrule
+    \end{tabular}
+    \caption{\label{tab:cross_recon} Cross performance of single and multi-coil masks on various reconstruction algorithms, at 20\% subsampling rate, averaged over 100 test slices.  }
+    \end{table}
+    
+    
+
+    \begin{figure}[!ht]
+        \begin{minipage}[c]{.6\linewidth}
+          \centering
+          \includegraphics[width=\linewidth]{rethinking_pmri/multicoil.pdf}
+          (a)
+        \end{minipage}
+        \hfill
+        \begin{minipage}[c]{0.3\linewidth}
+            \centering
+            \includegraphics[width=0.7\linewidth]{rethinking_pmri/x_or.pdf}
+
+            (b)
+
+            \vspace{\fill}
+            \caption{Optimized masks and example reconstructions under SENSE and ALOHA decoding at 20\% sampling rate. See Figure \ref{fig:figu1} for ground truth.} \label{fig:recons}
+        \end{minipage}    
+    \end{figure}
+
+    \subsection{3D multicoil setting}
+    \label{ssec:subhead}
+
+    In this section we demonstrate the effectiveness of lLBCS in providing masks for 3D MRI by comparing it to common 3D MRI subsampling masks: Controlled Aliasing in Parallel Imaging Results in Higher Acceleration (CAIPIRINHA) \citep{breuer2006controlled}, Poisson disc (PD) sampling \citep{bridson2007fast} and its variable density variant (VD-PD) \citep{vasanawala2011practical}, and adaptive random sampling method \citep{knoll2011adapted}. For brevity, we used only  the SENSE algorithm as the multi-coil reconstruction algorithm and for all masks we took the central 24 $\times$ 24 region as calibration region to estimate the coil sensitivities. As seen in Figure \ref{fig:recons_3D}, the mask given by lLBCS provides superior image quality compared to the benchmarks and comparable result to more recent VD-PD sampling whose polynomial decay parameter is optimized by a grid search (LB-VD). 
+    
+    \begin{figure}[!ht]
+        \centering
+        \includegraphics[width=0.5\textwidth]{rethinking_pmri/3D_plot.pdf}    
+        \caption{Optimized masks and example reconstructions of knee images under SENSE decoding at 6-fold acceleration. }
+        \label{fig:recons_3D}
+    \end{figure}
+
+    Although this trend holds for low sampling rates, Figure \ref{fig:3D_performance} shows that the baselines catch up around $15\%$ sampling and then outperform lLBCS. The trend is similar on both PSNR and SSIM evaluation, and several observations can be made. While our method does not uniformly outperform other baselines like in other cases, it remains competitive in the region of interest for such methods, namely low sampling rates. Indeed, as acquiring these 3D volumes required 40 minutes of scanning \citep{sawyer2013creation}, one aims at achieving gains by high accelerations. For instance, six-fold acceleration has been convincingly investigated in a prospective study for 3D knee MRI by \citet{fritz2016six}.
+
+    Figure \ref{fig:lazy_eval} shows the number of evaluations done per round of lLBCS, i.e. the number of times where the list of upper bounds $\rho(\cdot)$ is updated before adding an element to the mask $\omega$ in Algorithm \ref{alg:llbcs}. Two observations can be made: first, after the initial, expensive, step of evaluation, there are remarkably few updates in lLBCS, averaging at $2.644$ per round, whereas the regular LBCS algorithm would have 76\,368.5, which amounts to the enormous speedup of a factor 28\,884. This testifies to the efficiency of the cost reduction achieved by lLBCS. However, and this is our second observation, it seems that the number of lazy evaluations are steadily decreasing throughout the iterations, and we hypothesize that the decrease of performance observed in Figure \ref{fig:3D_performance} can be attributed to the list of upper bounds getting increasingly unreliable as the number of iterations increase.
+
+    This suggests avenues to further improve the performance of lLBCS. The simplest approach would consist in periodically re-computing the list of upper bounds, to more accurately track the potentially useful sampling locations. Although this step would not be necessary for \textit{submodular} functions, it could benefit our objective, which does not exactly satisfy submodularity. Alternatively, one could also re-evaluate a couple of elements from the list randomly at each iteration, spreading the computational load over a larger number of iterations.
+
+    \begin{figure}[!t]
+        \centering
+        \begin{subfigure}{0.48\linewidth}
+            \centering
+            \includegraphics[width=0.8\linewidth]{rethinking_pmri/lazy_PSNR.pdf}
+            %\caption{}
+        \end{subfigure}
+        \hfill
+        \begin{subfigure}{0.48\linewidth}
+            \centering
+            \includegraphics[width=0.8\linewidth]{rethinking_pmri/lazy_SSIM.pdf}
+            %\caption{}
+        \end{subfigure}
+        \caption{PSNR and SSIM performance of various masks averaged over 120 testing 3D volumes. The lLBCS model was trained using PSNR.}\label{fig:3D_performance}
+    \end{figure}
+
+    \begin{figure}[!t]
+        \centering
+        \includegraphics[width=0.6\linewidth]{rethinking_pmri/lazy_evaluations.pdf}
+        \caption{Number of lazy evaluations per round of the lazy LBCS algorithm, until $50\%$ sampling rate ($50624$ locations acquired, initialization with $24\times 24$ centermost frequencies).}\label{fig:lazy_eval}
+    \end{figure}
+    
+    \section{Discussion and Conclusion}\label{s:lbcs_discussion}
+    In this chapter, we presented two algorithmic contribution that broaden the scale of applications of LBCS \citep{gozcu2019rethinking} beyond its original limits, by successfully scaling to settings where the number of candidates grows drastically compared to 2D Cartesian MRI, to large dataset and to methods that present long-running times, as in multicoil and 3D MRI. 
+
+    %\todoi{Mention somewhere in the results that for sLBCS, its main benefit lies in the constant batch size for large datasets, but that the batch size at each iteration remains typically a fraction of the total number of candidate lines, and only yields a \textit{constant} improvement, but does not fundamentally decrease the complexity. Mention also: "However, one could possibly resolve this issue by sampling the candidate locations according to some density rather than fully at random, but this is not the approach that was taken in this work."}
+    %\todoi{However, we observe in practice that as this model relies more heavily on the submodular structure, and as it does not hold exactly, it seems that the approximation yields to a smaller improvement of performance than for other instances of LBCS. A way to check it would be to run LBCS, sLBCS, lLBCS on a bunch of problems and see how their performances rank.}
+
+
+    %Our theoretical contributions show that the generic non-convex Problem~\eqref{eq:emp} aiming at finding a probability mass  function under a cardinality constraint from which a mask is subsequently sampled, is equivalent to the discrete Problem~\eqref{eq:main emp equiv 2} of looking for the support of this PMF. This connection opens the door to rigorously leveraging techniques from combinatorial optimization for the problem of designing optimal, data-driven sampling masks for MRI.
+    Adapting these algorithms to non-Cartesian settings such as radial sampling would be of great interest to clinicians, as radial sampling has seen a large success in body MRI due to the resistance to motion that it offers, enabling free breathing imaging \citep{coppo2015free,feng2016xd}. Although golden angle sampling has been widely used \citep{feng2014golden}, we anticipate that adjusting the distribution of radial spokes more closely to the underlying data distribution would improve the overall quality of reconstructed images. We anticipate however that this would involve challenges in simulating a non-Cartesian acquisition and quantifying the improvement of adding new measurements to an image, but recent deep learning reconstruction methods could provide a solution to this issue \citep{ramzi2022nc}.
+
+
+    Both sLBCS and lLBCS could certainly be improved by endowing them with additional heuristics. sLBCS would likely benefit from candidate lines being drawn from a probability favoring low frequency locations rather than fully at random. lLBCS could benefit form periodically re-computing the list of upper bounds $\rho$. Recent works such as \citet{zibetti2020fast} also showed the benefits of heuristics for mask design. For instance, they bias the selection of candidates based on the current line-wise NMSE and avoid selected elements at complex-conjugated position in order to accelerate the optimization procedure.
+
+    This should however not be the main point that one takes away from this chapter. Our work illustrates the great benefit of moving from model-based, model-driven approaches for mask design to learning-based, data-driven ones: trying to maximize a performance metric on data (data-driven approach), rather than some abstract mathematical structure (model-driven approach) such as coherence enables to more efficiently use the limited available resources. Similarly, moving from model-based to learning-based approaches allows to remove the constraints on the shape of the masks that can be explored, and our results show that this greatly benefits the reconstruction quality. Stated differently, our results suggest that model-based and/or model-driven approaches \textit{limit} the performance of CS methods applied to MRI, through their underlying model. 
+
+    %In the next chapter, we will discuss in greater detail learning-based, data-driven approaches to mask design paired with deep learning-based reconstruction methods. 
+
+
+    
+\section*{Bibliographic note}
+For the lazy LBCS work\footnote{G{\"o}zc{\"u}, B., Sanchez, T., and Cevher, V. (2019). Rethinking sampling in parallel MRI: A data-driven approach. In \textit{27th European Signal Processing Conference (EUSIPCO)}.}, the work is mostly due to Baran G{\"o}zc{\"u}. The author of this dissertation contributed to the formalization of the lazy LBCS algorithm and to part of the 2D multi-coil experiments. Convinced of the potential of LBCS, Volkan Cevher provided the drive to further validate and extend the method.
+
+For the stochastic LBCS work\footnote{Sanchez, T., G{\"o}zc{\"u}, B., van Heeswijk, R. B., Eftekhari, A., Il{\i}cak, E., \c{C}ukur, T., and Cevher, V. (2020a). Scalable learning-based sampling optimization for compressive dynamic MRI. In \textit{ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, pages 8584–8588.}, Ruud van Heeswijk acquired the cardiac data, Efe Il{\i}cak and Tolga \c{C}ukur provided the vocal tract data. Baran G{\"o}zc{\"u} was mostly involved in supervising the project. Armin Eftekhari provided Propositions \ref{prop:1} and \ref{prop:2}, discussed in the previous chapter. 

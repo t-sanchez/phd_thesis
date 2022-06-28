@@ -1,0 +1,388 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(0.0in,1.3in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries},
+title={Ground truth}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-1.png};
+
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(1.4in,2.6in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ytick={0,50,100,150},
+yticklabels={\empty},
+ylabel style={font=\color{white!15!black}},
+ylabel={Optimised $\*x_{\text{radial},i}$},
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries},
+title={Sampling 0.05}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-2.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=29.62};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(1.4in,1.3in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ylabel style={font=\color{white!15!black}},
+ylabel={Random},
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-3.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=28.18};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(1.4in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ytick={0,50,100,150},
+yticklabels={\empty},
+ylabel style={font=\color{white!15!black}},
+ylabel={Optimised $\*x_i$},
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-4.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=29.03};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(2.7in,2.6in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ytick={0,50,100,150},
+yticklabels={\empty},
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries},
+title={Sampling 0.1}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-5.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=33.12};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(2.7in,1.3in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5]{figures/pdm/plot_radial_im_temp/plot_radial_im_temp-6.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=32.02};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(2.7in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5]  {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-7.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=30.78};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(4in,2.6in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries},
+title={Sampling 0.2}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-8.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=35.72};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(4in,1.3in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-9.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=35.25};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(4in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5]  {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-10.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=35.49};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(5.3in,2.6in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries},
+title={Sampling 0.3}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-11.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=37.02};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(5.3in,1.3in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-12.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=36.57};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(5.3in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=17.5,
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=17.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im_temp/plot_radial_im_temp-13.png};
+\node[right, align=left, font=\color{white}]
+at (axis cs:1,10) {PSNR=36.93};
+\draw[->, red, line width = .4mm,>=stealth]
+  (11,80) -- (9,95);
+\draw[->, red, line width = .4mm,>=stealth]
+  (9,60) -- (7,75);
+\end{axis}
+
+\end{tikzpicture}%

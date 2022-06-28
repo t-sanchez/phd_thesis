@@ -1,0 +1,51 @@
+\documentclass{standalone}
+
+\usepackage[utf8]{inputenc}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows}
+\begin{document}
+\pagestyle{empty}
+
+
+% Define block styles
+\tikzstyle{decision} = [diamond, draw, fill=blue!20, 
+    text width=4.5em, text badly centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{block} = [rectangle, draw, fill=white!20, 
+    text width=5em, text centered,  minimum height=4em]
+    \tikzstyle{image} = [fill=white!20]
+    \tikzstyle{caption} = [fill=white!20]
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{cloud} = [draw, ellipse,fill=red!20, node distance=3cm,
+    minimum height=2em]
+    
+\begin{tikzpicture}[node distance = 2cm, auto]
+    % Place nodes
+    \node [block] (data) {Training data};
+    \node [block, below of=data] (reconstructor) {Image Reconstructor};
+    \node [image, left of=reconstructor,node distance=5cm] (obs) {\includegraphics[width=4cm,height=4cm]{mri_shitty_figs/shitty_obs.png}};
+    \node [caption,above of=obs] (obs_caption){\textbf{Observation}};
+    \node [image, right of=reconstructor,node distance=5cm] (rec) {\includegraphics[width=4cm,height=4cm]{mri_shitty_figs/shitty_rec.png}};
+    \node [caption,above of=rec] (rec_caption){\textbf{Reconstruction}};
+  \node [image, below of=reconstructor,node distance=5cm] (mask) {\includegraphics[width=4cm,height=4cm]{mri_shitty_figs/shitty_mask.png}};
+    \node [image, below of=mask, node distance=5cm] (gt) {\includegraphics[width=4cm,height=4cm]{mri_shitty_figs/shitty_rec.png}};
+    \node [caption,above of=gt] (gt_caption){\textbf{Ground truth}};
+    \node [caption,above of=mask] (mask_caption){\textbf{Sampling mask}};
+    \node [block, left of=mask,node distance=5cm] (undersample) {Undersample/acquire new};
+    \node [block, right of=mask,node distance=5cm] (policy) {Sampling policy/order};
+    \node [block,right of=policy,node distance=3cm] (data2) {Training data};
+    % Draw edges
+    \path [line,dashed] (data) -- (reconstructor);
+    \path [line] (obs) -- (reconstructor);
+    \path [line] (reconstructor) -- (rec);
+    \path [line] (mask) -- (undersample);
+    \path [line] (undersample) -- (obs);
+    \path [line] (gt) -| (undersample);
+    \path [line,dashed] (rec) -- (policy);
+    \path [line] (policy) -- (mask);
+    \path [line] (policy) -- (mask);
+    \path [line,dashed] (data2) -- (policy);
+\end{tikzpicture}
+
+
+\end{document}
+

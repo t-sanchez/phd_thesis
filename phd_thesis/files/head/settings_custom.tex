@@ -1,0 +1,344 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+%		Thesis Settings
+%		Custom settings
+%
+%		2011
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% %
+% %   Use this file for your own custom packages, command-definitions, etc...
+% %
+% % 
+% % Packages for references - cleverref must be last
+% \usepackage{nameref}
+% \usepackage{hyperref}
+% \usepackage{cleveref}
+% \usepackage[shortlabels]{enumitem}
+% % Reduce spacing in bibliography
+% \setlength{\bibsep}{0pt plus 0.3ex}
+% % Allow equations to break between pages
+% \allowdisplaybreaks
+% % Penalty for widow and orphan
+% \widowpenalty=9999
+% \clubpenalty=9999
+% %Penalty for relation and binary operation breaks in equations
+% \relpenalty=9999
+% \binoppenalty=9999
+\usepackage{amsthm}
+\usepackage{amsmath, bm}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{mathtools}
+\usepackage{graphicx}
+\usepackage{multicol}
+\usepackage{pgfplots}
+\usepackage{changepage}
+\usepackage[font={small, it}]{caption}
+\usepackage{subcaption}
+\usepackage{url}
+\usepackage{siunitx}
+\pgfplotsset{compat=newest}
+%% the following commands are needed for some matlab2tikz features
+\usetikzlibrary{plotmarks}
+\usetikzlibrary{arrows.meta}
+\usetikzlibrary{spy}
+\usepgfplotslibrary{patchplots}
+\usepackage{grffile}
+\usepackage{nccmath}
+\usepackage{array}
+\usepackage[export]{adjustbox}
+\usepackage{multirow}
+\usepackage{setspace}
+\usepackage{algorithm} 
+\usepackage{algpseudocode}  
+\usepackage{diagbox}
+\usepackage{bbm} % For the \mathbbm{1} -> Indicator function 1.
+\usepackage[autostyle]{csquotes}  
+%\usepackage[algo2e,linesnumbered, ruled]{algorithm2e} 
+
+\usepackage{xspace}
+\usepackage{amsfonts}       % blackboard math symbols
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage[acronym]{glossaries}
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\usepackage{mathrsfs,oldgerm}
+\usepackage{wrapfig}
+\usepackage{cleveref}
+\usepackage{verbatim}
+\usepackage[disable]{todonotes} %[disable] to disable todonotes
+\usepackage[export]{adjustbox}
+\usepackage{pifont}
+%\usepackage[nonatbib]{neurips_2021}
+\usepackage{placeins}       % professional-quality tables
+\newcommand{\cmark}{\ding{51}}%
+\newcommand{\xmark}{\ding{55}}%
+
+
+\newcommand{\todoi}[1]{\todo[inline]{#1}}
+\newcommand{\todot}[1]{\todo[inline,backgroundcolor=yellow]{#1}}
+
+
+\usepackage{mdframed}
+\usepackage{xcolor}
+\setcounter{secnumdepth}{2} % Depth of numbering
+
+\theoremstyle{definition}
+\newtheorem*{definition}{Definition}
+
+%\theorembodyfont{\normalfont}
+\theoremstyle{definition}
+\newtheorem*{remark}{Remark}
+\surroundwithmdframed[linewidth = 0 ,%
+leftmargin = 20,%
+rightmargin = 20,%
+backgroundcolor=black!10,%
+innertopmargin = 10,%
+splittopskip = 0,%
+ntheorem]{remark}
+
+% Frame around definition.
+\surroundwithmdframed[linewidth = 0 ,%
+leftmargin = 20,%
+rightmargin = 20,%
+backgroundcolor=black!10,%
+innertopmargin = 10,%
+splittopskip = 0,%
+ntheorem]{definition}
+
+
+% For the caveats in RL chapter
+\newtheoremstyle{bfnoteonly}%
+{}{}%
+{}{}%
+{\itshape}{.}%
+{ }%
+{\thmnote{#3}}
+\theoremstyle{bfnoteonly}
+\newtheorem*{extremark}{}
+\surroundwithmdframed[linewidth = 0 ,%
+leftmargin = 20,%
+rightmargin = 20,%
+backgroundcolor=black!10,%
+innertopmargin = 10,%
+skipabove=20,
+ntheorem]{extremark}
+
+
+% Define a frame aroung a proposition
+\theoremstyle{theorem}
+\newtheorem{proposition}{Proposition}
+\surroundwithmdframed[linewidth = 0 ,%
+leftmargin = 20,%
+rightmargin = 20,%
+backgroundcolor=black!10,%
+innertopmargin = 10,%
+%splittopskip=\topskip,
+%skipbelow=\baselineskip,%
+%skipabove=\baselineskip,%
+ntheorem]{proposition}
+
+\theoremstyle{theorem}
+\newtheorem{theorem}{Theorem}
+\surroundwithmdframed[linewidth = 0 ,%
+leftmargin = 20,%
+rightmargin = 20,%
+backgroundcolor=black!10,%
+innertopmargin = 10,%
+%splittopskip=\topskip,
+%skipbelow=\baselineskip,%
+%skipabove=\baselineskip,%
+ntheorem]{theorem}
+
+\usepgfplotslibrary{fillbetween}
+\pgfplotsset{every tick label/.append style={font=\scriptsize}}
+\def\shortestskip{\setlength{\abovedisplayskip}{0pt}%
+\setlength{\belowdisplayskip}{0pt}%
+\setlength{\abovedisplayshortskip}{0pt}%
+\setlength{\belowdisplayshortskip}{0pt}}
+
+\shortestskip
+
+\makeatletter
+\newcounter{algorithmicH}% New algorithmic-like hyperref counter
+\let\oldalgorithmic\algorithmic
+\renewcommand{\algorithmic}{%
+  \stepcounter{algorithmicH}% Step counter
+  \oldalgorithmic}% Do what was always done with algorithmic environment
+\renewcommand{\theHALG@line}{ALG@line.\thealgorithmicH.\arabic{ALG@line}}
+\makeatother
+
+\pgfplotsset{compat=newest,
+       colormap={parula}{
+            rgb255=(53,42,135)
+            rgb255=(15,92,221)
+            rgb255=(18,125,216)
+            rgb255=(7,156,207)
+            rgb255=(21,177,180)
+            rgb255=(89,189,140)
+            rgb255=(165,190,107)
+            rgb255=(225,185,82)
+            rgb255=(252,206,46)
+            rgb255=(249,251,14)
+        },
+    }
+
+
+\usepackage{booktabs}
+\usepackage{soul}
+\makeatletter
+
+
+\def \wh{\widehat}
+
+\def \ef{\eta(f)}
+\def \emf{\eta_m(f)}
+\def \emfh{\widehat{\eta}_m(f)}
+
+\def \diag{\text{diag}}
+\def\*#1{\mathbf{#1}}
+
+
+\makeatletter
+\newenvironment{tsubarray}[1]{%
+  \vcenter\bgroup
+  \Let@ \restore@math@cr \default@tag
+  \baselineskip\fontdimen10 \scriptfont\tw@
+  \advance\baselineskip\fontdimen12 \scriptfont\tw@
+  \lineskip\thr@@\fontdimen8 \scriptfont\thr@@
+  \lineskiplimit\lineskip
+  \check@mathfonts
+  \ialign\bgroup\ifx c#1\hfil\fi
+    \normalfont\fontsize\sf@size\z@\selectfont\ignorespaces##\unskip\hfil\crcr
+}{%
+  \crcr\egroup\egroup
+}
+\makeatother
+\newcommand{\tsub}[1]{\begin{tsubarray}{l}#1\end{tsubarray}}
+
+
+\newcommand{\di}{\textbf{(i)} }
+\newcommand{\ii}{\textbf{(ii)} }
+\newcommand{\iii}{\textbf{(iii)} }
+\newcommand{\iv}{\textbf{(iv)} }
+\newcommand{\dv}{\textbf{(v)} }
+\newcommand{\sga}{SG-v1 }
+\newcommand{\sgb}{SG-v2 }
+\newcommand{\ga}{G-v1 }
+
+
+
+
+%\usetikzlibrary{external}
+%\tikzexternalize[prefix=tikz/]
+
+\input cyracc.def
+\font\tencyr=wncysc10
+\def\cyr{\tencyr\cyracc}
+\def\diracComb{\mbox{\cyr SH}} 
+
+\input{files/head/math_commands.tex}
+\def \bepsilon{\boldsymbol{\epsilon}}
+\def \l{\left}
+\def \r{\right}
+\def \R{\mathbb{R}}
+\def \wh{\widehat}
+\def \E{\mE}
+\def \e{\ve}
+\def \w{\vw}
+%\def \u{\vu}
+\def \v{\vv}
+\def \x{\vx}
+\def \y{\vy}
+\def \yo{\vy_\omega}
+\newcommand{\yot}[1]{\y_{omega_{#1}}}
+\def \z{\mathbf{z}}
+
+\def \PO{\mP_\Omega}
+\def \Po{\mP_\omega}
+\def \mAo{\mA_\omega}
+\def\PXyo{\mathbf{P}_{\X|\y,\omega}}
+\def \F{\mF}
+
+\def \L{\ell}
+
+\def \uD{\u^{\text{1D}}}
+
+\def \X{\mX}
+\def \Xh{\mathbf{\hat{X}}}
+\def \Y{\mathbf{Y}}
+\def \Yo{\mathbf{Y}_{\omega}}
+\def \YO{\mathbf{Y}_{\Omega}}
+\def \Z{\mathbf{Z}}
+\def \V{\mathbf{V}}
+
+\def \PX{\mathcal{P}_\X}
+\def \PY{\mathcal{P}_\Y}
+
+\def \PYo{\mathcal{P}_{\Yo}}
+\def \JXY{\mathcal{P}_{\X,\Y}}
+
+\def \JXYo{\mathcal{P}_{\X,\Yo}}
+
+\def \PXY{\mathcal{P}_{\rvx|\rvy}}
+\def \PYX{\mathcal{P}_{\rvy|\rvx}}
+\def \pXy{p(\rvx |\vy)}
+\def \pXyo{p(\rvx |\yo,\omega)}
+
+\def \PYx{p(\Y|\x)}
+
+\def \PXYo{\mathcal{P}_{\X|\Yo,\omega}}
+\def \PYXo{\mathcal{P}_{\Yo|\X,\omega}}
+\def \PXYO{\mathcal{P}_{\X|\YO,\omega}}
+\def \PYXO{\mathcal{P}_{\YO|\X,\omega}}
+\def \PXyo{\mathcal{P}_{\X|\yo,\omega}}
+\def \PYox{\mathcal{P}_{\Yo|\x,\omega}}
+\def\H{\mathcal{H}}
+
+
+\def \W{\mathcal{W}}
+\def \Vc{\mathcal{V}}
+\def \PcO{\mathcal{P}_\Omega}
+\def \Pco{\mathcal{P}_\omega}
+
+\def \G{\mathcal{G}}
+\def \P{\mathcal{P}}
+\def \Q{\mathcal{Q}}
+\def \PPQ{\mathcal{P}_{\mathcal{P,Q}}}
+\def \PbX{\mathbb{P}_\mathcal{X}}
+\def \Xc{\mathcal{X}}
+\def \PbY{\mathbb{P}_\mathcal{Y}}
+\def \Yc{\mathcal{Y}}
+\def \Zc{\mathcal{Z}}
+\def \lip{\text{Lip}}
+
+\def \px{p(\rvx)}
+\def \py{p(\y)}
+\def \jxy{p(\x,\y)}
+\def \pxy{p(\x|\y)}
+\def \pyx{p(\y|\x)}
+
+\def \ft{f_\theta}
+\def \fts{f_{\theta^*}}
+
+\def \ftl{f_{\theta,\lambda}}
+\def \Gt{G_\theta}
+\def \Gts{G_{\theta^*}}
+
+\def \Gct{\mathcal{G}_\theta}
+
+\def \xh{\bm{\hat{x}}}
+\def \AO{Adler and \"Oktem\xspace}
+\def \diag{\text{diag}}
+
+\makeatletter
+\newcommand{\bianca}{\renewcommand\NAT@open{[}\renewcommand\NAT@close{]}}
+\makeatother
+
+\newcommand*\sqcitet[1]{{\bianca\citet{#1}}}
+\newcommand*\sqcitep[1]{{\bianca\citep{#1}}}
+
+\def\bPsi{{\boldsymbol{\Psi}}}
+\def\bPhi{{\boldsymbol{\Phi}}}

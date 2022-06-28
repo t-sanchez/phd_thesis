@@ -1,0 +1,66 @@
+%!TEX root = thesis_presentation.tex
+\section{Conclusion and insights}
+\addtocounter{framenumber}{-1}
+
+\begin{frame}{An empirical summary}{The supremacy of learning-based, data-driven methods}
+    \vspace{-0.5cm}
+    $\circ$ {\color{orange} Orange} = our contributions
+    \begin{center}
+    %\includegraphics[width=0.7\linewidth]{summarize_contributions}
+    \includegraphics<1>[width=0.6\linewidth]{figs/summarize_contrib_1}%
+    \includegraphics<2>[width=0.6\linewidth]{figs/summarize_contrib_2}%
+    \includegraphics<3>[width=0.6\linewidth]{figs/summarize_contrib_3}%
+    \includegraphics<4>[width=0.6\linewidth]{figs/summarize_contrib_4}%
+    \end{center}
+\end{frame}
+
+\begin{frame}{An empirical summary}{Within learning-based, data-driven methods}
+    \vspace{-0.5cm}
+    $\circ$ {\color{orange} Orange} = our contributions
+    \begin{center}
+    %\includegraphics[width=0.7\linewidth]{summarize_contributions}
+    \includegraphics<1>[width=0.6\linewidth]{figs/summarize_contrib_5}%
+    \includegraphics<2>[width=0.6\linewidth]{figs/summarize_contrib_6}%
+    \includegraphics<3>[width=0.6\linewidth]{figs/summarize_contrib_7}%
+    \includegraphics<4>[width=0.6\linewidth]{figs/summarize_contrib_8}%
+    \includegraphics<5>[width=0.6\linewidth]{figs/summarize_contrib_9}%
+    \includegraphics<6>[width=0.6\linewidth]{figs/summarize_contrib_10}%
+    \end{center}
+\end{frame}
+
+
+\begin{frame}{Future works}
+    \begin{itemize}
+        \item Low return on investment for deep RL in MRI.
+        \begin{itemize}
+            \item Is it due to limitations in current techniques?
+            \item Is it something intrinsic to the problem?
+        \end{itemize}\pause
+        \item Beyond pre-trained reconstruction models. Does training reconstruction and sampling methods \textit{jointly} change the conclusions?
+        \begin{itemize}
+            \item Few works for joint training \parencite{jin2019self,van2021active,yin2021end}
+            \item Unclear \textit{how} joint training helps
+        \end{itemize}\pause
+        \item Beyond Cartesian sampling for greater acceleration
+        \begin{itemize}
+            \item Challenging reconstruction and sampling
+            \item Promising works \parencite{lazarus2019sparkling,weiss2019pilot,wang2021b,chaithya2022benchmarking}
+        \end{itemize}\pause
+        \item What clinical value do optimized sampling masks bring? 
+        \begin{itemize}
+            \item Does a quantitative gain translate into an added clinical value?  
+            \item Only few studies with prospective results \parencite{lazarus2019sparkling,zibetti2020fast,yu2022validation}
+            %\item How to quantitatively assess the added value of a mask?
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+\addtocounter{framenumber}{-1}
+\begin{frame}[noframenumbering]
+    \centering
+    {\fontsize{24pt}{25}\selectfont
+    Thank you for listening\\[3mm]}
+    \rule{0.7\textwidth}{.8pt}
+
+    {\vspace{6mm}\fontsize{18pt}{20}\selectfont Questions?}
+\end{frame}
+

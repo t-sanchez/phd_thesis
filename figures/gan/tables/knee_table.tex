@@ -1,0 +1,19 @@
+
+\begin{tabular}{lcccc}
+    \toprule
+    \multirow{1}{*}{\textbf{Policy}}& \multicolumn{4}{c}{\textbf{Model}}\\
+    & \multicolumn{2}{c}{GAN} & \multicolumn{2}{c}{Reconstructor}\\
+    \cmidrule(r){2-3}\cmidrule(l){4-5}
+    & \textsc{PSNR}& \textsc{SSIM}& \textsc{PSNR}& \textsc{SSIM}\\
+    \midrule
+    \textbf{Random}& $29.48$& $0.699$& $29.79$& $0.757$\\
+    \textbf{Gaussian NLL}& $29.48$& $0.699$& $29.69$& $0.747$\\
+    \textbf{Evaluator}& $30.03$& $0.710$& $30.77$& $0.765$ \\
+    \textbf{GAN}& $30.67$& $0.726$ & $30.48$ & $0.762$\\
+    \midrule
+    \textbf{LBCS}& $\mathbf{31.06}$& $\mathbf{0.735}$& $\mathbf{31.41}$& $\mathbf{0.781}$\\
+    \textbf{RL}& $30.88$& $0.731$ & $30.68$& $0.766$\\
+    \midrule
+    \textbf{MSE Oracle}& $30.98$& $0.734$ & $31.23$& $0.778$\\
+    \bottomrule
+\end{tabular}

@@ -1,0 +1,569 @@
+%!TEX root = ../../thesis.tex
+
+\chapter{On the benefits of deep RL in accelerated MRI sampling} \label{ch:rl_mri}
+
+In parallel to the refinements to the Learning-based Compressive Sampling (LBCS) \citep{gozcu2018learning} approach that we studied in the previous chapter, the progress of deep learning (DL) applied to reconstruction motivated several researchers to turn their attention to the problem of optimizing sampling patterns in a learning-based, data-driven fashion.
+
+In this Chapter, we wish to focus on the state-of-the-art (SotA) approaches that leverage deep reinforcement learning (RL) to perform adaptive mask design in a sequential fashion \citep{bakker2020experimental,pineda2020active}. These approaches are particularly relevant to us for two main reasons.
+\begin{enumerate}
+    \item These two SotA approaches can be viewed as very natural extensions of (s)LBCS, which can be interpreted as a very basic RL policy. %that learns a fixed sampling pattern in a greedy fashion, and the two SotA approaches can be viewed as very natural extensions of our method.
+    This makes it both easy and insightful to compare LBCS to these methods, as it will provide a baseline to quantify the benefits brought by moving from LBCS to deep RL.
+    \item More sophisticated RL policies promise to address two fundamental limitations of LBCS: they can perform adaptive sampling and incorporate long-term planning in their decision.
+\end{enumerate}  
+
+However, the SotA approaches of \citet{pineda2020active} and \citet{bakker2020experimental} draw seemingly conflicting conclusions from their results. The work of \citet{pineda2020active} seems to indicate that long term planning could be the most important component in deep RL, as their results show that a non-adaptive, long term planning policy model trained on the dataset can perform as well as an adaptive, long-term planning policy. On the contrary, the contribution of \citet{bakker2020experimental} highlights the importance of adaptivity, as a greedy policy, that does not do long-term planning is found to closely match policies that do long term planning.
+
+Our results synthesize this apparent conflict: \textit{We observe that sLBCS, a simple, easy-to-train method that does not rely on deep RL, does not attempt long term planning and is by definition not adaptive can perform as well as the state-of-the-art approaches of \citet{pineda2020active,bakker2020experimental}.} 
+
+This trend can be consistently observed on the fastMRI single-coil knee dataset \citep{zbontarFastMRIOpenDataset2019}, where we carry out evaluations across a variety of settings, whether full scale images, cropping the field of view, various mask designs used for training and various architectures. We observe that such small changes in the experimental pipeline can easily lead to different ordering of the RL methods and sLBCS in terms of performance or an invalidation of the conclusions drawn by the results. We refer to such occurrences as \textit{reversals}.
+It is possible then to choose an experimental setting and performance metrics to support one's desired conclusion: that RL outperforms LBCS, that LBCS outperforms RL or that their difference is not significant.  
+
+Together with the observation that current SotA RL methods only add marginal value over the simple baselines at best, the work in this chapter highlights the need for further discussions in the community about standardized metrics, strong baselines, and careful design of experimental pipelines to evaluate MRI sampling policies fairly\footnote{The work in this chapter is based on the preprint: Sanchez, T.$^{*}$, Krawczuk, I.$^{*}$ and Cevher, V. (2021). On the benefits of deep RL in accelerated MRI sampling. \textit{Available at \url{https://openreview.net/pdf?id=fRb9LBWUo56}}. $^{*}$ denotes equal contribution.}.
+
+
+
+\section{Reinforcement Learning to optimize sampling trajectories}
+
+Before introducing how RL can be used to optimize sampling for MRI, let us briefly contextualize the works of \citet{jin2019self}, \citet{pineda2020active} and \citet{bakker2020experimental}.
+\citet{jin2019self} were the first to attempt at using an RL-based approach to mask design, trying to train jointly a reconstruction model and a policy model through self-supervised learning. The approach is based on the AlphaGo model \citep{silver2017mastering}, a model that successfully learned to play go through self-play and that eventually ended-up the beating the world champion of Go. In this approach, the policy model is trained to learn the predictions done by a Monte-Carlo Tree Search (MCTS) \citep{coulom2006efficient}. 
+
+\citet{pineda2020active} leverage Double Deep Q-Networks (DDQN) \citep{van2016deep}, a state-of-the-art deep RL approach that is particularly suited to the problem at hand and that has recently shown to be a reliable and stable method. They train two variants of the model, one to perform non-adaptive sampling (Dataset-specific, DS-DDQN), and the other that is adaptive (Subject-specific, SS-DDQN). Their results show that DS-DDQN outperforms SS-DDQN in nearly all cases. 
+
+Finally, \citet{bakker2020experimental} took a different approach, leveraging the policy gradient theorem to enable the training of the policy network \citep[ch. 13]{sutton2018reinforcement}.  They both a greedy and a non-greedy (long horizon) policy, and find that, surprisingly, ``\textit{a simple greedy approximation of the objective leads to solutions nearly on-par with the more general non-greedy approach.}'' %They include a comparison to the model and \citet{jin2019self}, that they outperform. For this reason, we will not include \citet{jin2019self} in the sequel. 
+
+We summarize the features of the different models in Table \ref{tab:axes}, and for the reasons discussed above, we consider the method of \cite{pineda2020active} to be represented by their non-adaptive DS-DDQN, and the method of \citet{bakker2020experimental} to be represented by their greedy policy model. 
+
+\begin{table}[t]
+    \centering
+    \begin{tabular}{l|cc}
+      \toprule
+      \textbf{Sampling policy} & \textbf{Adaptive} & \textbf{Long horizon} \\
+      \midrule
+      LBCS \citep{gozcu2018learning} & \xmark & \xmark\\
+      AlphaGo \citep{jin2019self} & \cmark& \cmark\\
+      DDQN \citep{pineda2020active}  & \xmark {\tiny(\cmark)}& \cmark\\
+      Policy Gradient \citep{bakker2020experimental} & \cmark& \xmark {\tiny(\cmark)}\\
+      \bottomrule
+  \end{tabular}
+  \vspace{1mm}
+  \captionof{table}{Methods that will be considered in the paper. \cite{bakker2020experimental} considered fixed vs. adaptive and greedy vs. non-greedy, \cite{pineda2020active} considered data specific vs subject specific policies and also compared against greedy methods.}\label{tab:axes}
+  \end{table}
+
+\subsection{A short RL primer}
+Assume that we have an agent in an unknown environment, and that the agent can interact with the environment and potentially obtain rewards based on its actions. In reinforcement learning, we would like the agent to learn to maximize its cumulative reward from its interaction with the environment. This means that the agent should learn a strategy that allows it to adapt to its environment in order to maximize its reward. In Go, this could mean train the agent to win as many games as possible, or in MRI, this could amount to selecting the next line to acquire to maximize the reconstruction quality.  
+
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.45\linewidth]{RL_illustration}
+    \caption{Illustration of an agent interacting with its environment.}
+\end{figure}
+
+Formally speaking, in RL, an agent acts in an \textit{environment} with an underlying model that may be known or not. The agent will stay in one of the many states $s \in \mathcal{S}$ of the environment, and take an action $a \in \mathcal{A}$, which allow it to move from its current state to another state $s'$. As a result of taking the action $a$, the agent receives a reward $r\in \mathcal{R}$ as feedback.
+
+This process is repeated several times, and produces a sequence of states, actions and rewards. This results in a tuple 
+$$(S_1,A_1,R_2, S_2, \ldots, S_T)$$
+where $T$ is the total number of steps taken. The states, actions and rewards are capitalized here as they refer to random variables. This tuple is referred to as an \textit{episode}. During an episode, the agent interacts with the environment in order to learn a better strategy. This strategy is described as a policy $\pi(s)$, which is a probability distribution over which actions taken in a state $s$ are likely to get the maximal cumulative reward. In order to quantify this, each state is associated with a value function $V_\pi(s)$, which predicts the expected amount of future reward that we would receive by acting following the current policy $\pi$. In RL, one generally aims at learning the policy and/or the value function.
+
+\textbf{Modeling the environment.} In order to do that, we need to further describe the environment by a model. A model usually relies on two quantities, the \textit{transition probability} $P$ and the reward $R$. Starting in state $s$ and taking action $a$, the transition probability describe how likely it is that we end up moving to state $s'$ and obtaining reward $r$ as a result, namely
+$$P(s',r|s,a) = \mathbb{P}[S_{t+1}=s', R_{t+1}=r | S_t = s, A_t = a]$$
+where $\mathbb{P}$ describes here a probability. The reward function is defined as the expected reward for a given state action pair
+$$R(s,a) = \mathbb{E}[R_{t+1}|S_t = s, A_t = a] = \sum_{r\in\mathcal{R}} r \sum_{s' \in \mathcal{S}} P(s',r|s,a)$$
+
+
+\textbf{Value function and state-action function.} The value function aims at predicted the expected amount of future reward, that is commonly referred to as the \textit{return} and defined as 
+$$G_t \triangleq R_{t+1} + \gamma R_{t+2} + \ldots \gamma^{T-t-1} R_T = \sum_{k=t}^T \gamma^{k-1} R_{t+k}$$
+where $\gamma \in [0,1]$ is called the \textit{discounting factor}.  The idea of the discounting factor is to penalize rewards in the future as a way to nudge the agent towards \textit{immediate} benefit. Note that the return $G_t$ always sums every future reward until the end of the episode, at time $T$.
+
+We can then use the return to define formally the value function
+\begin{equation}
+V_\pi(s) \triangleq \mathbb{E}_\pi[G_t|S_t =s]\label{eq:v_def}
+\end{equation}
+which means that the value of the state $s$ is the expected return given that we currently are in the state $S_t=s$. A related important quantity is the \textit{state-action function} 
+\begin{equation}
+    Q_\pi(s,a) \triangleq \mathbb{E}_\pi [G_t|S_t=s, A_t=a]  \label{eq:q_def}
+\end{equation}
+which is similar to the value function except that it considers a state-action pair $(s,a)$. The two can be related as
+\begin{equation}
+    V_\pi(s) = \sum_{a\in \mathcal{A}} Q_\pi(s,a)\pi(a|s)\label{eq:value_to_q}    
+\end{equation}
+
+
+%\todoi{Maybe define optimal policy and stuff like that.}
+
+\textbf{Markov Decision Processes.} Most RL problems can be expressed as Markov Decision Processes (MDPs). This implies in particular that the current state $S_t$ and action $A_t$ contain all the necessary information to future decisions, i.e.
+$$\mathbb{P}(S_{t+1}|S_t,A_t) = \mathbb{P}(S_{t+1}|S_1, A_1 \ldots, S_t, A_t).$$
+In other words, this means that the future $S_{t+1}$ is conditionally independent of the past ($S_1,A_1\ldots, S_{t-1},A_{t-1}$) given the present $S_t$, $A_t$. An MDP consists of five elements that we already encountered, namely $\mathcal{M} = \langle \mathcal{S}, \mathcal{A}, P, R, \gamma \rangle$. We have a set of states, a set of actions, the transition probability, the reward function and the discount factor. This description comprises everything that we need to tackle a RL problem.
+
+\subsection{The special case of MRI}
+The problem of optimizing the sampling mask of Cartesian MRI fits the description of RL well, but is not exactly described by an MDP. If we look to learn a sampling pattern on an image $\vx$, we can start from an empty mask and gradually make observations, trying to learn which are the best locations to acquire. It is natural to view the current mask $\omega_t$ as the current state $s_t$, and interpret the action $a_t$ as the next location that we seek to acquire. The reward is easily quantified as the improvement in reconstruction obtained by adding to the sampling mask the location corresponding to $a_t$:
+\begin{equation}
+    r(s_t,a_t) = \eta(\rx, \hat{\vx}_{\theta; \omega_{t+1}}) - \eta(\rx, \hat{\vx}_{\theta; \omega_{t}})\label{eq:reward_mri}
+\end{equation}
+where $\omega_{t+1} = \omega_t \cup a_t$ and $\hat{x}_{\theta; \omega_{t+1}} = \hat{x}_{\theta}(\mP_{\omega_{t+1}}\mF \vx)$\footnote{Note that we slightly abuse notation here and use the action $a_t$ to also refer to its corresponding sampling location.}. Recall also that $\eta(\cdot,\cdot): \mathbb{C}^P \times \mathbb{C}^P \to \mathbb{R}$ is a performance metric.
+In the sequel, to avoid unnecessary clutter, we refer to the reconstruction at state $s_t$ simply as $\hat{\vx}_{t}$.
+
+Note also that while the RL framework allows for transition \textit{probabilities}, the case of MRI, they are deterministic: we know in what state we will end up should we take an action. 
+
+The main difference lies in the fact that although the reward is well defined, it depends on the unobserved underlying ground truth $\vx$. As a result, our problem falls into the category of \textit{Partially Observable} Markov Decision Processes (POMDP) \citep{monahan1982state}. To take this into account, we need to introduce the set of observations $\mathcal{O}$ and the conditional observation function $O(s'| a,o)$. This leads us to define a POMDP as the 7-element tuple $\langle \mathcal{S},  \mathcal{O}, \mathcal{A}, P, O, R, \gamma \rangle$, where $\mathcal{S}$ is the set of all ground truths and mask $\{\langle \vx, \omega \rangle$\}, $\mathcal{O}$ is the set of all observations $\{\langle \hat{\vx}, \omega\rangle\}$, $\mathcal{A}$ is the set of all actions, corresponding typically to all columns to be acquired. The transition probability function is deterministic as discussed above, and the conditional observation probability will also be deterministic, as taking action $a_t$ from state $s_t$ will result in observing the tuple $\langle \hat{\vx}_{t+1}, \omega_{t+1} = \omega_t \cup a_t \rangle$. Finally, we have defined the reward function above, and the discount factor $\gamma$ can be taken as a parameter. 
+
+\subsection{Double Deep Q-Networks}
+Until now, we have defined the fundamental building blocks of RL and the environment corresponding to the problem of learning sampling policies. We turn now to practical methods to learn sampling policies\footnote{This is a big jump forward, but the interested reader should read the excellent introduction to reinforcement learning \citep{weng2018a}.}.
+
+The state of possible state-action pairs in RL is very large, and in most modern RL applications, it is simply impossible to explore it in an exhaustive manner. Similarly, storing the value for each state-action pair is impractical, and in practice, one will choose to represent the state-value function with a parametric model $Q_\phi(s,a)$ (with parameters $\phi$). Of course, deep neural networks have turned out to be prime candidates for such models, and led to the famous Deep Q-Networks (DQN) \citep{mnih2015human}. In Q-learning, the Q-network $Q_\phi(s,a)$ is learned by minimizing the objective
+$$\mathcal{L}(\theta) = \mathbb{E}_{(s',r,a,s)}\left[\big(\overbrace{r + \gamma \max_{a'} Q_\phi(s',a')}^{\text{Target } Y^Q} - Q_\phi(s,a)big)^2\right].$$
+One aims at solving this problem because $r + \gamma \max_{a'} Q_\phi(s',a')$ provides a more reliable estimate to the future return than $Q_\phi(s,a)$. Indeed, it can be proven that the optimal policy satisfies $Q_*(s,a) = r + \gamma_a Q_*(s',a')$ given any tuple (s,a,r,s'), and thus the loss quantifies how far one is from optimality. 
+
+However, this objective makes the training unstable and slow, the sequence of iterates $(s,a,r,s')$ from a single episode are heavily correlated, and because the target $Y_Q$ depends on $Q_\phi$ that is updated each iteration. As a result, \citet{mnih2015human} proposed two mechanisms to alleviate these issues. Experience replay is the idea that instead of computing updates directly on the sequence of iterates from the current episodes, the tuples $(s,a,r,s')$ are stored in a buffer from which a sample is drawn at random to perform the update. The second mechanism is periodic updating, where the network used in the target has its weights frozen and only periodically updated.
+
+While these mechanisms allowed to fix some large issues of Q-learning, DQN was found to still suffer from overestimating the value of state-action pairs, and \citet{van2016deep} proposed to use Double-Q learning as a way to address this issue. As a result, the objective looks like 
+$$\mathcal{L}(\theta) = \mathbb{E}_{(s',r,a,s)\sim U(D)}[(\overbrace{r + \gamma \max_{a'} Q_{\phi^-}(s',a')}^{\text{Target } Y^{\text{DoubleQ}}} - Q_\phi(s,a))^2].$$
+The changes here are the ones from DQN: $U(D)$ is a uniform distribution over the replay memory, and $\phi^-$ refer to the weights of the frozen network. The main difference however is to be found in the target $Y^{\text{DoubleQ}}$. Double Q-learning is based on the observation that in the Q-learning target $Y^Q$, the same values are used to select an action and to evaluate making it more likely to select overestimated values \citep{hasselt2010double}. This can be made explicit as
+$$Y^Q = r + \gamma Q_\phi(s', \argmax_{a'} Q_\phi(s',a'))$$
+In double Q-learning, two values of weights $\phi$ and $\phi'$ are used to decouple the action selection and evaluation, resulting in the target
+$$Y^{\text{DoubleQ}} = r + \gamma Q_\phi(s', \argmax_{a'} Q_{\phi'}(s',a')).$$
+
+After the $Q$-function has been trained, inference on new environments is done by following greedily the policy prescribed by the $Q$-function, namely
+$$a_t = \argmax_a Q_\phi(s_t,a) \text{~for~}t=1,\ldots,T.$$
+
+%\todoi{Discuss then how the policy is obtained from the Q-function: taking greedy and stuff.}
+
+This is the model that \citet{pineda2020active} used in their article. They propose two variants of the model, a subject-specific DDQN (SS-DDQN) as well as a dataset-specific DDQN. The difference lies in the input given to the $Q$-function. In the SS-DDQN, the neural network will take as input $\hat{\vx}_t$ and $\omega_t$ and output a $|\mathcal{A}|$ dimensional vector, with the probability to take each action $a \in \mathcal{A}$ as the next move. On the contrary, the DS-DDQN will only take as input $\omega_t$, and as a result, the policy will only depend on the current mask and will \textit{not} adapt to the current subject.
+
+\subsection{Policy Gradient}
+\citet{bakker2020experimental} took a different approach to the problem, called policy gradient. Contrarily to Q-learning, this approach aims at directly learning a policy, without first learning a value function. The policy itself is parametrized as a function $\pi_\phi(s): \mathcal{S}\to \mathcal{A}$ that associates to each state the probability of taking an action $a \in \mathcal{A}$. It aims finding the set of parameters $\phi$ that maximize
+$$\max_\phi \left\{\mathcal{J}(\phi) = V_{\pi_\phi}[s_1] = \sum_a \pi_\phi(a|s_1)Q_{\pi_\phi}(s_1,a_1)\right\}.$$
+In this case, as the policy is parametrized by $\phi$ and not $Q$ as we previously had, the function $Q_{\pi_\phi}(s,a)$ must be \textit{computed} rather than simply evaluated on the input. This is achieved by using the relation connecting the value function to the state-action function and the definition of the state-action function (cf. Equations \ref{eq:value_to_q} and \ref{eq:q_def}).
+
+The policy gradient theorem aims at providing an analytical expression for $\nabla_\phi \mathcal{J}(\phi)$, in order to optimize $\phi$ using a gradient-based approach. We will directly use its result and refer the interested reader to \citet[p.324ff]{sutton2018reinforcement}. The policy gradient theorem yields
+\begin{equation}
+    \nabla_\phi \mathcal{J}(\phi)\propto \mathbb{E}_{\pi_\phi}\left[ G_t \nabla \log \pi_\phi(A_t|S_t)\right].\label{eq:policy_gradient}
+\end{equation}
+This result is significant because it allows to estimate the gradient of the policy with an \textit{expectation} over the return and the gradient of the logarithm of policy. The expectation means that the gradient of the policy is amenable to a Monte-Carlo approximation, where one takes samples of the policy to approximate the expectation.
+
+This is the basis used by \citet{bakker2020experimental}, but the result in their case is slightly modified to have
+\begin{equation}
+    \nabla_\phi \mathcal{J}(\phi)\propto \mathbb{E}_{\pi_\phi,\vx_0}\left[ \sum_{t=1}^{T} \nabla \log \pi_\phi(A_t|S_t) \sum_{t'=t}^{T}\left( \gamma^{t'-t} \left(r(S_{t'},A_{t'})- b(S_{t'})\right)\right)\right] \label{eq:bakker_grad1}    
+\end{equation}
+where the expectation over $\vx_0$ is the expectation over the initial states, and $b(S_{t'})$ is a baseline that is aimed at reducing the high variance of the gradient estimator \citep[pp. 329-331]{sutton2018reinforcement}. 
+
+The expression in Equation \ref{eq:bakker_grad1} is not directly computable as it still contains an expectation over the policy, and $A_t$, $S_t$ depend on it. \citet{bakker2020experimental} propose both a \textit{greedy} and a \textit{non-greedy} approach to compute a Monte-Carlo (MC) estimate. They read
+\begin{equation}
+    \resizebox*{.9\linewidth}{!}{$\displaystyle
+    \nabla_{\phi} J(\phi) \approx \frac{1}{q-1} \mathbb{E}_{\vx \sim \mathcal{D}} \sum_{i=1}^{q} \sum_{t=1}^{T}\left[\nabla_{\phi} \log \pi_{\phi}\left(\vx_{t}\right) \sum_{t^{\prime}=t}^{T} \gamma^{t^{\prime}-t}\left(r_{i, t^{\prime}}-\frac{1}{q} \sum_{j=1}^{q} r_{j, t^{\prime}}\right)\right] \text { (Non-greedy), }$}
+\end{equation}
+\begin{equation}
+    \nabla_{\phi} J(\phi) \approx \frac{1}{q-1} \mathbb{E}_{\boldsymbol{x} \sim \mathcal{D}} \sum_{i=1}^{q} \sum_{t=1}^{T}\left[\nabla_{\phi} \log \pi_{\phi}\left(\vx_{t}\right)\left(r_{i, t}-\frac{1}{q} \sum_{j=1}^{q} r_{j, t}\right)\right] \text { (Greedy)}
+\end{equation}
+where $r_{i,t}$ denotes the reward for the $i$-th (out of $q$) MC sample at time step $t$. We see here that the non-greedy approach requires an additional sum in the expectation: for each time step $t$, a full rollout must be computed until the last acquisition step in order to do a single gradient update. On the contrary, a greedy approach is much faster, as it there is no sum inside the expectation, except the averaging over the $q$ different MC samples taken.
+
+Note that, in the non-greedy case, \citet{bakker2020experimental} only sample multiple trajectories at the initial state, as sampling multiple ones at each state would lead to a combinatorial explosion. After training, inference on new environments is done by simply sampling from the obtained policy, i.e. $p(a|s) = \pi_\phi(a|s)$.
+
+%\todoi{Put a cartoon like in Bakker's paper to explain?}
+%, but we will discuss here a \textit{greedy} approach proposed by \citet{bakker2020experimental} that performs almost as well as the non-greedy one. A non-greedy approach would sample multiple entire trajectories (called \textit{rollouts}) and average them to perform one update. A greedy approach, on the contrary, 
+
+\subsection{LBCS as a simple RL policy}
+It should be clear now to the reader that LBCS can easily be viewed as a simple greedy policy. Instead of training a sophisticated deep neural network, it simply relies on training a non-adaptive policy that does
+$$\pi(a|s_t) = \mathbbm{1}_{a=a_t} \text{, where~} a_t = \argmax_a \left\{r(s_t,a) = \mathbb{E}_{\vx \sim p(\rvx)}\left[\eta(\vx, \hat{\vx}_{\theta; \omega_{t+1}}) - \eta(\vx, \hat{\vx}_{\theta; \omega_{t}})\right]\right\}.$$
+where the policy is deterministic given the current state, and does not adapt to the current patient a gs the choice is based on the expectation over the training data. In this case, $\pi(a|s_t)$ really becomes $\pi(a|\omega_t)$. The inference is then simply done by following the policy, i.e. $\pi(a|\omega_t) = \mathbbm{1}_{a=a_t}$ for all $\vx \sim p(\rvx)$.
+
+%\todoi{Significant revision of the framing to be done: explain the baselines, and explain what $z_t'$ exactly is here. Explain also what expectation over $\mathcal{D}$ is here.}
+
+\subsection{The questions at hand}
+After this primer into RL that introduced the different existing methods for RL-based mask design, we come back again to our initial question: What component of RL does matter most? How does patient-adaptivity help? What is the contribution in long-term planning? Are there other components of the MR pipeline that affect the performance of the method more than the policy?
+
+As the works of \citet{pineda2020active} and \citet{bakker2020experimental} do not compare to each other, and work in very different settings, it is not possible to answer these questions directly from their respective works. 
+
+We chose to use LBCS \citep{gozcu2018learning} as starting point as it is clear that it implements a learning-based, data-driven policy that is \textit{not} adaptive \textit{nor} long-term planning. This method will provide the baseline from which we can quantify the improvements brought by adaptivity and long-term planning. 
+
+Secondly, as the methods of \citet{bakker2020experimental} and \citet{pineda2020active} are preprocessed fairly differently before being used to train RL policies, we wish to understand how these policies are sensitive to changes in parameters such as the training of the reconstruction algorithm, or changes in the image field of view, or the way that k-space is undersampled. In particular, this will help us understand whether the seemingly contradictory conclusions originate from different processing of the data, or whether they reflect something more fundamental. In the sequel, we will first define the processing pipeline precisely, before carrying thorough evaluations of these methods. 
+
+
+
+%\section{Background} \label{seq:setup}
+%This work focuses on the following inverse problem, where we seek to recover a signal $\vx \in \mathbb{C}^P$ from partial observations $\vy \in \mathbb{C}^N$, $N\ll P$ obtained by subsampling a unitary transform matrix $\mA\in \mathbb{C}^{P\times P}$:
+%\begin{equation}
+%\y_\omega = \Po\mA\x + \boldsymbol{\eta}, \label{eq:acquisition2}    
+%\end{equation}
+%where $\boldsymbol{\eta} \in \mathbb{C}^N$ is a noise vector, $\omega \subseteq [P]:=\{1,\ldots, P\}$ is an index set of allowable sampling locations with cardinality $N$, $\Po$ is a diagonal matrix such that $(\mP_\omega)_{ii}=1 \text{ if } i \in \omega, 0 \text{ otherwise}$. $\Po$ and $\omega$ are referred to as the \textit{(sampling) mask}, as they control what locations are acquired in the original signal. This problem is inherently ill-posed, due to $N \ll P$, and our first goal will be to construct an estimate $\hat{\x}_{\omega;\theta}=\ft(\y_\omega,\omega)$ of the original signal $\x$, where $\ft$ is a reconstruction method parametrized by $\theta$. 
+
+%The traditional solution proposed in Compressed Sensing (CS) \cite{donoho2006compressed, candes2006robust} revolves around using statistical or geometric priors to circumvent this ill-posed nature, and constructs a point estimate $\hat{\x}$ by solving a problem of the form 
+ %\begin{equation} \label{eq:cs}
+ %   \min_{\hat{x}} \|\Po\hat\vx-\yo\|_2^2 + g_\theta(\hat{\x})
+ %\end{equation}
+ %where $g_\theta$ is a regularizer that typically promotes sparsity in some transformed domain, such as $g_\theta(\x) = \|\mathbf{W}\x\|_1$.
+ %$ and $\ft$ is a reconstruction method optionally parametrized by $\theta$ and $\hat{\x}_{\omega;\theta}$ is the reconstruction by model $\ft$ for observation $\y_\omega$ and selection $\omega$ which generated the observation. In the following we omit the subscripts $\omega$ subscript $\theta$ when they are clear from context.
+%The compressed sensing (CS) problem of estimating $\hat{\x}=\x$ above is classical , where the literature revolves around using statistical or geometric priors to circumvent its ill-posed nature since $N \ll P$.The geometric perspective in leverages convex models with sparsity inducing regularizers  to obtain point estimates \cite{donoho2006compressed, candes2006robust} as in \cref{eq:point_rec} (with $g(x)=\Vert \hat{x}\Vert_1$) being 
+%\begin{equation}
+%  \label{eq:point_rec}
+%  \hat\vx_\theta = \ft(\y,\Po)\approx 
+%\end{equation}
+%One can consider a Bayesian perspective on CS, where the regularizer is viewed as a prior distribution $p(\x)$, the goal is to obtain a tractable posterior distribution $\pXy$ which captures the probability for a sample $\x$ to have generated the observed data $\y$ \cite{ji2008bayesian, babacan2009bayesian}. %It important to note that the prior in this classical Bayesian perspective is not data dependent and is simply the Bayesian equivalent of regularisation. 
+%Such approach has the added benefit of providing a quantification of the uncertainty associated with a given reconstruction. The uncertainty then naturally enables the design of data-adaptive measurements \cite{ji2008bayesian}.
+%\begin{equation}
+%  \label{eq:dist_rec}
+%  \hat{\vx}_\theta = \rf_\theta(\y, \Po)\approx \hat\vx \sim p(\vx\vert\vy_\omega,\omega).
+%\end{equation}
+
+%Recently deep learning-based methods have significantly improved practical reconstruction performance for these ill-posed problems \cite{jin2017deep, schlemper2018deep, rivenson2018phase, adler2018learned,sriram2020end, putzkyInvertLearnInverta} over the classical methods.
+%These approaches can be understood as learning a prior or a posterior from training data as opposed to relying on human-constructed mathematical prior and geometric models, as well as the randomly initialized architectures being endowed with what has been called the "deep image prior"\cite{lempitsky2018deepimage}.
+%Most of the methods mostly rely on constructing point-wise reconstruction, but alternative distribution based methods have been proposed that roughly split into two camps, with one assuming an underlying Gaussian distribution and computing point estimates of the mean and the variance by minimizing an explicit log-likelihood such as \cite{kendall2017uncertainties,zhang2019reducing}, and others relying on deep generative models like generative adversarial networks \cite{adler2018deep, belghazi2019learning}, variational autoencoders (VAEs) \cite{ivanov2018variational,tonolini2019variational} or score matching methods such as \cite{ramzi2020denoising}. Deep generative approaches then enable to draw samples of the approximate posterior distribution $\hat\vx_\theta = G_\theta(\yo, \rvz) \sim \pXyo$, where $\rvz$ is a random vector drawn from a simple distribution.
+
+%%TODO. Keep working from here.
+%State of the art examples of CS deep learning models using regularizers yielding point estimates are \cite{putzkyInvertLearnInverta} while the distribution based methods are split into two camps, with one assuming an underlying Gaussian distribution and computing point estimates of the mean and the variance, such as \cite{kendall2017uncertainties,zhang2019reducing}, and the other not placing any assumptions on the posterior and approximating it with a generative adversarial network (GAN) a variational autoencoder or a score matching method such as \cite{adler2018deep, belghazi2019learning, tonolini2019variational}. %While the generative models are harder to train, they have an attractive feature, such as the ability to generate realistic signals conditioned on varying amounts of subsampling. 
+%Such models typically rely on conditional generative adversarial networks \cite{mirza2014conditional, adler2018deep, belghazi2019learning} or variational autoencoders \cite{sohn2015learning,ivanov2018variational}. \vspace{-.3cm}
+
+%\input{mri-specifics_thomas}
+%\subsection{MRI fundamentals}
+%In MRI, observations are obtained in the Fourier space, also referred to as \textit{k-space}. The acquisition of data happens sequentially, but the physical constraints of an MRI acquisition make it more efficient to observe entire columns or rows at once, a setting known as \textit{Cartesian sampling} \cite{zbontarFastMRIOpenDataset2019}. Non-Cartesian sampling is also possible (see for instance \citet{weiss2019learning,lazarus2019sparkling} for recent references), but some sampling methods like e.g. the pixel level sampling in \citet{bahadir2019learning,yin2021end} are not practical for 2D MRI, as they do not allow for a reduction of scanning time compared sampling full trajectories.
+
+%The acquisition of a column or row is known as a \textit{readout}, and the complete procedure consists in acquiring $N$ readouts sequentially. A full acquisition would require $P$ readouts, and acquiring only $N$ of $P$ lines accelerates the scan by a factor $P/N$, adequately named \textit{acceleration factor}, the inverse of which is known as the \textit{sampling rate}, and the spectrum obtained with $N$ out of $P$ readouts is referred to as \textit{undersampled}. The observations obtained by taking an inverse Fourier transform lead to an aliased image, and require processing through a reconstruction method.
+
+
+%In MRI, the Fourier space is typically structured, containing the bulk of energy in the low-frequencies located around the center of the space, and less around the high ones. While Compressed Sensing (CS) prescribes uniform sampling \cite{donoho2006compressed,candes2006robust}, the structure of Fourier space made it necessary to leverage heuristics that assign more probability to low-frequencies in order to reflect the energy distribution. This approach is known as variable density-sampling (VDS) \cite{lustig2007sparse}.
+
+%\subsection{Sampling optimization}
+%The success of deep-learning approaches to MRI have led the broader medical imaging community to re-think the problem of optimizing the undersampling patterns in a data-driven fashion as well \cite{gozcu2018learning, sanchez2019scalable, zhang2019reducing, jin2019self, pineda2020active, huijben2020ultrasound}, instead of relying on heuristics such as variable density sampling \cite{lustig2007sparse}.
+%While there are earlier CS works that also use a data-driven perspective, they still perform the sampling in an open-loop fashion  \cite{ravishankar2011mr, baldassarre2016learning, gozcu2018learning}.
+%There are also closed-loop, but not data-driven sequential CS approaches, \cite{ji2008bayesian, haupt2009adaptive, seeger2010optimization}, which rely on mathematical models and do not use no training data. % These rely on their mathematical models and the current observations. %, where the next sample location is selected according to some criteria, e.g., a measure of informativeness. %, provided by the approximate posterior distribution.
+
+
+%\begin{figure}[!t]
+    %\begin{center}
+     % \includegraphics[width=0.8\linewidth]{../figures/simple_baselines/undersampling_flow.pdf}%accelerated_overview/flowchart.pdf}
+      %\caption{Overview of the accelerated MRI pipeline. Acquisition happens sequentially in Fourier space, where a policy decides on the next location to acquire. Dashed lines indicate optional relations: not all policies rely on training data, and not all policies are data adaptive, as shown in Table \ref{tab:axes}.}
+    %\label{fig:model}
+    %\end{center}
+%\end{figure}
+%The ideal sampling algorithm would tailor the mask to each instance of $\vx \sim \px$ solving
+%\begin{equation}
+%\min_{\omega: |\omega|\leq N} \L(\vx,\hat\vx_\theta(\vy_{\omega}=\mathbf{P}_{\omega}\mA\vx)), %\label{eq:adaptive_long}
+%\end{equation} 
+%which is not realizable since this requires using the unknown ground truth signal $\vx$ at testing time and is computationally intractable due to the combinatorial nature of the problem. Two main approaches have been explored to circumvent this problem.
+
+%We now provide a brief overview of the two main approaches to data-driven mask design.
+
+%Optimization of sampling in the compressed sensing literature can be organized along two main axes, data-driven vs. model-driven and fixed vs. adaptive mask design. We are mainly interested in data-driven sampling optimization, where we do not make any modeling assumptions and the sampling mask is optimized for data originating from some unknown distribution $\px$, from which we have a set of training samples $\{\vx_i\}_{i=1}^m$ .
+
+%In \eqref{eq:acquisition2}, the measurements $\omega$, or the sampling mask $\Po$ might need to exhibit a certain structure depending the type of problem considered. Typically, in the case of MRI, the sampling mask should undersample entire rows or columns at once, because of physical constraints in the acquisition. For this reason, we define as $\mathcal{S}$ the set of all feasible elements from which a mask can be built (e.g. lines in the case of MRI, or pixels in the unconstrained case). Mathematically, the measurements will then take the form $\omega = \bigcup_{j=1}^M v_j$, $v_j \in \mathcal{S}$, $j=1,\ldots,M$ for some $M$. This construction allows the design of sampling masks that satisfy structural requirements  captures in the set $\mathcal{S}$.
+
+%\textbf{Fixed (open-loop) sampling.} A majority of data-driven mask design approaches use fixed masks \cite{ravishankar2011adaptive, gozcu2018learning,sanchez2019scalable, bahadir2019learning, wu2019deep, Huijben2020Deep}. The subsampling mask is constructed ahead of time - either via a heuristic or by using training data - and kept fixed at inference time. Formally, the problem of choosing the subsampling pattern corresponds to finding a subset $\omega$ that satisfies 
+ %\begin{equation}
+ %\min_{\omega\in\mathcal{S}, |\omega|\leq N}\mathbb{E}_{\vx\sim\px} \left[ \ell(\vx, %\hat\vx_\theta(\vy_\omega=\Po\mA\vx))\right]\label{eq:determ_l}.
+%\end{equation}
+ %\begin{equation}
+ %\argmin_{\omega: |\omega|\leq N}\mathbb{E}_{\vx\sim\px} \left[ \ell(\vx, \hat\vx_\theta(\vy_\omega=\Po\mA\vx))\right]%\label{eq:determ_l}, 
+%\end{equation}
+%where we are constrained with a maximal sampling budget $N$ and want to find a mask that minimizes a given loss function $\ell$. The true risk is substituted with the empirical one, estimates from training samples, and $\hat\vx_\theta(\vy_\omega=\Po\mA\vx)$ is an approximation of the ground truth obtained by reconstruction.  %denote an estimate of the mean, obtained either directly through \Cref{eq:point} or by averaging on $\rvz$ for \Cref{eq:gen}, i.e., $\hat\vx_\theta(\yo) =  \mathbb{E}_\rvz[\hat\vx_\theta(\yo,\rvz)]=\mathbb{E}_\rvz[G_\theta(\yo,\rvz)]$.
+
+
+%\textbf{Adaptive (closed-loop) sampling.} %Owing to the speed of deep learning-based approaches, adaptive sampling recently gained popularity. 
+%In contrast to Equation \ref{eq:determ_l}, adaptive sampling generates a dynamic sampling mask using  a heuristic $\H_\phi$ evaluated at test time.
+%For a fixed, unknown data sample $\vx$, we use information of the previously obtained measurements $\vy_{\omega_{t-1}}$ to determine which candidate $v \subset [P]$, $ v\not\in \omega_{t-1}$ should be acquired at time $t$. These methods solve at test time, for each individual target $\x$, the following sequence of problems:
+%\begin{equation}
+%  v_{t} \in \argmin_{ v: v \in [P]} \H_\phi(v,\hat\vx_{\omega_{t-1}; \theta},\omega_{t-1})~~~\text{ for }  t=1,\ldots, N %\label{eq:adaptive}
+%\end{equation}
+%where $\omega_t = \{\omega_{t-1}, v_{t}\}$ is defined in a nested fashion at each step. The heuristic score can be specifically trained for sampling leveraging reinforcement-learning framework \cite{bakker2020experimental,pineda2020active, jin2019self}, trained to directly estimate the current error and simply acquiring measurements where the error is estimated to be currently largest \cite{zhang2019reducing}, or be derived from available heuristics like posterior variance as in \cite{ji2008bayesian, haupt2009adaptive,sanchez2020uncertaintydriven}.
+
+
+\section{The MRI data processing pipeline}\label{sec:pipeline}
+In this section, we will step through the stages of the MRI data processing pipeline as shown in \Cref{fig:data_processing}. Such considerations are not reflected in the mathematical model representing the acquisition as presented in Equation \ref{eq:acquisition}. Recall that we consider an inverse problem, where we seek to recover a signal $\vx \in \mathbb{C}^P$ from partial observations $\vy \in \mathbb{C}^N$, $N\ll P$ obtained by subsampling a Fourier transform $\mF\in \mathbb{C}^{P\times P}$:
+\begin{equation}
+\y_\omega = \Po\mF\x + \boldsymbol{\epsilon}, \label{eq:acquisition2}    
+\end{equation}
+where $\boldsymbol{\epsilon} \in \mathbb{C}^N$ is the noise, $\omega \subseteq [P]:=\{1,\ldots, P\}$ is the index of sampling locations, with cardinality $N$, and $\Po$ is a diagonal matrix such that $(\mP_\omega)_{ii}=1 \text{ if } i \in \omega, 0 \text{ otherwise}$. This problem is inherently ill-posed, due to $N \ll P$, and we first construct an estimate $\hat{\x}_{\omega;\theta}=\ft(\y_\omega,\omega)$ of the original signal $\x$, where $\vf_\theta$ is a reconstruction method parametrized by $\theta$. 
+
+We turn now to the description of the practical pipeline, which is independent of the sampling method and simply operates on a given mask. We will also highlight a few common caveats.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/data_processing.png}
+    \caption{Illustration of the data processing pipeline of MRI subsampling. Diamonds represent data in Fourier domain (k-space) and circles represent data in image domain. The postprocessed observation and ground truth are the data that are subsequently used for training the reconstruction and policy models. The pipeline features three main blocks, namely \textit{preprocessing}, \textit{subsampling} and \textit{postprocessing}.}
+    \label{fig:data_processing}
+\end{figure}
+
+As we will show in \Cref{s:ablations_results}, seemingly trivial changes at even a single of these stages can affect the results of the evaluation and lead to changes in the ordering of the performance of different policies, an observation that we will refer to as \textit{reversal}. We already stress that the main reason for such reversals to occur is that the RL policies generally do not generally bring a large or consistent improvement over sLBCS.
+We mark sections where we observed changes leading to reversals with $^*$  and sections here they only shifted the results but do not lead to reversals with \textit{italics}.
+
+\textbf{Data sources and storage.} In all cases, the ground truth signal $\vx$ is initially acquired as a complex signal in k-space, generally using multiple coils. The fastMRI dataset \citep{zbontarFastMRIOpenDataset2019} provides this raw multicoil data, as well as a simulated single-coil k-space which we use throughout this work.
+%It provides this data in the form of raw kspace stored in hdf5 files as well as image domain magnitude images stored in the DICOM format. 
+%\textit{Caveat \#1} To be fully comparable with real world data, it is adviseable to use raw k-space data, or at least images stored with the phase information intact. Using magnitude only data induces a Hermitian symmetry in the Fourier space, which is not observed in real world data. % such as found in the DICOM section of fastMRI needs to be handled differently than complex data (symmetric sampling) and might be stored with artifacts already.
+%We refer to \cite{shimron2021subtle} for a more in depth discussion of the subtle errors that can occur in the data selection.
+
+\textbf{Preprocessing$^*$.} 
+Due to computational constraints, it is common to resize the images by cropping and/or resizing or use magnitude images over the raw data. Cropping and resizing changes the ground truth distribution, which  as seen in \Cref{tab:bakker_LH_auc} can also lead to reversals in the final results.
+%\textbf{1. Preprocessing.} Due to the images being large (around $640\times 368$), most reinforcement learning approaches initially crop the data to $128\times 128$, a size less computationally demanding.
+
+%\textit{Caveat \#1.} Converting the raw ground truth to or starting from a magnitude induces a conjugate symmetry in Fourier space that is not present in real data, a distortion that makes our modeling less faithful to the physical model.
+%As a result of this distortion, the observations display an artificially higher similarity to the ground truth, as displayed in Table Todo.
+
+\begin{extremark}[Caveat \#1]
+Converting the raw ground truth to or starting from a magnitude induces a conjugate symmetry in Fourier space that is not present in real data, a distortion that makes our modeling less faithful to the physical model.
+\end{extremark}
+
+\textbf{Sampling.} While in the real world the data is actually acquired by sampling k-space (prospective sampling), in practice, the acquisition is generally simulated by retrospectively undersampling fully sampled Cartesian data following \Eqref{eq:acquisition}.
+%We focus on Cartesian sampling (i.e. lines or columns) in this work, since physical constraints make non-Cartesian trajectories much more complicated to reason about.
+%It's worth noting that the pixel-level masks seen in e.g. \cite{yin2021end} is not practical feasible for 2D MRI due to physical constraints.
+
+When training reconstructor and sampling method separately, training data are generally constructed with random masks that sample a certain fraction of center frequencies, and then the rest from a random distribution.
+There has been considerable variation in defining the parameters of these distributions, but to this day, no systematic study of their effect on the reconstruction quality have been carried out.
+
+\textbf{\emph{Post processing and reconstruction.}}
+After sampling, the observation will be processed according to the implementation details of the reconstruction algorithm (e.g., normalized or standardized) and the reconstruction is computed. 
+
+Typical normalization, as used for instance in \cite{pineda2020active}, consist of dividing every input by a fixed value equal to the average energy of the dataset. \cite{bakker2020experimental} standardized their data and then clamped them to have standardized data in the range $[-6,6]$.
+
+We found that standardization used by \cite{bakker2020experimental} was necessary only when paired with non-residual models, which tracks with observations in the literature that residual networks can work without normalization, although usually this is studied for network internal normalization which we also leverage (see e.g. \cite{zhangFixupInitializationResidual2018} which removes normalization entirely by using a proper initialization).
+
+The results of Appendix \ref{app:bakker_mismatch} illustrate the impact of postprocessing.
+
+\begin{extremark}[Caveat \#2]
+ Normalization should occur consistently between ground truth and observation data, as failing to do this can lead to inconsistent values in the reconstruction, especially in parts where data consistency occurs. In \cite{bakker2020experimental}, the authors normalize observations and ground truth using their respective statistics and denormalize the reconstructed image using the \textit{ground truth} statistics, which is not compatible with the use of data consistency in the reconstructor. If one wishes to get a realistic estimate of the performance at deployment, it is also advisable to use only statistics available at test time (i.e. observation statistics, not ground truth statistics).
+\end{extremark}
+
+\textbf{Evaluation metrics$^*$.}
+Finally, to judge the results, the most common metrics are peak signal-to-noise ratio (PSNR), mean squared error (MSE) and structural similarity index metric (SSIM).
+
+All metrics tend to promote smooth images when used as a training loss \citep{muckleyStateoftheArtMachineLearning2020}, but it is widely known that MSE and PSNR focus on low-frequencies/high-energy components, which was also noted by \citet{bakker2020experimental}. However, while MSE and PSNR only operate on image differences and treats every pixel independently, SSIM is computed from local averages \citep{wang2004image,zbontarFastMRIOpenDataset2019}.
+
+The metric is then reported as a curve plotted against sampling rate \citep{zhang2019reducing}, its reciprocal, the acceleration rate \citep{pineda2020active} or aggregated by computing the average performance, the performance at end of sampling, or the area under curve (AUC). 
+
+As discussed throughout the experiments, the choice of metric and its aggregation can greatly impact the conclusions drawn from results.
+
+\begin{remark}[Area under curve (AUC) computation] We detail here the computation used to summarize performance curves with the AUC, used in Tables \ref{tab:bakker_LH_auc} and \ref{tab:pineda_auc}. 
+
+The area under curve is a numerical integration of the performance curve of the form $\{r_t, \ell(\vx_i, \hat\vx_\theta(\vy_{\omega_t,i}))\}_{t=t_0}^T$ that relates the sampling rate or acceleration factor at the $t$-th step to its performance. We used the \texttt{sklearn} implementation, that implements it using a trapezoidal rule. We compute an individual AUC for each test sample and then aggregate the resulting set $\{\text{AUC}_i\}_{i=1}^{n_{\text{test}}}$ by computing its empirical mean and variance.
+
+This measure is susceptible to changes in reparation of the area under the curve, and this is the reason that the result changes when moving from sampling rate to acceleration factor (1/sampling rate). Indeed, when representing acceleration factors, in the case of \citet{pineda2020active} (cf. Table \ref{tab:pineda_auc}) $20$ out of $332$ sampling locations cover $90\%$ of the acceleration factor plot, biasing the AUC towards attributing most of its weight the high acceleration factors.
+\end{remark}
+
+\section{Re-examining deep RL for MRI sampling}
+\label{s:re_examining}
+Our initial impetus is the observation that the non-adaptive oracle used in \cite{bakker2020experimental} is highly reminiscent of the LBCS method \cite{gozcu2018learning}, which has been used as a strong baseline in the literature \citep{jin2019self,sanchez2020uncertaintydriven}.
+To our surprise, evaluating these methods against the greedy RL method in the data processing pipeline used in \citet{zhang2019reducing} resulted in the fixed method not only coming close to the non-adaptive oracle, but actually closely matching the RL method (see \Cref{tab:bakker_LH_auc}).
+Wanting to perform a fair comparison as well as to assess the impact of the variability in the pipelines used across the literature, we closely replicated the pipeline of \cite{bakker2020experimental}\footnote{We thank the authors for providing the original checkpoints and general help and responsiveness during this replication. Our results did not show the \textit{exact} same numbers as \citet{bakker2020experimental}, as we did not use the same train-val-test split and dataset undersampling. We discuss this further in Appendix \ref{app:bakker_pipeline_ablation}.} as well as  an extensive ablation study to understand this reversal and identify its source.
+
+\subsection{Experimental setting}
+In the sequel, the term \textit{setting} then refers to a particular choice of preprocessing, subsampling and postprocessing of the data, independently of the data source (we always use the same dataset) and the model or sampling policy used.
+Preprocessing and postprocessing are relevant throughout the training of the reconstruction and the policy models, whereas changes in the sampling masks only directly affect the pretraining of the reconstructor, as the training the policy is done by successive rollouts using the policy model itself.\\
+
+\textbf{Dataset and preprocessing.} Like the original paper of \cite{bakker2020experimental}, we used the fastMRI \citep{zbontarFastMRIOpenDataset2019} single-coil knee dataset for the experiments. We slightly modify follow their preprocessing (using complex data instead of magnitude data, different data normalization) that do not affect the relative ordering of the different methods. We provide ablations and a detailed discussion of these changes in \Cref{app:bakker_mismatch}.
+
+%We  perform a small modification from the original setup by not converting to  magnitude data (see \Cref{mismatch_exp} for an ablation showing that this does not affect the relative ordering and a discussion of the implications of using magnitude data in training).
+Specifically, they \textit{crop} the data to $128\times 128$, which we refer to as (\texttt{c})).
+\citet{zhang2019reducing} instead \textit{resizes} the data to $128\times128$ which we replicate by first cropping to $256\times256$ and then resizing them to $128\times128$.
+This preprocessing results in images with different fields of view. We refer to this preprocessing as (\texttt{c+r}) and integrate it to our ablations.
+We also evaluate horizontal (\texttt{h}) sampling masks, used in \cite{gozcu2018learning, jin2019self} in addition to the vertical (\texttt{v}) sampling masks used by \citet{bakker2020experimental,zhang2019reducing} and \cite{pineda2020active}. 
+
+%\todoi{I'll move this to the appendix and shorten this paragraph} - perfect
+The deep reconstructors used in \citet{pineda2020active,bakker2020experimental} pre-trained by randomly sampling a mask from a set of distributions with different parameters. We ablated over two pretraining regimes which we  abbreviate as \texttt{b} and \texttt{z}, respectively. We describe them in more detail in \Cref{ap:implementation}
+
+\textbf{Reconstruction models.}
+We ablate over the two reconstruction models used in the RL SotA works of \citet{pineda2020active} and \citet{bakker2020experimental}, namely a cascade of residual networks (\textit{cResNet}) architecture from \citet{zhang2019reducing}, used in \citet{pineda2020active} and the \textit{UNet} baseline provided in the fastMRI dataset, used in \citet{bakker2020experimental}. The training details and masks used for the training of the reconstruction models are described in \Cref{ap:implementation}.
+
+For the UNet, like \citet{bakker2020experimental} we take a single channel for magnitude only data as input, while for the cResNet we take the 2 complex channels as inputs. All models are trained using $\ell_1$ loss and directly output the reconstruction without a final nonlinearity. The UNet has 837\,635 parameters in total, while the cResNet is larger with 1\,093\,479 parameters.
+
+\textbf{Sampling methods}
+In each ablation setting we compared the method of \citet{bakker2020experimental} to the following baselines and oracles (citations at the end of each item refer to prior works that also evaluate them):
+\vspace{-2mm}
+\begin{itemize}%[leftmargin=*]
+    \item Random sampling (\textbf{Random}): Acquire a fixed proportion of low-frequency lines in Fourier and then randomly sample the remaining lines  \citep{jin2019self,pineda2020active,bakker2020experimental}.\\[-.5cm]
+    \item Low-to-high frequencies (\textbf{LtH}): select k-space lines from low-to-high frequencies lines \citep{zhang2019reducing, pineda2020active,jin2019self}.
+    \item (Stochastic) Learning-based Compressive Sampling (\textbf{LBCS}) \citep{gozcu2018learning, sanchez2019scalable}: This method trains a non-adaptive, greedy sampling policy that selects as a measurement candidate in each acquisition step the column that leads to the greatest average improvement over a sample from the training dataset. We use the stochastic version that scales better to large dataset and images \citep{jin2019self}.
+    \item Non-adaptive Oracle (\textbf{NA Oracle}) \citep{bakker2020experimental}: This oracle is computed by training and evaluating LBCS directly on the test set, and can serve to illustrate the benefit of adaptivity in greedy methods. This is the instance of a non-adaptive, greedy sampling method \citep{bakker2020experimental}.
+\end{itemize}
+
+For the training of the policy models of \citet{bakker2020experimental}, we use the parameters of the greedy model in their paper, which we refer to simply as \textbf{RL} in the sequel. 
+We excluded the non-greedy version, as \citet{bakker2020experimental} notice that the performance of the non-greedy model with discount factor $\gamma=0.9$ is always close to one standard deviation of the greedy model, but significantly more computationally demanding.
+
+
+
+We studied both the short and long horizon sampling regimes but only report on the long horizon for conciseness, with the short horizon results summarized in \Cref{app:bakker_pipeline_ablation}. Except for the deterministic LtH and NA Oracle, we report the performance of each method averaged on three runs/separately trained RL policies, along with the standard deviation. 
+
+%Zhang et al.\cite{zhang2019reducing} used random sampling as well as a heuristic selecting k-space lines from low-to-high frequencies. Pineda et al. \cite{pineda2020active} incorporated an additional random sampling according to a Gaussian density favouring low frequencies. Bakker et al. \cite{bakker2020experimental} compared to Jin et al. \cite{jin2019self} an did random sampling. 
+
+\newcommand{\scrop}{(\texttt{c})}
+\newcommand{\scropres}{(\texttt{c+r})}
+\newcommand{\svert}{(\texttt{v})}
+\newcommand{\shor}{(\texttt{h})}
+\newcommand{\sbrate}{(\texttt{b})}
+\newcommand{\szrate}{(\texttt{z})}
+
+Summarizing, we start in the setting of \citet{bakker2020experimental} except for using complex data instead of magnitude data and then ablate over:
+    \textbf{i)} cropped \scrop{} vs cropped+resized \scropres, \textbf{ii)} vertical \svert{} vs horizontal \shor{} Cartesian sampling, \textbf{iii)} reconstruction with a pretrained UNet  \citep{ronneberger2015u,bakker2020experimental} or a cResNet \citep{zhang2019reducing} and \textbf{iv)} the training regime for the reconstructor proposed in \citet{bakker2020experimental} \sbrate{} or in \citet{zhang2019reducing} \szrate.
+%with the only difference being that we do \textit{not} use magnitude data in preprocessing and standardize both the ground truth and observation using the \textit{observation} statistics.
+The base setting is referred to as \texttt{cvb}, for cropped (preprocessing) + vertical (mask) + Bakker et al. (sampling parameters) using a both a UNet and a cResNet reconstructor.
+
+
+\subsection{Main results on \texorpdfstring{\citet{bakker2020experimental}}{Bakker et al. (2020)}}
+\label{s:ablations_results}
+We first evaluated the method of \citet{bakker2020experimental} on two settings, namely \texttt{cvb} and \texttt{c+rhz}, and report it with two different aggregations. \Cref{tab:bakker_LH_at_25} shows the SSIM of the policies at the final sampling rate considered ($25\%$), as used in as used in \citet{bakker2020experimental}, whereas \Cref{tab:bakker_LH_auc} has the SSIM aggregated over the whole acquisition trajectory by computing its AUC\footnote{A more complete ablation, using the setting \texttt{cvz} to ablate over the impact of different mask parameters, \texttt{c+rvz} to study the impact of different field of views and mask orientation is carried out in \Cref{app:bakker_ablation_full}.}.
+
+Several observations can be made from these tables regarding \textit{reversals}. Focusing first on \Cref{tab:bakker_LH_at_25} only, we can see that although the first column, corresponding to the processing done by \citet{bakker2020experimental}, supports that RL outperforms LBCS, changing architecture (second column) already invalidates these results, with LBCS matching RL. But the change is even more significant by changing \textit{settings}. By moving from images where the field of view is cropped and undersampling occurs vertically (1st and 2nd column) to a different field of view with horizontal undersampling (3rd and 4th column), the relative ordering of LBCS and RL is \textit{reversed}, and LBCS shows the best performance.
+
+However, if we include \Cref{tab:bakker_LH_auc} into the picture, then even the previous conclusions do not hold: on the \texttt{c+rhz} setting (3rd and 4th columns), RL matches or outperforms LBCS. \textit{Conclusions drawn from the results can be reversed or invalidated by using a different way to aggregate the results or by changing the setting on which the evaluation is carried out.}
+
+Although contradicting conclusions can be drawn by looking at individual results, a consistent trend from Tables \ref{tab:bakker_LH_at_25} and \ref{tab:bakker_LH_auc}, as well as the ablations in \Cref{app:bakker_ablation_full}, is that \textit{the return on investment (ROI) of adopting RL over LBCS is generally marginal compared to what changes in the modeling pipeline can bring.}
+
+We see for instance that improving the reconstruction architecture yields much more significant quantitative gains. Moving from a UNet to a cResNet brings an order of magnitude more improvement (around $0.01$ SSIM difference) than what RL brings over LBCS (around $0.0015$ at best). 
+
+We see also in \Cref{app:bakker_ablation_full} that the distribution of masks used to pretrain the reconstruction algorithm has a similar impact over performance. The \texttt{b} masks of \citet{bakker2020experimental} are discretely distributed from sampling rates $12.5\%$ to $25\%$, which matches exactly the short horizon experiment range. On the contrary the \texttt{z} masks of \citet{zhang2019reducing} are distributed from $7\%$ to $37.5\%$, whereas the long horizon experiment spans a range from $3\%$ to $25\%$ sampling rate. As a result, we observe that \texttt{b} masks consistently perform better than \texttt{z} in the short horizon experiment, whereas the opposite holds in the long horizon experiments. 
+
+As an example, in the long horizon case, using \texttt{z} masks over \texttt{b} masks brings a consistent improvement of $\sim 0.004$ in the SSIM AUC, whereas RL improves over LBCS by $\sim 0.0006$ in the SSIM AUC. 
+
+\begin{extremark}[Main conclusion]
+    These results suggest that steps such as matching the pretraining and evaluation mask distributions and using strong reconstructors has a significantly larger influence and consistent effect on the performance than moving from a greedy, fixed policy (LBCS) to a greedy, adaptive one (RL).
+\end{extremark}
+
+\textbf{Additional observations.} We also see that the performance of LBCS always remains close to the NA Oracle, testifying to the generalization ability of the fixed LBCS masks as indicated by theory. Other reversals can be observed in both cases when changing the data processing for both the SSIM at $25\%$ and the AUC evaluations.
+
+To conclude, note that the large gap in performance between the \texttt{cvb} and the \texttt{c+rhz} settings is not due to a significant difference in performance of the reconstruction methods, but rather originates from the difference in field of view. This can be seen by comparing the SSIM value of the observations (before reconstruction) using the deterministic LtH policy in both cases: in the \texttt{cvb} setting, one gets an AUC of $0.4989$ for the observation SSIM, whereas in the \texttt{c+rhz} setting, the AUC is $0.6534$.
+
+
+\begin{figure}[!h]
+    \begin{center}
+    \resizebox{\linewidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_LH_ssim_at_25}}
+    \captionof{table}{SSIM at $25\%$ on the test set, on knee data comparing two models in the long horizon setting of \citet{bakker2020experimental}, for the \texttt{cvb} (cropped, vertical, Bakker-type of masks) and \texttt{c+rhz} (cropped+resized, horizontal, Zhang-like masks) settings. A different aggregation of the results is shown on Table \ref{tab:bakker_LH_auc}.}\label{tab:bakker_LH_at_25} 
+    \end{center}
+   
+\end{figure}
+
+\begin{figure}[!h]
+    \begin{center}
+    \resizebox{\linewidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_LH_ssim_auc}}
+    \captionof{table}{AUC on the test set using SSIM, on knee data comparing two models in the long horizon setting of \citet{bakker2020experimental}, for the \texttt{cvb} (cropped, vertical, Bakker-type of masks) and \texttt{c+rhz} (cropped+resized, horizontal, Zhang-like masks) settings. A different aggregation of the results is shown on Table \ref{tab:bakker_LH_at_25}.}\label{tab:bakker_LH_auc} 
+    \end{center}
+   
+\end{figure}
+
+
+
+
+
+
+\subsection{Main results on \texorpdfstring{\cite{pineda2020active}}{Pineda et al. (2020)}}
+\label{s:long_range}
+
+Given these results, we can observe that if there is indeed a benefit to patient-adaptive greedy policies, it is highly sensitive to the parameters used, and the improvement over the non-adaptive greedy baseline is marginal.
+One might wonder whether there will be a significant gain from adaptive RL policies if they are trained to perform long term planning on a longer horizon? To investigate this, we replicated the second SotA RL method described in  \cite{pineda2020active}.
+
+
+\textbf{Experimental setting.} We used the pretrained checkpoints from \citet{pineda2020active}\footnote{The models can be found at \url{https://facebookresearch.github.io/active-mri-acquisition/misc.html}}, and compared to their Subject-Specific DDQN (SS-DDQN) as well as their Dataset-Specific DDQN (DS-DDQN).
+
+This work uses a small discount factor of $\gamma=0.5$ and operates on the full fastMRI image of size $640\times332$, meaning it is both trained for a longer time horizon as well as having a lot more leeway for decision making.
+
+We replicated the \textit{extreme} setting which starts with $2$ center frequencies ($0.6\%$ undersampling rate or $166\times$ acceleration) and is evaluated up to $100$ frequencies ($30.1\%$ undersampling rate or $3.32\times$ acceleration)\footnote{We thank the authors for providing us with the original scores and general responsiveness and helpfulness during this replication.}.
+As can be seen in \Cref{tab:pineda_auc}, the LBCS mask is very close to the performance of both the data and sample specific DDQN policies provided by \cite{pineda2020active}.
+
+\textbf{Results.} We see on \Cref{tab:pineda_auc} and \Cref{fig:pin_three}  other instances of reversals. On \Cref{tab:pineda_auc}, for a given metric, different ways of aggregating the results give rise to \textit{reversals} in interpretation. This is also the case when moving from SSIM to PSNR. Although there is a clear performance gain over Random and LtH masks, the gain from LBCS to DDQN is not consistent. 
+
+This discrepancy can be explained by the fact that, as displayed on \Cref{fig:pin_three}, the acceleration factor puts more emphasis on the sub $5\%$ range (i.e. below 17 lines) where LBCS has not yet caught up on DDQN. This results in the AUC weighting disproportionately high acceleration factors: $\sim 90\%$ of the plot and of the corresponding AUC consists of $20$ lines out of the $100$ acquired. Similarly, considering the final sampling rate ignores the performance of the method throughout the acquisition procedure.
+
+
+We also performed a more detailed comparison of the masks given by the policies, using a subset of the first 200 test set images, keeping the order fixed in across methods, which can be found in \Cref{app:adaptivity}. They can be summarized as follows: \textbf{i)} the adaptivity of SS-DDQN mainly affects the ordering of frequencies, a large section of acquired frequencies being shared across samples and in similar regions to the LBCS mask at the final sampling rate, and \textbf{ii)} it confirms that the adaptive masks have a small edge only until about a sampling rate of $5\%$, after which LBCS catches up and overtakes the RL policy.
+
+\begin{table}[h]
+\centering
+    \resizebox{\linewidth}{!}{\input{../figures/simple_baselines/tables/pineda_tables/pineda_auc}}
+    \captionof{table}{AUC on the test set when calculated against \textit{sampling rate} and \textit{acceleration} factor ($1/\text{sampling rate}$), as well as performance at the final sampling rate ($100$ lines acquired out of $332$) on the knee dataset, using the processing of \cite{pineda2020active}.}\label{tab:pineda_auc} 
+\end{table}
+
+
+\begin{figure}[!ht]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/pineda_plots/pineda_psnr_accellFalse.pdf}
+    \caption{PSNR vs sampling rate}
+    \label{fig:psnr_vs_sampling}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../figures/simple_baselines/pineda_plots/pineda_psnr_accellTrue.pdf}
+    \caption{PSNR vs acceleration rate}
+    \label{fig:psnr_acceleration_rate}
+    \end{subfigure}
+    \caption{PSNR performance plot on the test set, using the knee dataset with the processing from \cite{pineda2020active}. The plots feature two ways to report the same result, which are also displayed in Table \ref{tab:pineda_auc}. The SSIM performance plot can be found in \Cref{fig:pin_three_ssim} in the Appendix.}
+    \label{fig:pin_three}
+\end{figure}
+
+\section{Discussion}
+
+As we have seen in \Cref{s:ablations_results} and \Cref{s:long_range}, the fixed mask of LBCS is competitive with or outperforms both the greedy policy gradient methods of \citet{bakker2020experimental} and the non-greedy DDQN methods of \citet{pineda2020active}.
+Our ablations in \Cref{s:ablations_results} and \Cref{app:bakker_ablation_full,app:lbcs}, as well as the example of \Cref{fig:pin_three} highlight that the benefit of current RL methods over the fixed baseline, if it exists at all, is so small that a change of field of view, architecture or mask distribution (cf. Tables \ref{tab:bakker_LH_auc} and \ref{tab:bakker_auc_ssim_full}) can lead to a reversal in the relative performance ordering.
+
+Note also that the computational resources required to train a deep RL model are much more significant than what is required to obtain a mask through sLBCS. sLBCS does not require to train a deep model and as a result does not need to perform any backpropagation. In the setting of \citet{bakker2020experimental}, this results in being able to train the mask using $20$ GB of RAM on a A-100 GPU in slightly less than $20$ minutes. With the same computational budget, the greedy deep RL method of \citep{bakker2020experimental}, which is trained significantly more quickly than longer horizon policies, takes roughly $25$ minutes for a single epoch out of $50$. However, both methods could be accelerated by optimizing the data processing computations, which take a large part of the computation time in both cases. In the setting of \citet{pineda2020active}, the comparison is even more striking. In communication with the authors, we learned that it took them more than $20$ days to train either of the DDQN models, while the training of sLBCS takes 30 minutes when distributed over 5 A-100 GPUs. This points to two main advantages of this testifies to the main advantage of sLBCS over RL-based approaches. Being a fixed policy, sLBCS does not require to do multiple iterations in order to converge, but is a one-shot approach. In addition, sLBCS can be \textit{heavily parallelized}, while deep RL-based approaches are inherently sequential, and result in a slow training procedure.
+
+\Cref{tab:pineda_auc} confirms the expectation that methods trained on SSIM can underperform with respect to PSNR and vice versa. In general agreement with the literature, we see that using several metrics is important to capture these trade-offs, as reporting only one particular metric might hide underperformance in the other.
+
+There have been various ways of reporting the metrics, ranging from showing sampling curves as in \Cref{fig:ssim_vs_sampling}, reporting the area under curve (AUC) tables or simply reporting the metric at the final sampling rate.
+We see that reporting only the summarizing statistic can be deceitful and give relatively little information on the overall performance of the method.
+For instance, using only the last sampling rate, one could not distinguish between a method that performs well at all sampling rates leading to the final one, and one that has overall mediocre results and quickly improves on the performance at the end.
+
+For this reason, we consider sampling curves the gold standard for assessing the quality of accelerated MRI sampling methods, as a good performance at all sampling rates coupled with some stopping criterion could mean that MRI scans could be stopped when sufficient information has been acquired, further increasing their efficiency.
+If one wishes to report a single number, we recommend using AUC unless only the final performance is of interest.
+%\todoi{rewrite to fit the results better here}
+
+There is also the question of reporting acceleration factors or sampling rates, which put focus on very different regimes of sampling: acceleration factors, as shown in \cite{pineda2020active} focus on extreme undersampling rates. % For instance, in the 2L scenario of \cite{pineda2020active}, almost $90\%$ of the plot and of the corresponding AUC consists of $20$ lines out of the $100$ acquired.
+While is true that the high acceleration regimes are where it is most desirable to make improvements, results on sampling rates have the advantage of uniformly distributing the performance throughout a range of interest instead of a single acquisition determining a third of the metric as in \Cref{fig:psnr_acceleration_rate}.
+
+Alternatives to using acceleration factors could consist in displaying sampling rates over a region of interest or computing the AUC by explicitly assigning more weight to low sampling rates instead of doing it implicitly and nonlinearly through acceleration factors.
+
+Finally, a close study of the masks given by the SS-DDQN in \Cref{fig:ssddqn_lbcs}, the edge of the SS-DDQN over the LBCS mask in \Cref{fig:lbcs_vs_ssddqn} and the comparison of the LBCS and SSDQN edge over a fixed heuristic in \Cref{fig:lbcs_vs_lth,fig:ssddqn_vs_lth} reveals that the frequencies selected by the adaptive policy are very similar to those selected by the LBCS mask and that the variability between samples is concentrated at very early sampling rates.
+
+\section{Relation to other works}
+% Talk about jointly trained here
+While we focused strictly on RL trained sampling policies leveraging pre-trained reconstructors, there are other paradigms for accelerated MRI sampling present in the literature.
+
+The first line is that of using end-to-end training of masks using stochastic relaxations of the sampling mask to be able to differentiate it and optimize the reconstructor and sampling method jointly.  \citet{bahadir2019learning, huijben2020learning} directly optimize for a single sampling rate and sampling mask. More recent work extend this technique for jointly training an adaptive policy, doing away with the pretraining and making more efficient use of the capacity of the reconstructor  \citep{yin2021end,van2021active}. Another line of joint training relies on self-supervised learning using Monte-Carlo Tree Search, as was done in Deepmind's AlphaGo \citep{silver2017mastering,jin2019self}
+
+An open question regarding this line of research is whether the joint training enables to achieve a better sampling policy or simply serves as a curriculum and a way to specialize the sampling policy and reconstructor onto each other. To our knowledge, neither  \citet{van2021active} nor \citet{yin2021end} investigated this. %, with \cite{yin2021end} only comparing separately trained and co-trained sampling methods and reconstructors, but not probing the co-trained reconstructor further.
+An interesting experiment could be to train a LBCS sampling mask on the co-trained reconstructor to see whether it can recover the sampling performance of the co-trained sampling network.
+
+More similar to the spirit of our work, the recent study of \citet{shimron2021subtle} tackles subtle biases induced by the use of stored data and improper processing, \citet{edupuganti_uncertainty_2020} investigated specifically uncertainty methods for MRI reconstruction.
+
+For works focusing on RL, \citet{deepRL2018} performed extensive ablation studies showing the sensitivity of RL methods to even minute variations in parameters.  \citet{Engstrom2020Implementation,ingredientsdeeppolicy} showed that the improvements of SotA RL methods can be traced to the exploitation of a subset of implementation details and algorithmic improvements and that even simple algorithms leveraging this subset can achieve SotA performance, similar to our work. This showcases that adapting to the data distribution seems to be sufficient to reach SotA in accelerated MRI sampling.
+
+\section{Conclusion}
+Taken together, our observations lead us to conclude the apparent conflict between the works of \citet{bakker2020experimental} and \citet{pineda2020active} is simply because at least \emph{in their current state}, neither of the RL SotA methods do not offer significant benefits over fixed, greedily trained masks.
+Since greedy algorithms tend to perform near optimal in settings with submodularity \citep{krause2014submodular}, we conjecture a similar structure might be present in problems like the MRI sampling problem. Determining whether this conjecture holds or whether the lack of added value originates from specific RL algorithm and their training remains to be determined and should be the focus for any researcher set on applying RL to such a problem.
+
+\textbf{Recommendations.} Our results also enable us to provide practical advice, summarized below. We provide a more extensive discussion of these statements in Appendix \ref{app:conclusions}.\vspace{-.1cm}
+\begin{itemize}
+    \item Focus on improvements in the reconstructor architecture, mask distribution and algorithms used for training the reconstructor.\\[-4mm]
+    \item Compare against strong baselines, such as LBCS.\\[-4mm]
+    \item Show sampling curves and use AUC to aggregate your results instead of performance at the final sampling rate.\\[-4mm]
+    \item Be mindful about preprocessing settings when evaluating a policy model. We recommend using the cropped+vertical setting with the data normalization implemented by \citet{zbontarFastMRIOpenDataset2019}.
+\end{itemize}\vspace{-.1cm}
+
+We also want to emphasize that conducting the experiments in this paper would have been impossible if the RL methods had not been exemplary in terms of openness and reproducibility. Without access to the checkpoints and code, and without the authors' responsiveness we would not have been able to reproduce both works and add the missing baseline. Despite the theoretical guarantees of LBCS, we were surprised that it matched and sometimes simply outperformed more sophisticated methods.
+We therefore do not view our work as criticism of these works but rather as an extension and a synthesis, and urge any future work to follow their lead in publishing codes, checkpoints and data.
+
+\section*{Bibliographic note}
+The idea of investigating  the \textit{limitations} of current deep RL methods originated from discussions with Igor Krawczuk. He also contributed the experiments on the setting of \citet{pineda2020active}.
+
+%out Fin this paper.% and perform more meaningful evaluations.
+%We would then recommend to use sampling rates over a range of interest, rather than acceleration factors, which distort the display of the results and make the comparison at larger sampling rates nearly impossible. 
+
+%\textbf{Variance in the results.} Taking the standard deviation on the training data leads in general to very large variations, as the
+
+%The reason we used acceleration factors is that we wanted to emphasize the performance under high acceleration factors and summarize the result on a single metric, for which we used the area under the curve. When using the number of samples, half of the area corresponds to acceleration factors between 1 and 2, which are not very interesting; in fact, only a quarter of the area corresponds to accelerations >4X which were the more interesting to us. 
+
+
+%The question of designing sampling masks for MRI emerged from the paradigm introduced by compressed sensing. While the initial theoretical approaches prescribed uniform sampling \cite{candes2006robust,donoho2006compressed}, practical applications greatly benefited from heuristics like variable density sampling (VDS) \cite{lustig2007sparse}, where low-frequency k-space lines are favored. Some early works attempted to optimize the sampling density in a data-driven fashion \cite{seeger2010optimization,knoll2011adapted,vellagoundar2015robust, baldassarre2016learning}. But it was only later, and also motivated by the great successes of deep learning methods for reconstruction \cite{wang2016accelerating, yang2017admm, schlemper2017deep, hammernik2018learning} that optimization of sampling became increasingly relevant for the community \cite{gozcu2018learning, sherry2019learning, bahadir2019learning, weiss2019learning, jin2019self, zhang2019reducing, sanchez2019scalable,haldar2019oedipus,aggarwal2020j,huijben2020learning, pineda2020active,bakker2020experimental, zibetti2020fast,gorp2021active, yin2021end}. These works exhibit a great variability of techniques, some relying on constructing fixed masks through greedy approaches \cite{gozcu2018learning, sanchez2019scalable, haldar2019oedipus,zibetti2020fast}, others using relaxations to render the mask optimization problem differentiable \cite{bahadir2019learning, weiss2019learning,aggarwal2020j,huijben2020learning, yin2021end, gorp2021active}, or relying on bilevel optimization \cite{sherry2019learning}. A different group of works relied on reinforcement learning approaches \cite{jin2019self, pineda2020active, bakker2020experimental}, and \cite{zhang2019reducing} took a unique approach where a model is trained to directly estimate a proxy to the the mean-squared error in Fourier space and sampling is performed by selecting the line with the largest estimated error. 
+
+
+
+%\section{Conclusion and outlook}\vspace{-.3cm}
+%
+%From the combined results we have arrived at the following 
+
+%\begin{enumerate}
+%\item recontextualise state of the art (if rate thing holds up), probably need to pay the price for extensive full-rate-evenly pretraining or joint training to reall gage quality, or would need an n-step oracle?
+%  \item 1-step oracle baselines can be misleading since they will depend heavily on the reconstruction model and if this model behaves non-linearly they might underperform even simple heuristics like LtH. We assume that the training rate schedules in \cite{zhang2019reducing,bakker2020experimental} and also our own original experiments suffer from this, with only the rate schedule from \cite{pineda2020active} giving reliable results (which is intuitive once considered, since the reconstructor was pretrained to work well with an RL agent training full selection form empty to full mask, a behavior very close to the oracle)
+%  \item LBCS is an extremely hard to beat baseline for sampling in Fourier space, outperforming all other methods in our evaluation. The batch-wise evaluation makes it possible to avoid the spurious minima in an imperfect reconstructor. \cite{pineda2020active} support this result since their data specific policy has slightly better performance than the subject specific one
+%  \item greedy minimisation of heuristics (approximating 0-step oracles) can be competetive with trained RL policies approximating greedy 1-step oracles, especially with imperfect models. They are also much easier, cheaper and faster to train and scale better in terms of sampling candidates. While one might conjecture that a perfectly trained RL policy will outperform or match any such method, the difficulty and cost of training might make appraoches such as ours which also yield uncertainty estimates more attractive
+%  \item While we think it is an open question on the best way to jointly train or pretrain a reconstructor for adaptive MRI, the most reliable evaluation to date will be \cite{pineda2020active} since it was at least trained on all sampling rates and has the most expected behavior in its oracle.
+%\end{enumerate}
+

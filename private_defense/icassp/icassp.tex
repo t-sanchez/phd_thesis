@@ -1,0 +1,236 @@
+
+
+
+
+\begin{frame}{Algorithmic approach\\[-3mm] {\normalsize greedy mask optimization \parencite{gozcu2018learning}} }
+
+\begin{columns}[T]
+\column{0.68\linewidth}
+\vspace{-.6cm}
+\begin{algorithm}[H] 
+\caption{Greedy mask optimization for MRI}
+\label{alg:g1}
+{\footnotesize \textbf{Input}: Training data $\{\vx\}_{i=1}^m$, recon. rule $g$, sampling set $\mathcal{S}$, max. cardinality $N$}% \\
+%\textbf{Output}: Sampling pattern $\omega$
+\begin{algorithmic}[1]
+\State $\omega \leftarrow \emptyset$
+\While{\alt<2>{$\color{red} |\omega| \leq  N$}{$ |\omega| \leq  N$}}
+         \For{\alt<3>{$\color{red} S \in \mathcal{S} \text{ such that  } |\omega \cup S| \le N$}{$S \in \mathcal{S}$ such that  $|\omega \cup S| \le N$}} 
+        \State \alt<4>{$\color{red} \omega' = \omega \cup S$}{$ \omega' = \omega \cup S$}
+   	 \State \alt<5>{$\color{red}\text{For }\ell = 1,\ldots,m\text{, set}{\hat{\vx}}_\ell\leftarrow g(\omega', \mF_{\omega'} \vx_\ell)$}{$\text{For }\ell = 1,\ldots,m\text{, set}{\hat{\vx}}_\ell\leftarrow g(\omega', \mF_{\omega'} \vx_\ell)$}
+        \State    \alt<5>{$\color{red} \eta(\omega') \leftarrow \frac{1}{m} \sum_{\ell=1}^m \eta(\vx_\ell, {\hat{\vx}}_\ell)$}{$\eta(\omega') \leftarrow \frac{1}{m} \sum_{\ell=1}^m \eta(\vx_\ell, {\hat{\vx}}_\ell)$}
+    \EndFor
+%    \For{ $S \in \mathcal{S}$ not yet selected s.t.~$c(\omega \cup S) \le \Gamma$ }
+%        \State $\Delta_{\eta}(S) \leftarrow \eta(\omega \cup S) - \eta(\omega)$
+%        \State $\Delta_{c}(S) \leftarrow c(\omega \cup S) - c(\omega)$
+%    \EndFor
+   \State \alt<6>{$\color{red}\omega \leftarrow \omega \cup S^*\text{, where}$}{$\omega \leftarrow \omega \cup S^*$, where} %$S^* = \argmax_{S\,:\,c(\omega \cup S) \le \Gamma} \frac{ \eta(\omega \cup S) - \eta(\omega) }{ c(\omega \cup S) - c(\omega) }$
+    \vspace{-3mm}
+    \begin{equation*}
+        \alt<6>{\color{red}S^* = \argmax_{S\,:\,|\omega \cup S| \le N}  \eta(\omega \cup S) - \eta(\omega)}{S^* = \argmax_{S\,:\,|\omega \cup S| \le N}  \eta(\omega \cup S) - \eta(\omega)}%\frac{ \eta(\omega \cup S) - \eta(\omega) }{ c(\omega \cup S) - c(\omega) }
+    \end{equation*}\vspace{-5mm}
+ \EndWhile
+ \State {\bf return} $\omega$
+\end{algorithmic}
+\end{algorithm}
+\column{0.3\linewidth}
+\only<7>{}
+\vspace{1cm}
+%\end{center}
+\begin{itemize}
+\item Complexity: $\Theta(mP)$ 
+%\item \hspace{-7mm} $\triangleright$ (Size: $N \times N$)
+\item Parallelization
+\item No parameters
+\item  Nestedness
+\end{itemize}
+\end{columns}	
+
+\end{frame}
+
+
+\begin{frame}{Algorithmic approach\\[-3mm] {\normalsize \textit{stochastic} greedy mask optimization \textit{(ours)}}}
+\begin{columns}[T]
+\column{0.68\linewidth}
+\vspace{-.6cm}
+\begin{algorithm}[H]
+\caption{Stochastic greedy mask optimization for dMRI \parencite{sanchez2019scalable}}\label{alg:1}
+{\footnotesize  \textbf{Input}: Training data $\{\vx\}_{i=1}^m$, recon. rule $g$, sampling set $\mathcal{S}$, max. cardinality $N$,  {\color{red} samp. batch size $k$, train. batch size $l$}} %\\
+%\textbf{Output}: Sampling pattern $\omega$
+\begin{algorithmic}[1]
+\State $\omega \leftarrow \emptyset$
+ %\begin{tabular}{ccc} 
+%\textbf{(SG) }  Initialize $t=1$  
+  %  \end{tabular}
+ \While{$|\omega| \leq N$}
+        
+        \State    {\color{red} Pick $\mathcal{S}_{iter}\subseteq \mathcal{S}_t$ at random, with $|\mathcal{S}_{iter}| = k$  }
+        \State    {\color{red} Pick $\mathcal{L} \subseteq \{1,\ldots,m\} $, with $|\mathcal{L}| = l $}
+         \For{$S \in  {\color{red} \mathcal{S}_{iter}} \text{ such that } |\omega \cup S| \leq N$} 
+     
+        \State  $\omega' = \omega \cup S$ 
+        \State For each $ \color{red} \ell \in \mathcal{L}$ set ${\hat{\vx}}_\ell\leftarrow g(\omega', \mF_{\omega'} \vx_\ell)$
+        \State   $\eta(\omega') \leftarrow  {\color{red} \frac{1}{|\mathcal{L}|} \sum_{\ell\in\mathcal{L}} }\eta(\vx_\ell, {\hat{\vx}}_\ell)$
+ \EndFor
+ \State $\displaystyle\omega \leftarrow \omega \cup S^*,  \text{ where }$    
+    \vspace{-3mm}
+    \begin{equation*}
+        S^* = \argmax_{S\,:\,|\omega \cup S| \le N}  \eta(\omega \cup S) - \eta(\omega)%\frac{ \eta(\omega \cup S) - \eta(\omega) }{ c(\omega \cup S) - c(\omega) }
+    \end{equation*}\vspace{-5mm}
+%\State   \textbf{ (SG) }   $t= (t \bmod T)+1$  
+    \EndWhile
+\State {\bf return} $\omega$ 
+\end{algorithmic}
+\end{algorithm} 
+\column{0.3\linewidth}
+\vspace{1cm}
+
+%\end{center}
+\begin{itemize}
+\item Complexity: $\Theta(l k \sqrt{P})$
+\item Gain: $\Theta\left(\frac{m}{l}\frac{\sqrt{P}}{k}\right)$
+%\item \hspace{-7mm} $\triangleright$ (Size: $N \times N$)
+\item Parallelization
+\item \textit{Few} parameters
+\item  Nestedness
+\end{itemize}
+\end{columns}	
+\end{frame}
+
+% \begin{frame}[t]{From greedy to stochastic greedy\\[-3mm] {\normalsize visual comparison}}
+% \begin{minipage}[h]{\linewidth}
+%   \centering
+%   \vspace{-.3cm}
+% \includemedia[width=\linewidth,height=.33\linewidth,
+% activate=pageopen,
+% passcontext,
+% transparent,
+% deactivate=onclick,
+% addresource=icassp/figs/gv1-slow-low_res.mp4,
+% flashvars={source=icassp/figs/gv1-slow-low_res.mp4
+% &autoPlay=true      % optional configuration
+% &loop=true }         % variables}
+% ]{}{VPlayer.swf}
+% \end{minipage}
+
+%   \vspace{-.1cm}
+% \begin{minipage}[h]{\linewidth}
+%   \centering
+% \includemedia[width=\linewidth,height=.33\linewidth,
+% activate=pageopen,
+% passcontext,
+% transparent,
+% deactivate=onclick,
+% addresource=icassp/figs/sgv2-slow-low-res.mp4,
+% flashvars={source=icassp/figs/sgv2-slow-low-res.mp4
+% &autoPlay=true      % optional configuration
+% &loop=true }         % variables}
+% ]{}{VPlayer.swf}
+% \end{minipage}
+
+% \end{frame}
+
+% \begin{frame}[t]{From greedy to stochastic greedy\\[-3mm]{\normalsize Empirical results}}
+% \begin{columns}
+  
+% \column{0.4\linewidth}
+% \includegraphics[width=\linewidth]{icassp/figs/comp_all_batch_sg}
+% \vspace{.1mm}
+	
+%  \column{0.6\linewidth}
+%  \centering
+% \includegraphics[width=\linewidth]{icassp/figs/mask_batch}
+% \vspace{-.4cm}
+%  Sampling rate vs batch size $k$
+% \vspace{1cm}
+% \end{columns}
+% %\vspace{5mm}
+% \begin{itemize}
+% \item Scaling up with no loss of performance: redundancy of the computations is reduced.
+% \item Scalability to large datasets such as fastMRI \parencite{zbontarFastMRIOpenDataset2019} demonstrated in the paper.
+
+% \end{itemize}
+
+% \end{frame}
+
+
+% \begin{frame}{Results highlights: dMRI}
+
+% \begin{table} 
+% \small
+% \begin{tabular}{l|cc|cc|cc}
+% \toprule
+%  Sampling rate & \multicolumn{2}{c|}{$10\%$}  & \multicolumn{2}{c|}{$20\%$} &\multicolumn{2}{c}{$30\%$}  \\ 
+% \midrule
+% \backslashbox{\hspace{-1mm}Mask\hspace{-5mm}}{\hspace{-7mm}Decoder \hspace{-2mm} } &KTF&ALOHA &\makebox[2em]{{KTF}}&\makebox[2em]{ALOHA} &\makebox[2em]{{KTF}}&\makebox[2em]{ALOHA} \\ 
+% \midrule  % to be updated
+% Coherence&30.91&31.35&35.52&36.56&37.64&39.11\\ 
+% LB-VD&32.87&33.66&36.19&37.52&38.46&39.8\\
+% \midrule
+% \midrule
+% SG-KTF&\textit{\textbf{33.61}}&34.51&\textit{\textbf{36.77}}&\textit{37.96}&\textit{\textbf{39.12}}&40.24\\
+% SG-ALOHA&31.59&\textit{\textbf{34.95}}&\textit{34.76}&\textit{\textbf{38.13}}&37.57&\textit{\textbf{40.38}}\\
+% \bottomrule
+% \end{tabular}
+
+% %\caption{\label{tab:cross_recon} Cross performance of optimal single and multi-coil masks at 20\% subsampling rate. }
+% \end{table}
+% \vspace{.5cm}
+
+% Consistent observation, for static/dynamic, 2D/3D, single/multi-coil:
+
+% $$\overbrace{\text{coherence}}^{\text{Model-based}} < \underbrace{\text{LB-VD / data-PDF }}_{\text{Model-based, \textit{data-driven}}}< \overbrace{\text{(Stochastic) Greedy}}^{\text{Model-\textit{free}, data-driven}}$$
+% % TODO: 
+% \end{frame}
+
+
+
+
+% \begin{frame}{Results highlights: dMRI}
+% \begin{columns}
+%  \column{0.5\linewidth}
+%  \centering
+% \includegraphics[width=1.1\linewidth]{icassp/figs/comp_all_algos_1}
+
+%  \column{0.5\linewidth}
+%   \centering
+%   \hspace{-.4cm}\includegraphics[width=1.1\linewidth]{icassp/figs/comp_all_algos_2}
+
+% \end{columns}
+% % WALK THROUGH THE
+% \end{frame}
+
+
+
+% \begin{frame}{Realted works}
+
+% \begin{itemize}	
+% \item Exciting area of research, many works recently \parencite{haldar2019oedipus, sherry2019learning, bahadir2019learning, jin2019self}.\\[2mm] + 5 papers on sampling optimization for MRI at ICASSP 2020 \parencite{sharma2020space, sharma2020k, weiss2020joint, aggarwal2020joint,huijben2020learning}.
+% \end{itemize}
+
+%\end{frame}
+	
+\begin{frame}{Summary and conclusion}
+\begin{block}{Our data-driven framework}
+\begin{itemize}
+\item Adapts well to different settings (single/multi-coil, static/dynamic, 2D/3D), reconstruction algorithms, anatomies and sampling rates. 
+\item Is nearly parameter-free, yields deterministic masks and is scalable.
+\item Shows the importance of optimizing the sampling mask for the reconstruction algorithm at hand.
+\end{itemize}
+\end{block}
+
+Code available at \href{https://github.com/t-sanchez/stochasticGreedyMRI}{\texttt{https://github.com/t-sanchez/stochasticGreedyMRI}} (stochastic \& full  greedy)\\ \href{https://www.epfl.ch/labs/lions/technology/lb-csmri-2/}{\texttt{https://www.epfl.ch/labs/lions/technology/lb-csmri-2/}} (full greedy)
+	
+\let\thefootnote\relax\footnote{\tiny  G\"ozc\"u, B. et al. (2018). ``Learning-based compressive MRI''. \textit{IEEE TMI}, 2018.\\
+ G\"ozc\"u, B., \textit{S.} et al. ``Rethinking Sampling in Parallel MRI: A Data-Driven Approach''. \textit{EUSIPCO}, 2019.\\}
+\end{frame}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%!TEX root = ICASSP_2020.tex
+\section{Proofs}
+
+
+%%%%%%%%%%
+

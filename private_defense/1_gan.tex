@@ -1,0 +1,299 @@
+%!TEX root = thesis_presentation.tex
+
+
+%!TEX root = thesis_presentation.tex
+
+\section{GAN-based adaptive mask optimization}
+\addtocounter{framenumber}{-1}
+
+
+\begin{frame}[t]{Motivation}
+
+    \begin{itemize}
+        \item \textbf{Goal.} Learn the posterior distribution $p(\rvx|\yo)$.
+        \vfill\item<3-> Two starting points 
+        \begin{enumerate}
+            \vfill\item Conditional \textit{Generative Adversarial Networks} (GAN) can learn $p(\rvx|\yo)$ \hfill \parencite{adler2018deep}\\
+            \vfill\visible<4->{\centering \textbf{Question.} Does this extend to MRI?} \visible<7->{\textbf{Yes.}}
+            \vfill\item<5-> CS setting: Learning $p(\rvx|\yo)$ gives a \textit{natural criterion} for adaptive sampling \hfill \parencite{ji2008bayesian}\\
+            \vfill\visible<6->{\centering \textbf{Question.} Does it extend to \textit{deep generative} models?} \visible<7->{\textbf{Yes.}}
+        \end{enumerate}
+        
+        
+        % \item<1-> In the CS setting, learning the posterior distribution $p(\rvx|\yo)$ gives a \textit{natural criterion} for adaptive sampling. \parencite{ji2008bayesian}
+        % \begin{itemize}
+        %     \item The posterior provides an estimation of uncertainty for each location.
+        %     \item [$\Rightarrow$] Sample the location which currently has the \textit{largest} uncertainty
+        % \end{itemize}
+        % \vfill\item<2-> \textbf{Question.} Can we learn $p(\rvx|\yo)$ using deep learning? 
+        % \begin{itemize}
+        %     \item<3-> Use conditional \textit{Generative Adversarial Networks} (GANs).  \hfill \parencite{adler2018deep}
+        %     \item<3-> \textbf{1.} Sample from the model, \textbf{2.} transform the samples to the Fourier domain,\\ \textbf{3.} sample the line with the largest uncertainty.
+        % \end{itemize}
+    \end{itemize}
+    \vfill
+    
+    \alt<2-6>{
+    \centering
+    \begin{minipage}{0.8\linewidth}
+        \hspace{0.1cm}Observation \hfill Sample 1 \hfill Sample 2 \hfill Sample 3 \hfill Sample 4\hfill Sample 5\hspace{0.2cm}
+        \vspace{0.1cm}
+    \end{minipage}
+
+    \includegraphics[width=0.8\linewidth]{figs/mnist_posterior}\vspace{0.3cm}}
+    {\visible<7->{
+        \vspace{0.2cm}
+    \begin{center}
+        
+         \begin{minipage}{0.65\linewidth}
+        \begin{block}{This work}
+            We show that a \textit{single} conditional GAN can perform competitive reconstruction, uncertainty quantification \textit{and} adaptive sampling.
+        \end{block}
+        \end{minipage}
+        
+    \end{center}
+    \vspace{0.3cm}
+    }}
+    % \begin{center}
+    %     \begin{minipage}{0.6\linewidth}
+    %         \begin{center}
+    %             \textbf{Questions.}
+    %         \end{center}
+
+    %         \begin{itemize}
+    %             \item Can we get more out of \textit{training} a reconstructor? 
+    %             %\item<2-> Can we quantify uncertainty? 
+    %             \item<2-> Can we learn the posterior distribution $p(\rvx|\yo)$?
+    %         \end{itemize}
+    %     \end{minipage}
+    % \end{center}
+
+    % \visible<3->{$\Rightarrow$ Use conditional \textit{Generative Adversarial Networks} (GANs).  \hfill \parencite{adler2018deep}}
+
+    % %\begin{itemize}
+    % %    \item Can we get more out of \textit{training} a reconstructor? Can we quantify uncertainty? Can we learn the posterior distribution $p(\rvx|\yo)$?
+    % %    \item Yes, use \textit{conditional Generative Adversarial Networks} (GANs) \hfill \parencite{adler2018deep}
+    % %\end{itemize}
+    % \visible<4->{
+    % \begin{block}{What about sampling?}
+    %     In the CS setting, learning the posterior gives a \textit{natural} criterion for adaptive sampling \parencite{ji2008bayesian}.\\[0.2cm]
+
+    %     Is it also the case for deep learning methods? \visible<5->{We show that it is the case!}
+
+    % \end{block}}
+
+    % \visible<6->{
+    % \begin{block}{This work}
+    %     We show that a single conditional GAN can perform competitive reconstruction, uncertainty quantification \textit{and} adaptive sampling.
+    % \end{block}}
+    
+
+    \blfootnote<7->{TS, Krawczuk, I., Sun, Z. and Cevher V. (2019). Closed Loop Deep Bayesian Inversion. \textit{Preprint.}
+    }
+    \blfootnote<7->{TS, Krawczuk, I., Sun, Z. and Cevher V. (2020). Uncertainty-Driven Adaptive Sampling via GANs. In \textit{NeurIPS 2020 Workshop on Deep Learning and Inverse Problems}.}
+\end{frame}
+
+
+% \begin{frame}{Motivation}
+%     \begin{itemize}
+%         \item \textbf{Goal.} Explore how conditional Generative Adversarial Networks \parencite{goodfellow2014generative,mirza2014conditional} can provide an \textit{all-in-one} approach to reconstruction, uncertainty quantification and adaptive sampling.\pause
+%         \vfill\item For MRI, the scope of their applications has been limited:
+%         \begin{itemize}
+%             \item Reconstruction  \parencite{yang_dagan_2018,chen2022ai}
+%             \item Generative priors  \parencite{bora2017compressed,jalal2021robust}
+%         \end{itemize}
+%         \vfill\item But they can be used to approximate the \textit{posterior} distribution $p(\rvx|\yo)$ \parencite{adler2018deep}.
+%         \begin{itemize}
+%             \item This implies that they can provide a \textit{natural} criterion for \textit{adaptive sampling} \parencite{ji2008bayesian}.\pause
+%         \end{itemize}
+%         %\item Done \textit{before} the work in the previous chapter.\pause
+%         %\item Explore how conditional GANs can be used to model inverse problems.
+%         %\vfill\item Bayesian approach: model the \textit{posterior} $p(\rvx|\yo)$: distribution of ground truth images given observations \parencite{adler2018deep}. 
+%         %\vfill\item The scope of the use of GANs in inverse problems is limited:
+%         %\begin{itemize}
+%         %    \vfill\item Reconstruction  \parencite{yang_dagan_2018,chen2022ai}
+%         %    \vfill\item Generative priors  \parencite{bora2017compressed,jalal2021robust}
+%         %\end{itemize}
+%         %\item Challenging b.c. we don't have access to it in practice.
+%     \end{itemize}        
+
+%     \blfootnote{TS, Krawczuk I., Sun, Z. and Cevher V. (2019). Closed Loop Deep Bayesian Inversion. \textit{Preprint.}
+%     }
+%     \blfootnote{TS, Krawczuk, I., Sun, Z. and Cevher V. (2020). Uncertainty-Driven Adaptive Sampling via GANs. In \textit{NeurIPS 2020 Workshop on Deep Learning and Inverse Problems}.}
+% \end{frame}
+\begin{frame}{Posterior-based adaptive sampling in practice}
+    \centering
+    \includegraphics<1>[width=\linewidth]{figs/gan_flow_1}%
+    \includegraphics<2>[width=\linewidth]{figs/gan_flow_2}%
+    \includegraphics<3>[width=\linewidth]{figs/gan_flow_3}%
+    \includegraphics<4>[width=\linewidth]{figs/gan_flow_4}%
+    \includegraphics<5>[width=\linewidth]{figs/gan_flow_5}%
+
+\end{frame}
+
+
+    \begin{frame}{Posterior-based adaptive sampling in practice}
+
+            \centering
+            \begin{minipage}{0.6\linewidth}
+                \centering
+            
+            % \hspace{-.2cm}\includemedia[width=\linewidth,height=.8\linewidth,
+            %activate=pageopen,
+            %passcontext,
+            %transparent,
+            %deactivate=onclick,
+            %addresource=neurospin/figs/UQ_mask.mp4,
+            %flashvars={source=neurospin/figs/UQ_mask.mp4
+            %&autoPlay=true      % optional configuration
+            %&loop=true }         % variables}
+            %]{}{VPlayer9.swf}
+                \begin{tabular}{p{0.33\linewidth}p{0.33\linewidth}p{0.33\linewidth}}
+                    \hspace{.8cm}Mask &  \hspace{.5cm}Mean &  Variance
+                \end{tabular}
+            \embedvideo*{\includegraphics[width=\linewidth,height=.67\linewidth,page=1]{example-movie}}{neurospin/figs/UQ_mask.mp4}
+            %\hspace{1cm}Mask\hspace{0.6cm} \hfill Mean \hfill  Variance\hspace{1.2cm}
+            %\href{run:neurospin/figs/UQ_mask.mp4?autostart}%&loop}
+            %{\includegraphics[width=\linewidth,height=.67\linewidth]{example-movie}}
+        \end{minipage}
+    \end{frame}
+
+
+ 
+% \begin{frame}{Conditional Wasserstein GANs}
+
+%     Wasserstein GAN \parencite{arjovsky2017wasserstein,gulrajani2017improved}.
+
+
+%     $$ \min_\theta \mathcal{W}(p(\rvx),\vg_\theta) = \min_\theta \max_{\phi: \|d_\phi\|_L \leq 1} \mathbb{E}_{\rvx\sim p(\rvx)}\left[d_\phi(\rvx)\right] -  \mathbb{E}_{\rvz\sim p(\rvz)}[d_\phi(\vg_\theta(\rvz))]$$
+
+%     \cite{adler2018deep}
+
+%     $$\min_\theta \max_{\phi:\|d_\phi\|_L\leq 1} \mathbb{E}_{\substack{(\rvx,\rvy) \sim p(\rvx,\rvy) \\ \rvz \sim p(\rvz)}} \left[ d_\phi(\rvx,\rvy)  - d_\phi(\vg_\theta(\rvz,\rvy),\rvy)\right]$$
+
+    
+% \end{frame}
+
+% \begin{frame}{Neural Conditioner}
+%     \cite{belghazi2019learning}
+% \end{frame}
+
+% \begin{frame}{\cite{zhang2019reducing}}
+%     Illustrate?
+% \end{frame}
+
+
+
+\begin{frame}[t]{Results highlight}
+    \vspace{-.5cm}
+    \begin{columns}[totalwidth=\linewidth]
+        \column{0.82\linewidth}
+        \begin{itemize}
+            \item \textbf{Experiment setting:} fastMRI knee data, $128\times 128$ image, horizontal sampling masks.
+            \item<2-> \textbf{Baselines:}
+            \begin{itemize}
+                %\item \textbf{Random}: Fixed number of center frequencies, the rest is random.
+                %\item \textbf{sLBCS} \parencite{gozcu2018learning,sanchez2019scalable}
+                %\item \textbf{Gaussian NLL}: Sampling from a Gaussian distribution with learned mean and variance.
+                %\item Greedy Policy Gradient model (\textbf{RL}) \parencite{bakker2020experimental}\pause
+                \item \textbf{Evaluator}: Predicts the current MSE\footnotemark for each line in k-space. \hfill  \parencite{zhang2019reducing}
+                \item \textbf{MSE oracle}: Adaptive oracle acquiring at each step the line with the largest MSE.
+                % \item \textbf{GAN} (ours)
+                % \begin{enumerate}
+                %      \item Sample from the conditional GAN posterior 
+                %      \item Transform the samples to Fourier
+                %      \item Compute their empirical variance to guide the decision of what location to observe next.
+                % \end{enumerate}
+            \end{itemize}
+       
+            \item<3-> Average PSNR\footnotemark~and SSIM\footnotemark~test set AUC\footnotemark.
+            \item<4-> Competitive performance \textit{without} being trained for adaptive sampling.
+        \end{itemize}
+        \column{0.15\linewidth}
+        \centering
+        \includegraphics<1>[width=\linewidth]{figs/image_resized_cropped.pdf}%
+        \includegraphics<2->[width=\linewidth]{figs/MSE_line.pdf}%
+    \end{columns}
+    
+    %\vfill\item AUC computed between $6.25\%$ sampling rate and $50\%$%\alt<1-2>{$25\%$}{$50\%$}.
+
+\vfill
+\begin{center}
+% \only<1-2>{    
+% \begin{tabular}{lcccc}
+%     \toprule
+%     \multirow{1}{*}{\textbf{Policy}}& \multicolumn{4}{c}{\textbf{Model}}\\
+%     & \multicolumn{2}{c}{GAN} & \multicolumn{2}{c}{Reconstructor}\\
+%     \cmidrule(r){2-3}\cmidrule(l){4-5}
+%     & \textsc{PSNR}& \textsc{SSIM}& \textsc{PSNR}& \textsc{SSIM}\\
+%     \midrule
+%     \textbf{Random}& $29.48$& $0.699$& $29.79$& $0.757$\\
+%     \textbf{Gaussian NLL}& $29.48$& $0.699$& $29.69$& $0.747$\\
+%     \textbf{Evaluator}& $30.03$& $0.710$& \alt<1>{$\mathbf{30.77}$}{$30.77$}&\alt<1>{$\mathbf{0.765}$}{$0.765$} \\
+%     \textbf{GAN}& \alt<1>{$\mathbf{30.67}$}{$30.67$}& \alt<1>{$\mathbf{0.726}$}{$0.726$} & $30.48$ & $0.762$\\
+%     \midrule
+%     \only<2>{\textbf{LBCS}& $\mathbf{31.06}$& $\mathbf{0.735}$& $\mathbf{31.41}$& $\mathbf{0.781}$\\
+%     \textbf{RL}& $30.88$& $0.731$ & $30.68$& $0.766$\\
+%     \midrule}%
+%     \textbf{MSE Oracle}& $30.98$& $0.734$ & $31.23$& $0.778$\\
+%     \bottomrule
+% \end{tabular}}
+\visible<3->{
+\resizebox*{.5\linewidth}{!}{
+\begin{tabular}{lcccc}
+    \toprule
+    \multirow{1}{*}{\textbf{Policy}}& \multicolumn{4}{c}{\textbf{Model}}\\
+    & \multicolumn{2}{c}{GAN} & \multicolumn{2}{c}{\cite{zhang2019reducing}}\\
+    \cmidrule(r){2-3}\cmidrule(l){4-5}
+    & \textsc{PSNR}& \textsc{SSIM}& \textsc{PSNR}& \textsc{SSIM}\\
+    \midrule
+    \textbf{Random}& $30.70$& $0.752$& $30.96$& $0.802$\\
+    %\textbf{Gaussian NLL}& $29.72$& $0.753$& $30.65$& $0.789$\\
+    \textbf{Evaluator}& $31.14$& $0.759$& ${31.58}$&${0.802}$ \\
+    \textbf{GAN}& $\mathbf{32.36}$& $\mathbf{0.786}$& $\mathbf{31.75}$ & $\mathbf{0.810}$\\
+    \midrule
+    \textbf{MSE Oracle}& $32.58$& $0.791$ & $32.18$& $0.819$\\
+    \bottomrule
+\end{tabular}}}
+\end{center}
+\vspace{0.1cm}
+\only<2>{\footnotetext[1]<2>{MSE $\equiv$ Mean Squared Error}}
+\footnotetext[1]<3->{$^{\text{,2,3,4}}$ MSE $\equiv$ Mean Squared Error, PSNR $\equiv$  Peak Signal-to-Noise Ratio, SSIM $\equiv$ Structural SIMilarity, AUC $\equiv$ Area Under Curve}
+\end{frame}
+
+
+
+
+
+
+
+
+\begin{frame}{Conclusion}
+    \begin{center}
+        \begin{minipage}{0.9\linewidth}
+            
+        
+    
+    \begin{block}{Our contributions}
+        \textbf{Our GAN model}
+    \begin{itemize}
+        \vfill\item \textit{All-in-one} approach: reconstruction, uncertainty quantification \textit{and} adaptive sampling.
+        %\vfill\item Competitive for adaptive sampling, \textit{without} being trained for it. \pause
+        %\vfill\item Works with vanilla GANs \parencite{goodfellow2014generative,belghazi2019learning}, Wasserstein GANs \parencite{gulrajani2017improved} or modified WGANs \parencite{adler2018deep}.\pause
+        \vfill\item Outperforms the approach of \cite{zhang2019reducing}, \textit{without} being trained for sampling. \pause
+        \vfill\item Readily extends to image domain.\pause
+    \end{itemize}
+    %\vspace{0.5cm}
+    
+    \end{block}
+    \end{minipage}
+    \end{center}
+    \vfill
+    \begin{itemize}
+        \item However, it only follows a \textit{heuristic} for sampling.
+        \item \textbf{Question.} Can we do better by \textit{training} the policy in a data-driven fashion?
+    \end{itemize}
+\end{frame}
+
+
+

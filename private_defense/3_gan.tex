@@ -1,0 +1,147 @@
+%!TEX root = thesis_presentation.tex
+%\section{Back to GAN-based adaptive mask optimization}
+%\addtocounter{framenumber}{-1}
+
+
+
+\section{Back to GAN-based adaptive mask optimization}
+
+    
+
+\begin{frame}[t]{What about our GAN-based policy?}
+    \vspace{-.3cm}
+    \begin{columns}[totalwidth=\linewidth]
+        \column{0.82\linewidth}
+        \begin{itemize}
+            \item<2->  \textbf{Experiment setting:} fastMRI knee data, $128\times 128$ image, horizontal sampling masks.
+            \item<2-> \textbf{Baselines:}
+            \begin{itemize}
+                %\item \textbf{Random}: Fixed number of center frequencies, the rest is random.
+                %\item \textbf{sLBCS} \parencite{gozcu2018learning,sanchez2019scalable}
+                %\item \textbf{Gaussian NLL}: Sampling from a Gaussian distribution with learned mean and variance.
+                %\item Greedy Policy Gradient model (\textbf{RL}) \parencite{bakker2020experimental}\pause
+                \item<2->  \textbf{Evaluator}: Predicts the current MSE for each line in k-space. \hfill  \parencite{zhang2019reducing}
+                \item<2->  \textbf{MSE oracle}: Adaptive oracle acquiring at each step the line with the largest MSE.
+                % \item \textbf{GAN} (ours)
+                % \begin{enumerate}
+                %      \item Sample from the conditional GAN posterior 
+                %      \item Transform the samples to Fourier
+                %      \item Compute their empirical variance to guide the decision of what location to observe next.
+                % \end{enumerate}
+            \end{itemize}
+       
+            \item<2-> Average PSNR  and SSIM test set AUC.
+            \item<4-> $\text{sLBCS} \geq \text{MSE \textit{Oracle}} > \text{GAN-based policy}$. \visible<5->{Can this be explained?} \visible<6->{Yes, they use different \textit{information horizons}.}
+        \end{itemize}
+        \column{0.15\linewidth}
+        \centering
+        \includegraphics<2->[width=\linewidth]{figs/MSE_line.pdf}%
+    \end{columns}
+    
+    \begin{center}
+    % \only<1-2>{    
+    % \begin{tabular}{lcccc}
+    %     \toprule
+    %     \multirow{1}{*}{\textbf{Policy}}& \multicolumn{4}{c}{\textbf{Model}}\\
+    %     & \multicolumn{2}{c}{GAN} & \multicolumn{2}{c}{Reconstructor}\\
+    %     \cmidrule(r){2-3}\cmidrule(l){4-5}
+    %     & \textsc{PSNR}& \textsc{SSIM}& \textsc{PSNR}& \textsc{SSIM}\\
+    %     \midrule
+    %     \textbf{Random}& $29.48$& $0.699$& $29.79$& $0.757$\\
+    %     \textbf{Gaussian NLL}& $29.48$& $0.699$& $29.69$& $0.747$\\
+    %     \textbf{Evaluator}& $30.03$& $0.710$& \alt<1>{$\mathbf{30.77}$}{$30.77$}&\alt<1>{$\mathbf{0.765}$}{$0.765$} \\
+    %     \textbf{GAN}& \alt<1>{$\mathbf{30.67}$}{$30.67$}& \alt<1>{$\mathbf{0.726}$}{$0.726$} & $30.48$ & $0.762$\\
+    %     \midrule
+    %     \only<2>{\textbf{LBCS}& $\mathbf{31.06}$& $\mathbf{0.735}$& $\mathbf{31.41}$& $\mathbf{0.781}$\\
+    %     \textbf{RL}& $30.88$& $0.731$ & $30.68$& $0.766$\\
+    %     \midrule}%
+    %     \textbf{MSE Oracle}& $30.98$& $0.734$ & $31.23$& $0.778$\\
+    %     \bottomrule
+    % \end{tabular}}
+    \visible<2->{
+    \resizebox*{.4\linewidth}{!}{
+    \begin{tabular}{lcccc}
+        \toprule
+        \multirow{1}{*}{\textbf{Policy}}& \multicolumn{4}{c}{\textbf{Model}}\\
+        & \multicolumn{2}{c}{GAN} & \multicolumn{2}{c}{\cite{zhang2019reducing}}\\
+        \cmidrule(r){2-3}\cmidrule(l){4-5}
+        & \textsc{PSNR}& \textsc{SSIM}& \textsc{PSNR}& \textsc{SSIM}\\
+        \midrule
+        \textbf{Random}& $30.70$& $0.752$& $30.96$& $0.802$\\
+        %\textbf{Gaussian NLL}& $29.72$& $0.753$& $30.65$& $0.789$\\
+        \textbf{Evaluator}& $31.14$& $0.759$& ${31.58}$&${0.802}$ \\
+        \textbf{GAN}& \alt<-2>{$\mathbf{32.36}$}{$32.36$}& \alt<-2>{$\mathbf{0.786}$}{$0.786$} & \alt<-2>{$\mathbf{31.75}$}{$31.75$} & \alt<-2>{$\mathbf{0.810}$}{$0.810$}\\
+        \midrule
+        \only<3->{\hl<4->{\textbf{sLBCS}}& \hl<4->{$\mathbf{32.63}$}& \hl<4->{$\mathbf{0.791}$}& \hl<4->{$\mathbf{32.32}$}& \hl<4->{$\mathbf{0.819}$}\\
+        \textbf{Greedy PG}& $32.39$& $0.785$ & $31.75$& $0.805$\\
+        \midrule}%
+        \hl<4->{\textbf{MSE Oracle}}& \hl<4->{$32.58$}& \hl<4->{$0.791$} & \hl<4->{$32.18$}& \hl<4->{$0.819$}\\
+        \bottomrule
+    \end{tabular}}}
+    \end{center}
+    
+    \end{frame}
+
+
+
+\begin{frame}{Information horizon}
+    \begin{columns}[totalwidth=\linewidth]
+        \column{0.65\textwidth}
+        \begin{itemize}
+            \item \textit{Information horizon} = how far ahead rollouts occur in order to train a given policy.\\
+            {\small Possible to integrate \textbf<2>{0-step}, \textbf<3>{1-step} or \textbf<4>{N-step} information to the policy}
+        \end{itemize}
+        \begin{center}
+        \visible<5->{
+            \only<5>{\vskip 0pt plus 1filll}
+            \resizebox*{0.8\linewidth}{!}{
+            \begin{tabular}{lccccc}
+                \toprule
+                \multirow{1}{*}{\textbf{Policy}}& \multicolumn{4}{c}{\textbf{Model}}& \textbf{Information}\\
+                & \multicolumn{2}{c}{GAN} & \multicolumn{2}{c}{\cite{zhang2019reducing}} & \textbf{horizon}\\
+                \cmidrule(r){2-3}\cmidrule(l){4-5}
+                & \textsc{PSNR}& \textsc{SSIM}& \textsc{PSNR}& \textsc{SSIM} &\\
+                \midrule
+                \textbf{Random}& $30.70$& $0.752$& $30.96$& $0.802$ & --\\
+                %\textbf{Gaussian NLL}& $29.72$& $0.753$& $30.65$& $0.789$\\
+                 \textbf{Evaluator}& $31.14$& $0.759$& ${31.58}$&${0.802}$ &\textbf{0-step} \\
+                \textbf{GAN}& \hl{$32.36$}& \hl{$0.786$} & \hl{$31.75$} & \hl{$0.810$}&  \textbf{0-step} \\
+                \midrule
+                \textbf{sLBCS}& $\mathbf{32.63}$& $\mathbf{0.791}$& $\mathbf{32.32}$& $\mathbf{0.819}$&\multirow{2}{*}{\textbf{1-step}}\\
+                \textbf{Greedy PG}& $32.39$& $0.785$ & $31.75$& $0.805$ &\\
+                \midrule%
+                \textbf{MSE Oracle}& $32.58$& $0.791$ & $32.18$& $0.819$ & \textbf{0-step}\\
+                \bottomrule
+            \end{tabular}}}
+            \end{center}
+
+        \column{0.3\textwidth}
+        \includegraphics<2>[width=\linewidth]{figs/masks_0_step}%
+        \includegraphics<3>[width=\linewidth]{figs/masks_1_step}%
+        \includegraphics<4->[width=\linewidth]{figs/masks_2_step}%
+    \end{columns}
+    
+    %As we will see in the results, $0$-step methods do not outperform $1$-step methods, and we hypothesize that this is because they do not incorporate any feedback in the design of their policy, contrarily to $1$-step methods. $0$-step methods simply they pick the location with the largest current error, but do not incorporate the a posteriori information on how good their action \textit{actually} was. This is mainly because $0$-step approaches use a heuristic that was not explicitly trained to be a policy, but to perform a surrogate task, such as estimating the variance of the posterior distribution in Fourier (in our case), or estimating the line-wise Fourier MSE \parencite{zhang2019reducing}.
+
+\end{frame}
+
+
+\begin{frame}[t]{Revisiting the conclusion}
+    \begin{block}{Our contributions}
+        \textbf{Our GAN model}
+    \begin{itemize}
+        \vfill\item \textit{All-in-one} approach: reconstruction, uncertainty quantification \textit{and} adaptive sampling.
+        %\vfill\item Competitive for adaptive sampling, \textit{without} being trained for it. \pause
+        %\vfill\item Works with vanilla GANs \parencite{goodfellow2014generative,belghazi2019learning}, Wasserstein GANs \parencite{gulrajani2017improved} or modified WGANs \parencite{adler2018deep}.\pause
+        \vfill\item Outperforms the \only<2->{\hl{$0$-step} }approach of \cite{zhang2019reducing}, \textit{without} being trained for sampling.
+        \vfill\item Readily extends to image domain.
+    \end{itemize}
+    \only<2->{
+    \vspace{0.5cm}
+    \textbf{Insight}
+    \begin{itemize}        
+        \vfill\item \hl{$1$-step information is essential to reach SotA performance.}% in Fourier.} 
+    \end{itemize}}
+    \end{block}
+    
+\end{frame}

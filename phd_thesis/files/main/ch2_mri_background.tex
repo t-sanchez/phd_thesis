@@ -1,0 +1,251 @@
+\chapter{MRI Background}\label{ch:mri_background}
+Before diving in greater detail in the problems of reconstruction from undersampled measurements and optimization of the sampling masks, we first present the physical underpinnings of MRI. Although this survey will be very short, it hints at the remarkable depth and flexibility of MRI. This introduction is based upon the well-known textbook of \citet{brown2014magnetic}\footnote{Part of the content was presented in \citet{sanchez2018master}}.
+
+%Magnetic Resonance Imaging (MRI) is a fundamental medical tool, as it allows for both visualization and diagnostic in anatomical body structures, in two or three dimensions. The underlying principle of MRI relies on exciting hydrogen atoms of our body with a radiofrequency wave inside a strong static magnetic field. These responses generate currents in receive coils, which allow to find the frequencies to which the system responds. The raw data provided by an MRI are thus Fourier coefficients, which need to be transformed back into an image. This procedure has the advantage of not being invasive, nor ionising, while being able to provide a unique quality of soft tissues contrast. However, the time required to complete a scan is much longer than other imaging techniques, like x-rays. 
+
+%Dynamic Magnetic Resonance Imaging~(dMRI) follows the same principle as  static MRI, except that it is meant to record the dynamic evolution of both anatomical and functional internal body structures, rather than a plain image. However, the incorporation of dMRI into routine clinical procedures has been slow, which derives mainly from constraints in dMRI speed, resulting in very long examination time in order to obtain diagnostic-quality images. Indeed, in a standard dynamic MRI procedure, the full k-space is sampled at each time step, thus preventing the resulting scans to exhibit both high spatial and temporal resolution~\cite{majumdar2015compressed}. This trade-off appears as a consequence of the famous  Nyquist-Shannon sampling theorem, which states that, in order for a signal to be reconstructed from its samples, the acquisition rate should be at least twice the maximum frequency content of the signal.
+
+%In the recent years however, the developing field of \textit{Compressive Sampling} or \textit{Compressed Sensing}~(CS)~\cite{donoho2006compressed, candes2006stable} has allowed to overcome this barrier. This method allows a good quality reconstruction of undersampled data through nonlinear decoding, which has proved to be directly applicable to the problem of MRI acceleration~\cite{lustig2006kt, lustig2007sparse} (i.e.\ reconstructing the same image quality with fewer samples). This can be used for both static \cite{lustig2007sparse} and dynamic \cite{lustig2006kt, jung2009k}, single-coil \cite{jung2009k} or parallel \cite{otazo2012combination, otazo2015low}, 2D or 3D \cite{feng2014golden} reconstructions. Compressed Sensing builds on the idea that, through optimization, one can exploit the sparsity, i.e. the fact that the signal has only a few non-zero coefficients, that it exhibits in an appropriate transformed domain (e.g. Fourier, Wavelet, \ldots) in order to reconstruct the signal from a far smaller number of samples than the one prescribed by the Nyquist-Shannon criterion. However, in addition to the sparsity in the signal, it is also required for the measurements to be incoherent, which roughly means that a given measurement is not related to any other measurement.
+
+% The application of CS to dMRI tries to exploit the sparsity of the $x-f$ support of the acquired image in order to reconstruct it with a small number of samples. Such sparsity is exhibited due to the frames being correlated in time, as usually, most of the image is static, and a little part of it is moving, as for instance in cardiac MRI \cite{tsao2003k}. Many articles have focused on designing a good reconstruction algorithm, either aiming at a real-time reconstruction~\cite{vaswani2010modified, majumdar2012compressed, chen2014real, majumdar2015compressed, chen2016real} or obtaining the best possible image after all the samples have been acquired~\cite{gamper2008compressed, jung2009k, jung2010radial, lingala2011accelerated, otazo2012combination, zhao2012image, feng2014golden, caballero2014dictionary, otazo2015low, feng2016xd}. All those publications attempt at designing the best reconstruction algorithm, and the $k$-space is usually either subsampled from a Cartesian grid (i.e.\ random samples drawn from an equispaced Fourier space grid sampled at each time step) or from a radial pattern (spokes from the center of the Fourier space at various angles). These approaches all use variable-density sampling as their strategy, picking samples at random according to some probability distribution function, which can be either fixed or based on the data used. However, to our knowledge, no approach has been using training signals to optimize the subsampling mask for a specific case of dynamic MRI, even if this has already been studied for static MRI \cite{ravishankar2011adaptive, raja2014adaptive, baldassarre2016learning, gozcu2018learning} or for multiple static scans of the same region in a given patient \cite{weizman2015compressed}. Given a reconstruction algorithm, the approach in this work allows to capture the energy distribution in the $k$-space better for a chosen imaging scenario. A proposed greedy algorithm, which extends the work in \cite{gozcu2018learning}, is a very flexible framework, and can be paired with any decoder while not adding any hyperparameter other than those of the chosen reconstruction algorithm. 
+
+\section{MRI physics}
+
+
+\subsection{Magnetization}
+
+Let us then consider a proton under a strong external magnetic field $\*B_0$. In practice, such a field is obtained by running a large electric current through a coil around the scanner. High current is required because typical magnetic fields in MRI are very large, around $\SI{3}{\tesla}$, and the strength of the  magnetic field is directly proportional to the one of the electric current\footnote{For comparison, the strength of the magnetic field of the earth is typically between $40$ and $\SI{70}{\micro\tesla}$.}.
+
+%Typical magnetic fields in MRI are around , and given that the strength of the magnetic field produced by the coil is proportional to the strength of the current, this requires high currents. 
+
+The spin of a proton, which is positively charged, can be represented as a gyroscope precessing about the field direction, as illustrated on Figure \ref{fig:precession}. The precession angular frequency can be quantified as the Larmor frequency $\omega_0$, with
+\begin{equation} 
+    \omega_0 = \gamma B_0\label{eq:larmor}
+\end{equation} 
+where $\gamma$ is known as the gyromagnetic ratio, and is a particle dependent constant. For instance, in water, the hydrogen proton has $\gbar \triangleq \gamma/(2\pi) \approx \SI{42.6}{\mega\hertz\per\tesla}$. Note that deriving this formula is involved and requires tools from relativistic quantum mechanics. %It is beyond the scope of this introduction.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.28\textwidth]{pdm/precession.png}
+\hspace{0.5cm}
+    \includegraphics[width=.65\textwidth]{pdm/RF_pulse.png}
+\caption{\textit{Left:} Illustration of precession of a particle when subject to an external field $\*B_0$ (large green arrow). The small red arrow corresponds to the spin of the particle, and its temporal evolution is illustrated by the black arrow. \textit{Right:} Illustration of the \textit{transverse} magnetization appearing when a body is subject to an RF pulse, due to the protons precessing synchronously, and reaching the higher energy level, which results in arrows pointing downwards. This Figure was first used in \citet{sanchez2018master}.}\label{fig:precession}    
+\end{figure}
+
+This description considers a single hydrogen nucleus in a static magnetic field, but in practice, we are dealing with an entire population. Depending on their levels of energy, different protons of a population will either align in a parallel fashion against an external field $\*B_0$, while some will take an antiparallel position. Although there is only a very little amount of spins parallel to the magnetic field exceeding the number of spins antiparallel to it, this is sufficient to have a \textit{spin excess} that yields a noticeable net magnetization $\*M_0$ at a population level. $\*M_0$ will be parallel to $\*B_0$ because different protons will have incoherent phases, and will overall cancel each other out, leading to a net magnetization parallel to the static field. We call this resulting state the \textit{equilibrium} of the system, which is illustrated in the middle of Figure \ref{fig:precession}, where in this case $\*M_0 = \*M_z$. However, this net magnetization cannot be detected in the equilibrium, as we need to excite the protons in order to induce a change in the magnetization, which in turn will induce an electrical current in a \textit{receive coil}. This coil will allow to record a signal corresponding to the response of the protons to the excitation. The different components of the MRI that will be discussed throughout this chapter are illustrated on Figure \ref{fig:MRI_scanner}.
+
+\subsection{Excitation}
+Let us denote by $\*{\hat{z}}$ the direction of the external field $\*B_0$, and let us consider a body that we wish to image, for instance the knee of a patient. It is clear from the previous section that the hydrogen nuclei of the body will produce a net magnetization $\*M_0 = M_0 \*{\hat{z}}$, where $M_0$ denotes the intensity of magnetization. The atoms will precess around  $\*{\hat{z}}$ at the Larmor frequency $\omega_0$. 
+
+In the excitation step, the system is destabilized by sending a radiofrequency (RF) pulse. It is easier to describe it and consider its effect by placing ourselves in a frame rotating at an angular frequency $\omega_0$ around the axis $\*{\hat{z}}$. This gives the following rotating unit vectors $\*{\hat{x}'}$, $\*{\hat{y}'}$ 
+\begin{align*}
+    \*{\hat{x}'}&=\cos(\omega_0 t)\*{\hat{x}} -  \sin(\omega_0 t)\*{\hat{y}}\\
+    \*{\hat{y}'}&= \sin(\omega_0 t)\*{\hat{x}} + \cos(\omega_0 t)\*{\hat{y}}
+\end{align*}
+and $\*{\hat{z}}$ remains unchanged. We define the RF pulse as a circularly rotating pulse of intensity $B_1$, namely $\*B_1 = B_1 \*{\hat{x}'}$. Applying this RF pulse will as a result cause the nuclei to resonate and flip the equilibrium magnetization $\*M_0$ into a new net magnetization $\*M$ in the $\*{\hat{x}'}-\*{\hat{y}'}$ plane. $\*M$ will now have both a \textit{transverse} component in the $\*{\hat{x}'}-\*{\hat{y}'}$ plane, and a \textit{longitudinal} component along the $\*{\hat{z}}$ axis. We refer to the angle between $\*M$ and the $\*{\hat{z}}$-axis as the \textit{flip angle} (FA), and it quantifies how strongly the magnetization $\*M$ has been moved away from its equilibrium state $\*M_0$. This process is illustrated in the right of Figure \ref{fig:precession}. In particular, we see that the transverse component arises due to the synchronization of the precessing phases of the hydrogen nuclei, which  cancelled each other out at equilibrium.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\linewidth]{MRI_scanner}
+    \caption{Illustration of an MRI scanner and the different coils and components required to produce an image.}\label{fig:MRI_scanner}
+\end{figure}
+
+\subsection{Relaxation}
+After applying the RF pulse, the system will gradually return to equilibrium, where $\*M_0$ is aligned with $\*B_0$. This will require the nuclei to re-emit the energy that they absorbed during the excitation phase. The relaxation is governed by two main components, namely a \textit{longitudinal} relaxation, characterized by a time constant $\mathbf{T_1}$, and a \textit{transverse} relaxation, characterized by  $\mathbf{T_2}$.
+
+%After the RF pulse has been applied, the protons will re-emit energy in order to return to the equilibrium state, where $\*M_0$ is aligned with $\*B_0$. This process is done in two simultaneous yet independent relaxation steps, known as \textbf{T1} and \textbf{T2}.
+
+\paragraph{$T_1$ Relaxation.}~The $T_1$ relaxation describes the regrowth of the longitudinal component of the magnetization, i.e. how the $\*{\hat{z}}$ component of $\*M$ grows back over the relaxation. This is also known as \textit{spin-lattice} relaxation, as this describes a local process due to the interaction of the spins with their surroundings. The process is formally described as 
+\begin{equation}
+    M_z(t) = M_0\big(1-\exp\left(-t/T_1\right)\big) + M_z\left(0\right)\exp\left(-t/T_1\right)
+\end{equation}
+where $M_z(t)$ is the longitudinal magnetization, $M_z(0)$ describes the amount of longitudinal magnetization left after the RF pulse, and $T_1$ is a constant that depends on the type of tissue considered. We see that the longitudinal magnetization will be recovered at an exponential speed, and the speed will be determined by $T_1$.
+
+\paragraph{$T_2$ Relaxation.}~The $T_2$ relaxation process describes how clusters of spins gradually lose phase with each other after excitation. This dephasing will cause the transverse magnetization $M_{\hat{x}',\hat{y}'}$ or $M_{\perp}$ to progressively disappear, as the equilibrium state is reached (cf. middle of Figure \ref{fig:precession}). We have
+\begin{equation}
+    M_{\perp}(t) = M_0\exp\left(-t/T_2\right)
+\end{equation}
+where $T_2$ is a tissue-dependent time constant that describes how fast the transverse magnetization vanishes. In practice, $T_2 \ll T_1$, making the $T_2$ relaxation much faster. Also, in practice, the signal is likely to suffer additional suppression due to dephasing from inhomogeneities in the external field $\*B_0$.
+
+As $T_1$ and $T_2$ are tissue dependent constants, constructing images by performing measurements at different steps of the relaxation allows to highlight different characteristics of tissues. They are one of the key components of the flexibility of MR imaging. 
+
+
+
+%TODO: T1 T2 ratio examples and weighting of images.
+
+\subsection{Image acquisition}\label{sec:imacquisition}
+Until now, we have discussed the global response of a sample to an RF pulse, but we have not addressed how to encode spatial information into the signal, in order to be able to construct an image. As previously discussed, the signal will be recorded by a receive coil, where an electric current is induced depending on the relaxation of the spins.
+
+But the question of localizing the signal remains whole so far. To solve this issue, we will try to give to each location in the body a unique combination of phase and frequency, in order to be able to retrieve its contribution from the signal in the receive coil. This is achieved by introducing three additional coils to the scanner, known as gradient coils, whose role will be to produce some spatially varying magnetic fields in the ${\hat{x}}$,  $\*{\hat{y}}$ and  $\*{\hat{z}}$ directions respectively. As a result, the tissues of specific areas of the object will be excited, and this will allow to observe their local responses. Then, by repeating a measurement with different gradients, we will be able to sequentially construct a map of how the tissue responds to the RF pulses depending on its location. This is why an acquisition is often referred to as a \textit{pulse sequence}, as we gather a sequence of measurements in order to obtain a full image. 
+
+There exists several ways to construct an image with MRI, and we will illustrate how it works by considering a \textit{2D gradient echo} sequence, and we will explain its different components. Sequences are frequently represented as diagrams, such as the one of Figure \ref{fig:gre_diagram}, where each line represents how different component vary in intensity through time. If we simply excite a body with an RF pulse, neglecting the relaxation effects, we can write the signal observed in the receive coil as
+\begin{equation}
+    S(t) = \int \rho(\*x) e^{i(\omega_0 t + \phi(\*x,t))} d\*x\label{eq:signal_og}
+\end{equation}
+where $\rho(\*x)$ is the \textit{effective spin density}, and is the quantity that we wish to measure, and $\phi(\*x,t)$ is the \textit{accumulated phase}
+\begin{equation}
+    \phi(\*x,t) = - \int_0^t \omega(\*x,t')dt'. \label{eq:accumulated_phase}
+\end{equation} 
+We see that in Equation \ref{eq:signal_og}, without additional considerations, the signal that we observe is integrated over the whole volume being imaged. In Equation \ref{eq:accumulated_phase}, the main reason that $\omega$ is now a function of space and time is that we will add spatially varying gradient fields that in turn make $\omega$ dependent on space and time. One can also see that \Eqref{eq:signal_og} shows that measurements will not be provided directly in image space, but rather in Fourier space, often referred to as \textit{k-space}: MRI allows us to obtain \textit{frequency} information about our object of interest, and then an image can be obtained by mapping back these measurements into image space. 
+
+%But so far, we have no information about which spatial location the RF signal measured by the receive coil comes from, as every part of the body is subject to $\*B_0$, thus being impossible to discriminate the origin of the response to a RF pulse, as all hydrogen atoms at every location will resonate similarly. To solve this localisation problem, we will use the additional information conveyed by the RF-wave, namely its phase and frequency. We will divide the body of the person in the scanner into voxels\footnote{This is the 3D equivalent of a pixel.} and code those such that the RF-wave emitted by the protons inside different voxels will have a unique combination of phase and frequency. This is done by adding three sets of coils to the scanner, namely gradient coils, whose role will be to produce an additional magnetic field in the $\*{\hat{x}}$,  $\*{\hat{y}}$ and  $\*{\hat{z}}$ directions respectively, which will make the overall $\*B_0$ not homogeneous, allowing us to encode different phases and frequencies depending on the spatial location of the body part that we want to image.
+
+\begin{figure}[!ht]
+    \vspace{1cm}
+    \centering
+    \includegraphics[width=0.8\linewidth]{gradient_echo_sequence}
+    \caption{A 2D gradient echo sequence diagram. Each line describes how different components interact during the time of a single excitation. On the first line, we see the RF pulse enabled at $t=0$. On the second line, we have the slice selecting gradient $G_{z,\text{SS}}$, on the third line we have the phase encoding gradient $G_{y,\text{PE}}$, on the fourth we have the readout gradient $G_{x,\text{R}}$ and finally the analog-to-digital converter (ADC).}\label{fig:gre_diagram}
+    \vspace{1cm}
+\end{figure}
+
+
+\paragraph{Slice Selecting (SS) Gradient.}~As we see on Figure \ref{fig:gre_diagram}, during the RF pulse, a constant $\*z$-gradient is applied during a time $\tau_{\text{RF}}$ with intensity $G_{\text{SS}}$, and reversed afterwards. We will not detail here why this gradient is reversed, but this has the effect of making all components in the slice in phase, with a common accumulated phase $\phi = 0$. This enables to select the slice of interest and make sure that the signal will be strong for the acquisition. As a result, for a slice at location $\z_0$ with thickness $\Delta z$, the signal will be integrated out on the slice only, i.e. we will have the spin density $$ S(t_1) = \int \int \left[\int_{z_0 -\frac{\Delta z}{2}}^{z_0 +\frac{\Delta z}{2}} \rho(x,y,z) dz\right]dydx  \approx \int \int\rho(x,y,z_0) dydx.$$
+ 
+
+\textbf{Phase Encoding (PE) Gradient.} Let us now add the phase encoding $\*y$-gradient to the picture. Assume that it is applied during a time $\tau_{\text{PE}}$ at intensity $G_{\min} \leq G_y \leq G_{\max}$. This will result in gradients acquiring a $\*y$-dependent phase, and as a result 
+$$S(t_2) = \int \left[\int\rho(x,y,z_0) e^{-i2\pi \gbar G_y \tau_{\text{PE}}y}dy \right]dx$$
+
+% Turning on the $\*{\hat{y}}$-gradient, $G_y$,  very briefly will make the protons in the $\*{\hat{y}}$-direction acquire different phases. Indeed, while the gradient is on, protons in locations where the gradient in the $\*{\hat{y}}$-axis is stronger will start precessing faster than in $\*B_0$, and where the gradient is smaller, they will start precessing more slowly. When the gradient is turned off, all the protons are back precessing at the same frequency, but they will remain slightly out of phase, and hence the RF-waves that the receive coil will measure will have different phases depending on the $\*{\hat{y}}$-axis.
+
+\textbf{Readout (R) Gradient.} Finally, the $\*x$-gradient is first turned on negatively, dephasing the phases, followed by a rephasing stage where the observation through the ADC is carried out. It is enabled at the strength $G_x$ and for a duration $T_S$. Given the shifted variable $t' = t-T_E$, we have as a result
+\begin{equation}
+    S(t') = \int \left[\int\rho(x,y,z_0) e^{-i2\pi \gbar G_y \tau_{\text{PE}}y}dy \right] e^{-i2\pi \gbar G_xt'x}dx, \text{~~} -T_S/2 \leq t' \leq T_S/2. \label{eq:s_full}    
+\end{equation}
+
+\Eqref{eq:s_full} is very interesting as one can rewrite the $(\*x,\*y)$-directions as spatial frequencies depending on $t$ and $\tau_{y}$, namely $$(k_x,k_y) = (\gbar G_xt', \gbar G_y \tau_{\text{PE}}).$$
+This in turns enables us to rewrite \Eqref{eq:s_full} as 
+\begin{equation}
+    S(k_x,k_y) =  \int \int\rho(x,y,z_0) e^{-i2\pi (k_x x + k_y y)} dxdy\label{eq:skspace}
+\end{equation}
+which turns out to be the Fourier transform of the spin density. More precisely, the signal obtained in the presence of a gradient echo structure in the readout direction after its encoding by a fixed $G_y$ describes a \textit{line} in the k-space of the Fourier transform of $\rho(\*x)$. This implies that by acquiring several lines at different $k_y$ by varying $G_y$, we can effectively cover the k-space, as illustrated in Figure \ref{fig:kspace_coverage}. As a result, when the k-space has been sufficiently densely covered, the spin-density can be recovered by taking the inverse Fourier transform of \Eqref{eq:skspace}, i.e. 
+\begin{equation}
+    \rho(x,y,z_0) =  \int \int S(k_x,k_y) e^{+i2\pi (k_x x + k_y y)} dk_xdk_y\label{eq:inversion}
+\end{equation}
+
+This approach is referred to as \textit{Cartesian sampling} because it covers k-space in a grid-like fashion, as illustrated on Figure \ref{fig:kspace_coverage}. Note that there exist different sequences that can perform Cartesian sampling, and even more sequences that are \textit{not} Cartesian. We refer to such approaches as non-Cartesian sampling approaches, and they can include radial sampling \citep{lauterbur1973image}, spiral sampling \citep{meyer1992fast} or even some more flexible coverages of k-space \citep{lazarus2019sparkling}. 
+
+Cartesian MRI has the advantage over these methods of enabling the use of the fast Fourier transform to compute the inversion of Equation \ref{eq:inversion}, which is \textit{not} the case for non-Cartesian methods. These approaches require some more sophisticated inversion, involving gridding \citep{o1985fast} and non-uniform Fourier transforms \citep{fessler2003nonuniform}. The differences are however deeper than merely the inversion technique, as radial trajectories are known to be more robust to motion artifacts, while spiral acquisitions enable fast imaging but are prone to other artifacts, and \citet{lustig2008compressed} discuss these issues in greater depth. 
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.6\linewidth]{kspace_coverage}
+    \caption{Traversal of k-space for a gradient echo pulse sequence. The combined application of the phase encoding gradient $G_{y,\text{PE}}$ and readout gradient $G_{x,\text{R}}$ males the signal move in k-space to the desired location in a diagonal trajectory. The phase encoding gradient is then stopped, and the readout gradient is reversed, bringing the spins back through a complete set of $k_x$ value while keeping $k_y$ constant. The experiment is then repeated by returning to a different $k_y$ value until the whole of k-space has been covered in a grid-like fashion.}\label{fig:kspace_coverage}
+\end{figure}
+
+%On a different note, MR imaging remains a slow imaging technique, and the quality of the images is greatly dependent on the absence of motion during the acquisition. This also means that for body MRI, the patient should not breathe during the whole acquisition process, as this motion would yield a reconstruction image with many undesired artifacts \cite{glockner2005parallel}. This burden is particularly true for dynamic MRI, as the scan times will be even longer than in the static case. We will develop in the next section the main acceleration framework for the MRI, which allows for large reduction in imaging time, and partially overcomes these problems. 
+
+
+%\section{Cartesian sampling}
+%Most pulse sequences in clinical imaging are Cartesian \citep{lustig2008compressed}. Once coefficients are acquired as a grid in Fourier space, reconstruction of the image is straightforward, and performed by an inverse FFT. 
+
+%Other trajectories : advantages : radial is robust to motion, spiral enables fast imaging \citep{lustig2008compressed} but come at the cost of more challenging reconstruction \todo{Go into more details of its implementation and distinguish from non-Cartesian sampling.}
+
+
+
+%\subsection{Cartesian and radial sampling of k-space}
+%In the previous section, we explained the basic principles of MRI acquisition. There are then several sequences by which we can acquire the signal, and it is necessary to understand the two standard acquisition techniques that are used in dynamic MRI, which are Cartesian and radial sampling.
+
+
+%The most used one is by far Cartesian sampling, which is very intuitive to understand: the $k$-space samples are acquired on an equispaced grid, and, at a Nyquist sampling rate or above, the image can be reconstructed without aliasing by an inverse Fourier transform. This is the natural result obtained from the section \ref{sec:imacquisition}, as we basically acquire all frequency encodes in one phase encode, and then repeat in order to fill the k-space with equispaced PEs. 
+
+
+%Radial sampling, on the other hand, is much more involved than Cartesian sampling, as it requires several more steps in order for the Fourier transform to be computed. In this case, the gradients of the magnetic field will encode each acquired spoke (i.e. radial line) as a phase encode, and each of the samples of this spoke will be the frequency encodes. We will hereafter describe the standard procedure for reconstructing non-uniformly acquired data in the k-space, based on the work of O'Sullivan \cite{o1985fast}, called gridding. We will then detail the most general framework of the non-uniform Fourier transform that we will use throughout our work, based on Fessler and Sutton's work \cite{fessler2003nonuniform}. 
+
+\subsection{Parallel imaging}
+
+The need to cover k-space through sequential readouts makes MR imaging a slow imaging technique, and the quality of the images is greatly dependent on the absence of motion during the acquisition. This also implies that for body MRI, the patient should not breathe during the whole acquisition process, as this motion would yield a reconstruction image with many undesired artifacts \citep{glockner2005parallel}. This has motivated further research into ways to accelerate the acquisition.
+
+A first step in this direction is the use of \textit{parallel imaging}. This technique relies on a \textit{multicoil} MRI acquisition, which was introduced at the beginning of the 1990s by \cite{roemer1990nmr}. The idea was to use several receive coils positioned at different locations instead of a single large one. The coils record different signal intensities depending on their spatial location, which enables to achieve a larger signal to noise ratio (SNR) compared to a single coil acquisition. 
+It was subsequently observed that instead of increasing the SNR compared to a single coil acquisition, exploiting the geometry of the coil array could help accelerate MRI by resolving the aliasing due to spacing out successive k-space phase encodes by a factor $R$ known as the \textit{acceleration factor} \citep{sodickson1997simultaneous}. This is what is known as \textit{parallel imaging}. However, this acceleration introduces a tradeoff between acceleration and SNR as increasing $R$ will reduce the SNR by a factor $\sqrt{R}$. Reconstructing the image becomes also non-trivial, as the images from each coil have a decreased field of view (FoV), resulting in aliasing when extended to the full FoV, as illustrated on Figure \ref{fig:parallel}.
+
+%, also referred to as \textit{multicoil} MRI.
+ %This burden is particularly true for dynamic MRI, as the scan times will be even longer than in the static case. We will develop in the next section the main acceleration framework for the MRI, which allows for large reduction in imaging time, and partially overcomes these problems. 
+
+%This technique was introduced at the beginning of the 1990s, by \cite{roemer1990nmr}, and rely on the idea of using several receive coils positioned at different locations instead of a single large one. The coils record different signal intensities depending on their spatial location, which enables to achieve a larger signal to noise ratio (SNR) compared to a single coil acquisition, as well as some acceleration due to the redundancy of information acquired in different coils. This acceleration is achieved by spacing out successive k-space phase encodes by a factor $R$, known as the \textit{acceleration factor}. However, there is a tradeoff as increasing $R$ will reduce the SNR by a factor $\sqrt{R}$. Reconstructing the image becomes also non-trivial, as the images from each coil have a decreased field of view (FoV), resulting in aliasing when extended to the full FoV, as illustrated on Figure \ref{fig:parallel}.
+
+
+
+\begin{figure}[!t]
+    \centering
+    \resizebox*{\linewidth}{!}{\input{../figures/pdm/parallel_sampling.tex}}
+
+    \caption{Example of parallel imaging on a cardiac image, simulated with three coils, whose sensitivities are three superimposed rectangles, each covering one third of the image. \textit{First column:} combination via the sum of squares (SoS) technique, where the images from each coil are simply summed weighted by their modulus. \textit{Second column:} Reconstruction taking into account the sensitivity maps, allowing for precise reconstruction for an acceleration rate $R$ up to $3$. \textit{Third column:} Image reconstructed for the second coil when taking into account its sensitivity. \textit{Fourth column:} $k$-space of the second channel at different undersampling rates. } \label{fig:parallel}
+\end{figure}
+
+%Having the information about the spatial location of the coils also allows for a faster reconstruction by increasing the k-space distance between two successive phase encodes by a factor $R$, called the acceleration factor. As $R$ times fewer samples are acquired, the acquisition is accelerated by a factor $R$, but in this case, the $SNR$ is reduced by a factor $\sqrt{R}$. Also, the reconstruction becomes non-trivial, as the images from each coil will have a decreased field of view (FoV), thus exhibiting aliasing when extended to the full FoV. 
+
+Various approaches have tackled this challenge, but they generally rely on some patient-dependent calibration. For instance, SENSE\footnote{Sensitivity encoding} \citep{pruessmann1999sense} considered \textbf{coil sensitivity maps}, which describe how each coil responds to a signal at each location of the FoV. They are typically estimated from data from a prescan \citep{blaimer2004smash}. GRAPPA\footnote{Generalized Autocalibrating Partially Parallel Acquisitions} \citep{griswold2002generalized} uses a small part of the signal near the center of k-space, called autocalibration signal, in order to compute how the data from different \textit{channels} (coils) should be combined. Several reviews \citep{blaimer2004smash, glockner2005parallel,deshmane2012parallel} examine the differences and similarities of these techniques in greater detail and detail various clinical applications. Calibrationless methods have also been explored in more recent years \citep{trzasko2011calibrationless,majumdar2012calibration,el2019calibrationless}.
+%\todoi{Describe SENSE and GRAPPA a bit? Explain sum of squares, or is the explanation sufficient from the figure?}
+
+\textbf{An example of parallel imaging with coil sensitivities.} We illustrate the role of sensitivity maps to provide additional information to resolve the aliasing due to the acceleration in Figure \ref{fig:parallel}. This example assumes three coils with box-like sensitivities covering each a third of the image. 
+We see that in the case $R=1$, there is no aliasing, and reconstruction is simply achieved by an inverse Fourier transform. In the case $R=3$. We see that adding the information of each coil allows to still resolve the aliasing, but this is not sufficient for $R=4$, where the three coils do not provide enough information in order to resolve aliasing. We can see also on the last column how increasing $R$ results in acquisition lines getting more spread out in Fourier space. 
+
+Note that this is an idealized example, as in this case the coil-sensitivities do not overlap, which means that summing up individual images multiplied by their respective sensitivities suffices to reconstruct the image. The SENSE algorithm is more involved and can resolve images with overlapping coil sensitivities.
+
+
+
+
+\subsection{Dynamic MRI}
+Before terminating this chapter, we will also cover the case of dynamic MRI, which will be relevant to Chapter \ref{chap:lbcs} of this thesis.  Dynamic MRI, as its name suggests aims at imaging dynamic, moving objects. It can be used for instance for cardiac imaging \citep{tsao2003k} or vocal tract imaging \citep{echternach2010vocal}. The data are acquired in k-space at different times, resulting in k-t raw data, and the direct reconstruction is done with a frame by frame inverse Fourier transform. 
+
+In this setting, imaging speed is most critical for several reasons: if one wants to image a fast-moving object precisely, then a high temporal resolution will be required, which presents a challenge for MRI \citep{tsao2003k}. Accelerating the acquisition in this case will not only improve the comfort of the patient, but might also provide higher temporal resolution.
+
+However, the motion between two frames should not be too large, and in practice, which would require breath-held examinations for Cartesian cardiac imaging \citep{gamper2008compressed, jung2009k}, which is often impractical for patients. In this case, techniques such as radial sampling can be greatly beneficial, as radial spokes continually sample the center of the k-space, and then motion can be retrospectively corrected in free-breathing samples \citep{winkelmann2007optimal, uecker2010real, feng2014golden, feng2016compressed}. 
+
+If one wishes to perform Cartesian sampling in this case, higher acceleration rates would be required, and parallel imaging might not be sufficient to resolve aliasing. As a result, one might use a priori structure in the images to constrain the reconstruction of the image and obtain a good quality outcome. This is known as Compressed Sensing \citep{candes2006robust,donoho2006compressed}, and will be discussed in Chapter \ref{chap:rec}. 
+
+\section{Mathematical description}
+We close this chapter by introducing the mathematical framework that will be used in the sequel. So far, we have described our problem in a continuous fashion, where the signal is a function of a continuous time $t$ or k-space location $(k_x, k_y)$. However, in a Cartesian acquisition, the data can be represented on a finite grid as a discrete set of values, depending on the total number of readouts. Then, within each readout, samples will be recorded at a time interval $\Delta t$, and so the resolution of k-space can be described as 
+\begin{align*}
+\Delta k_x = \gbar G_x \Delta t\\
+\Delta k_y = \gbar \Delta G_{\text{PE}} \tau_{\text{PE}}
+\end{align*} 
+Note that in order to guarantee an image without aliasing, $\Delta t $ and $\Delta G_{\text{PE}}$ must be sufficiently small, and their precise value is dictated by the famous Nyquist-Shannon sampling theorem. Assuming a total of $N_y$ phase encoding lines with each continuing $N_x$ samples, we can represent the signal $S(k_x,k_y)$ as a matrix $\mS \in \mathbb{C}^{N_x \times N_y}$, which can be written in a vectorized form $\vs \in \mathbb{C}^P$, where $P=N_x \cdot N_y$. 
+
+In the Cartesian case, the spin density $\rho(x,y)$ will be obtained by computing an inverse Fourier transform on $\vs$. It is common for the resulting image to be described as $\boldsymbol{\rho} \in \mathbb{C}^P$, with the same dimensions as $\vs$. The inversion operation is performed by the inverse Fourier transform $\mathcal{F}^{-1}$, applied to $\vs$, namely 
+\begin{equation}
+    \boldsymbol{\rho} = \mathcal{F}^{-1}(\vs).
+\end{equation}
+This operation is often represented as matrix vector multiplication, where the operator $\mathcal{F}^{-1}$ is explicited as the FFT matrix $\mF^{-1}$, and in addition, one can model the imperfections in the measurement as additive Gaussian noise $\bepsilon \in \mathbb{C}^P$, which yields
+\begin{equation}
+    \boldsymbol{\rho} = \mF^{-1} \vs + \bepsilon. \label{eq:ifft}
+\end{equation}
+Note that in practice, Equation \ref{eq:ifft} is not evaluated explicitly, but rather the inverse Fourier transform is directly computed using the Fast Fourier Transform (FFT) algorithm.
+
+\subsection{Accelerated MRI}\label{s:acc_MRI}
+ In the case of accelerated MRI, the full k-space is not observed, and in practice, entire phase encoding lines are skipped at once, resulting in an acceleration of the scanning time proportional to the number of lines removed. We represent this operation as masking our unobserved coefficients, which is achieved by defining a diagonal masking matrix $\mP_\omega$ that masks out coefficients indexed by the set $\omega$, namely $\mP_{\omega,ii} = 1$ if $i\in \omega$ and $0$ otherwise. $\omega$ is defined as the sampling mask and has cardinality $|\omega| = N$. $\omega$ is typically structured so that entire lines are skipped at once, and a formal presentation of this structure will be discussed in Chapter \ref{chap:lbcs}. We refer to the ratio $N/P$ as the \textit{sampling} rate. This masking results in observing the partial image
+\begin{equation}
+    \boldsymbol{\rho} = \mF^{-1} \mP_\omega \vs + \bepsilon \label{eq:acceleratedMRI1}
+\end{equation}
+
+\begin{remark}[Sampling mask and trajectories]
+    There is a difference between a sampling mask and a sampling trajectory. The former only provides a fixed view of all locations acquired, while the latter comprises a \textit{dynamic} component. The sampling trajectory tells not only what locations were acquired, but also the temporal ordering of the acquisition, detailing the order in which the samples are acquired throughout the multiple acquisition steps.
+\end{remark}
+
+In the sequel, we will consider problems where we aim at learning how to reconstruct data from partial Fourier measurements, and how to optimize sampling masks to obtain the best reconstruction quality. In order to be aligned with the commonly used terminology, we will need to redefine some of the notation used until here. We assume that there exists some underlying ground truth image $\vx \in \mathbb{C}^P$ from which we acquire partial Fourier measurements (or observations) $\vy_\omega$ that can be noisy, i.e. 
+\begin{equation}
+    \yo = \mAo \vx + \bepsilon = \Po \mF \vx + \bepsilon.\label{eq:acquisition}
+\end{equation}
+This will be our basic acquisition model for the whole of this thesis. $\mAo$ is defined as a shorthand for $\Po \mF$. Note that Equations \ref{eq:acceleratedMRI1} and \ref{eq:acquisition} can be related by setting $\vs = \mF\vx$ and $\boldsymbol{\rho} = \mF^{-1} \yo$. This reformulation allows to describe the image $\vx$ as the fundamental unknown, and the partial measurements to be described in the Fourier domain.  
+
+\begin{remark}
+    In the case of parallel or multicoil acquisition, Equation \ref{eq:acquisition} is slightly adapted to account for acquisition on $j=1,\ldots,C$ coils with different spatial sensitivities
+\begin{equation}
+    \vy_{\omega,j} = \mAo \mS_j \vx + \bepsilon_j = \mP_{\omega} \mF \mS_j \x+ \bepsilon_j, \label{eq:acquisition_parallel}
+\end{equation}
+where the coil sensitivities can be represented as a $P\times P$ diagonal matrix where $S_{j,ii}$ describes the spatial sensitivity for the $i$-th pixel. We will also sometimes  use the compact notation 
+\begin{equation} 
+    \yo = \mAo \mS \vx + \bepsilon\label{eq:acquisition_parallel_compact}
+\end{equation}
+for multicoil MRI, and in this case, $\yo \in \mathbb{C}^{C P}$ will represent the stacked observation, $\mAo$ will be the coil-wise Fourier transform, $\mS \in \mathbb{R}^{CP\times P}$ will be the stacked sensitivities.
+\end{remark}
+
+
+Recovering the ground truth image $\vx$ from partial measurement $\yo$ is challenging, as the problem of recovering an image from partial measurements is fundamentally ill-posed: there is mathematically infinitely many solutions that are consistent with $\yo$, but they are not physically meaningful. Such problems are often referred to as ill-posed \textit{inverse} problems, where we aim at recovering a reference image from partial information that entail a loss of information. In this context, \Eqref{eq:acquisition} is referred to as a \textit{forward} model. In the next chapter, we will discuss the approaches that have been studied in the literature to construct an estimate $\hat{\vx}$ of $\vx$ from partial measurements $\vy.$
+
+
+%In the sequel, we will consider the case of accelerated MRI and leverage learning-based techniques to  
+
+
+
+%\todoi{What needs to be added: \textbf{i)} Description of a discrete acquisition, of the Fourier operator and reconstruction through FFT;  \textbf{ii)} Introduction of the accelerated MRI setting: undersampling, etc. ; \textbf{iii)}Description of Cartesian MRI, and mention that there are different ways to get the same Cartesian grid, and different acquisitions such as non-Cartesian acquisition or dynamic MRI can be used.; \textbf{iv)}Introduced the notation that will be required further in the thesis.}

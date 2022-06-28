@@ -1,0 +1,332 @@
+%!TEX root = ../../thesis.tex
+\chapter{Appendix for Chapter \ref{ch:rl_mri}}
+
+
+\section{Implementation details}\label{ap:implementation}
+\textbf{Pretraining regimes.} The deep reconstructors used in \cite{pineda2020active,bakker2020experimental} are pre-trained by randomly sampling a mask from a set of distributions with different parameters. \cite{bakker2020experimental} uses a discrete set of sampling rates at ($25\%$,$25\%$,$25\%$, $16.7\%$,$16.7\%$, and $12.5\%$) with ($25\%$,$16.7\%$,$12.5\%$, $16.7\%$,$12.5\%$,$12.5\%$) of the total selected frequencies being allocated to center frequencies and the rest sampled uniformly,while  \cite{zhang2019reducing} uses a distribution  where $10$ center frequencies are always acquired, and between $0$ and $38$ additional frequency lines are acquired following a uniform distribution (as a reminder, the total number of possible sampling locations is $128$ lines or columns).
+
+All UNet models of the ablations of the \citet{bakker2020experimental} setting were trained following the hyperparameters described in the paper, i.e. using Adam \citep{kingma2014adam} and training to 50 epochs, otherwise using the hyperparameters from \citet{zbontarFastMRIOpenDataset2019} (except for the $10\times$ learning rate drop 40 epochs, we instead kept the initial $10^{-3}$ rate throughout).
+We used a batch size of $32$.
+
+For the cResNet models used in the ablations we used Adam as an optimizer with learning rate $10^{-3}$,betas of $(0.9,999)$, trained for $50$ epochs and a batch size of $32$. The architecture is the same as in \citet{zhang2019reducing} except only outputting the mean of the image (no uncertainty channel), and using $72$ channels for the 3 residual blocks, with $18,36,72$ channels in the encoder and $72,36,18$ channels in the decoder. In the comparison with \citet{pineda2020active}, we used the checkpoint provided at \url{https://facebookresearch.github.io/active-mri-acquisition/misc.html} by the authors.
+
+
+\textbf{Computational hardware.} We performed all of your experiments on a DGX-2 server using $A100$ GPUs. On this machine the reconstruction model of \cite{pineda2020active} fits into GPU memory with an effective batchsize of $50$ (we use subbatching to enable arbitrary batch sizes) and it took $\sim 3$ hours to train each of the reported LBCS masks. Meanwhile, masks for the comparisons of \cite{bakker2020experimental} could be trained in $\sim 20$ minutes, while training the RL policy took on the order of days as reported in the authors original paper.
+While one might be able to obtain a certain speedup using a more optimized or parallel RL algorithm, a key bottleneck is the sequential nature of the optimization.
+
+\clearpage
+\FloatBarrier
+
+\section{Further experiments and results on Bakker's setting}
+%\footnote{The only difference is the train-test split which we obtained too close to publication. This does not affect our results since it means that the RL policy is partially performing on the training set, i.e. it actually \emph{overperforms} compared to LBCS}
+\subsection{Data processing differences}\label{app:bakker_pipeline_ablation}\label{app:bakker_mismatch}
+In section \ref{s:re_examining}, we mentioned that we slightly deviated from the setting of \cite{bakker2020experimental}. We now detail these changes and show that they do not change the \textit{relative} performance of the different methods. 
+\begin{enumerate}
+    \item \textbf{Train-test split:} we used a different train-test split than \cite{bakker2020experimental}, as we randomly split $10\%$ of the training set as a test set, and used the fastMRI validation set for test. We used the $50\%$ more central slices, resulting in $15599$ training slices, $1743$ validation slices and $3564$ test slices.
+    \item \textbf{Complex data undersampling:} \cite{bakker2020experimental} use magnitude ground truth images as the reference that is undersampled. We discussed in \Cref{sec:pipeline} the issue with this approach. We chose to use complex preprocessing of data, followed by taking magnitude of the observation obtained \textit{after} undersampling. 
+    \item \textbf{Data range: }PSNR and SSIM need to be provided with a maximal data range in their computation: \cite{bakker2020experimental} used the maximal intensity in the ground truth  \textit{volume}, while we used the maximal intensity of each ground truth \textit{slice} or image.
+    \item \textbf{Data standardization:} \cite{bakker2020experimental} used a unique data standardization, where observations and ground truth data are standardized using their respective statistics, but denormalized, after reconstruction, using only the ground truth statistics. While this ensures a more closely matching data range, this introduces a mismatching data range that biases models leveraging data consistency, used in most state-of-the-art models. We performed \textit{matched} data normalization and denormalization using the observation statistics for the observation, and the ground truth ones for the ground truth. 
+\end{enumerate}
+
+The third and fourth changes are related to postprocessing, and do \textit{not} require retraining a model. We see on the three first columns of Table \ref{tab:bakker_pipeline_ssim_auc_sh} that these changes do not alter the relative ordering of the methods. However, in absolute numbers, the worse performing method in the initial setting outperforms the best method the best performing one after these changes (highlighted in italic on Table \ref{tab:bakker_pipeline_ssim_auc_sh}). While comparing these numbers would be a mistake, this highlights the impact of subtle postprocessing changes and the need for care in comparing methods, especially across different papers.
+
+\textbf{Ablation over Magnitude vs Complex data.} We first illustrate the impact of doing the appropriate preprocessing by evaluating the model of \cite{bakker2020experimental} using their data processing pipeline against a pipeline with complex preprocessing. The SSIM performance AUC is reported in Table \ref{tab:bakker_pipeline_ssim_auc_sh}. 
+
+This would correspond to a simulation of what would happen if the model of \cite{bakker2020experimental} was to be used in deployment, as one would receive undersampled complex observations that are only then transformed to magnitude images. While this does not induce any \textit{reversal} in this case, we see that in the matched setting, the gap between LBCS and RL shrinks. We see also again that training and evaluating on the matched setting leads to larger performance improvements than the ones obtained by training sophisticated policies.
+
+%A subtle difference in the setting (using a magnitude or complex image as the reference before subsampling) can introduce a significant performance shift. Worse still, this subtle mismatch can also induce \textit{reversals}, as LBCS significantly outperforms the RL model, due to the distributional shift induced by an inconsistent preprocessing. It is also interesting to note that, in this case, the properly trained LBCS in our setting actually underperforms with respect to the mismatched evaluation. This testifies, to some extent, to the lack of regularity of the problem, that can occasionally exhibit surprising results. Note also that this behavior is not observed when reporting the AUC over the whole trajectory, highlighting that this performance of LBCS on the mismatched setting seems to not be representative of its performance over the whole acquisition.
+
+\begin{figure}[!ht]
+    \begin{center}
+    \resizebox{\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_pipeline_ssim_auc_sh}}
+    \captionof{table}{AUC on the test set, using SSIM, on various data processing on Bakker's knee setting. The mismatched setting refers to the evaluation of the model trained in the setting of \cite{bakker2020experimental}, but evaluated complex data preprocessing instead of magnitude data preprocessing. This makes the reconstruction and policy models to be out of the distribution. A model trained on the complex preprocessing is reported in the complex preprocessing (matched - ours) column.}\label{tab:bakker_pipeline_ssim_auc_sh} 
+    \end{center}
+\end{figure}
+
+%\begin{figure}
+ %  \begin{center}
+ %   \resizebox{\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_mismatched_ablation_ssim_auc_sh}}
+ %   \captionof{table}{Average SSIM test set AUC (one AUC per image) on Bakker knee setting. The ablation is carried out over ...}\label{tab:bakker_mismatched_auc_full} 
+%    \end{center}
+%\end{figure}
+\subsection{Exact reproduction of Bakker et al.}
+In our experiments, we did not use the exact same train-val-test split and dataset undersampling as \citet{bakker2020experimental}. We re-evaluated our model in the exact setting of \citet{bakker2020experimental}, as illustrated on the first column of Table \ref{tab:bakker_pipeline_ssim_auc_sh}. On Table \ref{tab:bakker_pipeline_ssim_at_25_sh}, we present the results at $25\%$ sampling against the ones reported in the paper of \citet{bakker2020experimental}. 
+
+
+\begin{figure}[!ht]
+    \begin{center}
+        \resizebox{0.6\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_mismatched_ablation_ssim_at_25_sh}}
+    \captionof{table}{SSIM at $25\%$ on the test set used by \citet{bakker2020experimental} and subsampling the dataset by a factor $2$, in order to replicate their setting as close as possible. We compare the numbers that we obtain to the ones reported in the article of \citet{bakker2020experimental}.}\label{tab:bakker_pipeline_ssim_at_25_sh} 
+    \end{center}
+\end{figure}
+
+We see that the performance difference is in the same order of $0.0018$ to $0.0029$, and that the relative ordering of methods is preserved. We conclude from these results that our results are overall consistent with the results displayed in the paper of \citet{bakker2020experimental}, although this is not an \textit{exact} replication.
+
+%However, when re-evaluating our models on the testing split, and undersampling the dataset in a similar way, we generally found that the results were all shifted up by around $0.002$ SSIM. (For instance, 
+
+\subsection{Further results in the Bakker experiment}\label{app:bakker_ablation_full}
+We provide the results of our full ablation study on the components described in section \ref{s:re_examining}. We report observations on the \texttt{cvb}, \texttt{cvz}, \texttt{c+rvz} and \texttt{c+rhz} settings. The summary of the full trajectory with an AUC is presented on Table \ref{tab:bakker_auc_ssim_full} and the performance at the end of sampling is shown in Table \ref{tab:bakker_at_25_ssim_full}. 
+
+It is difficult to consistently establish a trend for when reversals will happen, but several important observations can be made from the results.
+
+First of all, by comparing Tables \ref{tab:bakker_auc_ssim_full} and Table \ref{tab:bakker_at_25_ssim_full}, we see that reversals can happen by considering one way of reporting over another (see \texttt{c+rvz} cResNet in both tables). This highlights again the impact of the way results are reported. 
+
+The effect of the masks used for pretraining the reconstructor is also interesting. Comparing the \texttt{cvb} and \texttt{cvz} results, once can consistently see the following trend. In the short horizon setting (LHS of the tables), using \texttt{cvb} leads to consistent improvements over \texttt{cvz}. In the long horizon setting, the opposite is true. Recall that the \texttt{b} masks are discretely distributed from sampling rates $12.5\%$ to $25\%$, which matches the short horizon experiment range. The \texttt{z} masks span a continuous range, from roughly $7\%$ to $37.5\%$, whereas the long horizon experiment spans a range from $3\%$ to $25\%$ sampling rate. These results suggest that matching the pretraining regime to the regime on which evaluation will be carried out has a significant influence on the performance of the sampling policy, an observation which has, to our knowledge, never been quantified before.
+
+\textbf{PSNR evaluation.} We also provide a PSNR evaluation for the models trained on SSIM in Tables \ref{tab:bakker_auc_psnr_full} and \ref{tab:bakker_at_25_psnr_full}. There does not seem a clear trend or correlation between the policy's performance on SSIM and PSNR. We observe however the same kind of dynamics in the settings, where cropped + resized data naturally have a higher PSNR than cropped ones, and cResNet improves the reconstruction quality of UNet. 
+
+\begin{figure}[!ht]
+    \begin{center}
+    \resizebox{0.95\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_ssim_auc}}
+    \captionof{table}{AUC on the test set, using SSIM, for the full ablation study using the model of \cite{bakker2020experimental}. The short and long horizon results are \textit{not} comparable with each other, as AUCs are integrated on the whole range of sampling rates. The top right part of the table (long horizon) replicated the results of table \ref{tab:bakker_LH_auc}, excluding the standard deviation for legibility. The rest of the ablation were \textit{not} averaged on several seeds due for computational reasons. Recall that \texttt{cvb} stands for cropped, vertical lines, Bakker-like mask distribution, \texttt{c+rhz} stands for cropped then resized, horizontal lines and Zhang-like masks, \texttt{cvz} stands for cropped, vertical lines and Zhang-like masks and \texttt{c+rvz} stands for cropped then resized, vertical lines and Zhang-like masks.}\label{tab:bakker_auc_ssim_full} 
+    \end{center}
+\end{figure}
+
+\begin{figure}[!ht]
+    \begin{center}
+    \resizebox{0.95\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_ssim_at_25}}
+    \captionof{table}{SSIM at 25\% sampling rate, using SSIM, with the model of \cite{bakker2020experimental}. This is the counterpart of the results shown in Table \ref{tab:bakker_auc_ssim_full}. Here, the results across short and long horizon are comparable.}\label{tab:bakker_at_25_ssim_full} 
+    \end{center}
+\end{figure}
+
+
+\clearpage
+\FloatBarrier
+
+\begin{figure}[!t]
+    \begin{center}
+    \resizebox{.95\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_psnr_auc}}
+    \captionof{table}{AUC on the test set, using PSNR, for the full ablation study using the model of \citet{bakker2020experimental}. The short and long horizon results are \textit{not} comparable with each other, as AUCs are integrated on the whole range of sampling rates. The rest ablation were \textit{not} averaged on several seeds for computational reasons. Recall that \texttt{cvb} stands for cropped, vertical lines, Bakker-like mask distribution, \texttt{c+rhz} stands for cropped then resized, horizontal lines and Zhang-like masks, \texttt{cvz} stands for cropped, vertical lines and Zhang-like masks and \texttt{c+rvz} stands for cropped then resized, vertical lines and Zhang-like masks. }\label{tab:bakker_auc_psnr_full} 
+    \end{center}
+\end{figure}
+
+\begin{figure}
+    \begin{center}
+    \resizebox{.95\textwidth}{!}{\input{../figures/simple_baselines/tables/bakker_tables/bakker_psnr_at_25}}
+    \captionof{table}{PSNR at 25\% sampling rate, using PSNR, with the model of \citet{bakker2020experimental}. This is the counterpart of the results shown in Table \ref{tab:bakker_auc_psnr_full}, where the acronyms used are explicited. Here, the results across short and long horizon are comparable. }\label{tab:bakker_at_25_psnr_full} 
+    \end{center}
+\end{figure}
+
+
+
+\clearpage
+\FloatBarrier
+
+\section{LBCS vs long-range adaptivity}\label{app:adaptivity}
+
+%Since we had to update the codebase to the current Pytorch FFT API we used the Low-To-High baseline as confirmation that we indeed replicate their setting exactly and then compare their method against the Low-To-High and random sampling baselines.
+%We also use the fact that the code provided by the authors reports the images used for evaluation to evaluate LBCS on \emph{exactly} the same subset of the validation set as the original codebase (we always train on the training set only).
+%Similar \cite{pineda2020active}, we train a separate LBCS mask for the reporting of SSIM and PSNR/MSE/NMSE (we found the latter 3 to be highly correlated in performance).
+
+Using the setting of \citet{pineda2020active}, we studied qualitatively how the different policies yield different mask designs.  As can be seen in \cref{fig:ssddqn_lbcs}a., d. and e, LBCS puts more emphasis on the center frequencies, but acquires similar sections of k-space as the SS-DDQN.
+It also creates a more symmetric mask, which is in line with \cite{pineda2020active} observations that SSIM creates more asymmetric masks.
+More interestingly, as can be seen in \cref{fig:ssddqn_lbcs}c., most of the variation is concentrated at the early sampling rates (left of the plot) with the std and especially the coefficient of variation ($\frac{\sigma}{\mu}$) decaying towards zero in most locations.
+This implies that while SS-DDQN is indeed adapting to each image individually, this mainly affects ordering early on and after 20 -40  samples ($6-12\%$ sampling rate) LBCS starts to catch up.
+This is also supported by two observations:
+
+\begin{enumerate}%[leftmargin=*]
+    \item LBCS underperforms SSDQN by a larger margin than on the full evaluation, which we interpret as the mask being good \emph{on average} and with a smaller sample there is a higher chance of individual suboptimality.
+    \item the per-image difference between LBCS and SSDQN grows in favor of SS-DDQN until about 40 samples where LBCS starts to slowly recover. The distribution of the difference however becomes much wider, implying there are images where LBCS performs wildly different from SS-DDQN.
+\end{enumerate}
+
+\begin{figure}[!ht]
+    \centering
+    \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/lbcs_vs_ssddqn.png}
+    \caption{LBCS-SS-DDQN}
+    \label{fig:lbcs_vs_ssddqn}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../figures/simple_baselines/lbcs_vs_lth.png}
+    \caption{LBCS-LtH}
+    \label{fig:lbcs_vs_lth}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../figures/simple_baselines/ssddqn_vs_lth.png}
+    \caption{SS-DDQN-LtH}
+    \label{fig:ssddqn_vs_lth}
+    \end{subfigure}
+    \caption{Per Image distribution of SSIM differences between sampling methods across the sampling process. Each shade corresponds to a $10$ percent region, with the lightest shade indicating max and min regions.}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/ss-ddqn_lbcs_masks.pdf}
+    \caption{SS-DDQN variability and comparison with the LBCS mask. CoV stands for Coefficient of Variation here.}
+    \label{fig:ssddqn_lbcs}
+    \vspace{-.4cm}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/pineda_plots/pineda_ssim_accellFalse.pdf}
+    \caption{SSIM vs sampling rate}
+    \label{fig:ssim_vs_sampling}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../figures/simple_baselines/pineda_plots/pineda_ssim_accellTrue.pdf}
+    \caption{SSIM vs acceleration rate}
+    \label{fig:ssim_acceleration_rate}
+    \end{subfigure}
+    %\hfill
+    %\begin{subfigure}[b]{0.3\textwidth}
+    %\centering
+    %\includegraphics[width=\textwidth]{../figures/simple_baselines/pineda_plots/SSIM_final.pdf}
+    %\caption{ssim final}
+    %\label{fig:ssim_final}
+    %\end{subfigure}
+    \vspace{-.2cm}
+    \caption{Two ways to report the same result, SSIM version of \cref{fig:pin_three}}
+    \vspace{-.4cm}
+    \label{fig:pin_three_ssim}
+\end{figure}
+
+
+
+\clearpage
+\FloatBarrier
+
+\section{LBCS complexity and parameters}
+\label{app:lbcs}
+
+\Cref{table:LBCS_args} summarizes the hyperparameters for sLBCS used and \Cref{table:comparison} gives an overview of the computational complexity.
+
+As we previously discussed, sLBCS is almost completely parallelizable, which leads to the stark runtime differences noted in \Cref{ap:implementation}. As can be seen when comparing \Cref{fig:pin_three} and \Cref{fig:lbcs_big}, once a certain data batch size $l$ and sampling candidate set cardinality $k$ is reached, LBCS performance saturates, although it continues to benefit especially in the low sampling regime.
+This means that one could very feasibly reduce $l$ for the comparison with \citet{bakker2020experimental}, we attempted to use a larger batchsize to explore what would be the result of scaling sLBCS up.
+
+\begin{table}[!ht]
+\centering
+\resizebox{\linewidth}{!}{\begin{tabular}{l c c c}
+\toprule
+  \centering \textbf{Method} &  \textbf{Forward} & \textbf{Backward}  & \textbf{Total} \\ [0.5ex] 
+ \midrule%\hline
+  \citep{bakker2020experimental} & $q(8)E(50)B(16)H(n_r+n_p)=6'400H(n_r+n_p)$  & $6400Hn_p$ & $6'400H( n_r+2 n_p)$\\
+   LBCS for  \citet{bakker2020experimental}  & $n(H)k(128)l(256)n_r=32'768Hn_r$ & 0&$32'768Hn_r$\\
+   \midrule
+  \citep{pineda2020active} & $5e6(n_r+n_p)$   & $5e6(n_p)$& $5e6(n_r+2n_p)$\\ 
+   LBCS for \citet{pineda2020active} & $n(100)k(64)l(20)n_r=128e3n_r$ & 0& $128e3n_r$\\
+ \bottomrule
+\end{tabular}}
+\caption{Approximate computational cost of the compared methods. Note that at test time, LBCS is basically free while the RL policies will still need to be deployed.
+$n_r,n_p$ are the parameter counts of the reconstruction and sampling policies respectively}
+\label{table:comparison}
+\end{table}
+
+\begin{table}[!ht]
+\centering
+\resizebox{\linewidth}{!}{\begin{tabular}{l c c c c} 
+\toprule
+ \centering \multirow{2}{*}{\textbf{Setting}} & Num. lines  & Max. cardinality  & Candidate   & Data batch \\
+ & $\vert \mathcal{S}\vert$ & $N$ &set size $k$&size $l$\\
+ \midrule%\hline
+  Short horizon \newline \citep{bakker2020experimental}  & 128 & 16    & 128 & 256 \\ 
+ Long horizon \citep{bakker2020experimental} & 128 & 28    & 128 & 256 \\ 
+ \citep{pineda2020active}    & 332 & 100   & 64 & 20 \\ 
+ \citep{pineda2020active} "big"    & 332 & 48   & 200 & 256 \\ 
+ \bottomrule
+\end{tabular}}
+\caption{The hyperparameters used for the stochastic LBCS masks throughout comparisons}
+\label{table:LBCS_args}
+\end{table}
+
+\begin{figure}[!ht]
+    \centering
+    \begin{subfigure}[b]{.49\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/pineda_psnr_accellFalse_BIG_stonks.pdf}
+    \caption{PSNR vs sampling rate}
+    \label{fig:psnr_big_lbcs}
+    \end{subfigure}
+    \begin{subfigure}[b]{.49\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{../figures/simple_baselines/pineda_ssim_accellFalse_BIG_stonks.pdf}
+    \caption{SSIM vs sampling rate}
+    \label{fig:ssim_big_lbcs}
+    \end{subfigure}
+    \vspace{-.2cm}
+    \caption{PSNR and SSIM of LBCS with larger batch size (LBCS - big) trained on MSE, zoomed to the region where the smaller batch size LBCS underperformed. Note that it fully matches or outperforms both versions of DDQN on PSNR.}
+    \vspace{-.4cm}
+    \label{fig:lbcs_big}
+\end{figure}
+
+\clearpage
+\FloatBarrier
+\section{Visual comparisons}
+
+In this section, we present a visual comparison over a selected set of models, policies, settings and images. We present a visual evaluation of the models and policies at sampling rates $25\%$ and $12.5\%$ on Figures \ref{fig:visualize_25} and \ref{fig:visualize_12}. In addition, we present a more exhaustive set of reconstruction, at various sampling rates, on Figure \ref{fig:recon_plot}, where we display both types of sequences that were used to generate the data, namely proton density (PD) and proton density, fat saturated (PDFS) of images \citep{zbontarFastMRIOpenDataset2019}.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/plot_idx_1684_acc_4.pdf}
+    \caption{Visualization of masks, observations, reconstructions and ground truths and error maps ($|\text{reconstruction}-\text{ground truth}|$) at $25\%$ sampling rate, for different policies (Random, LtH, LBCS, RL). The data are processed according to the \texttt{c+rhz} setting, i.e. cropped then resized images, horizontal undersampling and Zhang-type distribution of masks. The SSIM and PSNR values are given on the right, and here, \textit{zf} refers to zero-filled, and is the SSIM/PSNR taken between the observation and the ground truth.}
+    \label{fig:visualize_25}
+    \vspace{-.4cm}
+\end{figure}
+
+
+Focusing first on Figures \ref{fig:visualize_25} and \ref{fig:visualize_12}, we can observe that random and low-to-high sampling lie significantly behind the performance of LBCS and RL. This is the reason why they are not included in the rest of the figures. We can see on the observation that random sampling tends to miss important structures, and results in a severely aliased observation. On the contrary LtH, that focuses on low frequencies, obtains a good quality observation, but fails to yield an improvement after reconstruction, and generally loses out on higher frequency details, yielding a poorer performance especially on edges. In the rest of the comparison, it is hard to notice any significant visual difference between the images obtained by LBCS and the RL method of \citet{bakker2020experimental}. It is however clear that in the \texttt{c+rhz} setting, the cResNet yields a significantly better and sharper reconstruction at $25\%$ sampling, compared to the UNet. This is also confirmed by the results in Table \ref{tab:bakker_at_25_ssim_full}. On this particular image, this trend is also observed at $12.5\%$ sampling rate on Figure \ref{fig:visualize_12}, but this is \textit{not} a consistent trend, as this is not highlighted by the AUC computation of Table \ref{tab:bakker_auc_ssim_full}.
+
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/plot_idx_1684_acc_8_small.pdf}
+    \caption{Additional visualization for the image displayed in Figure \ref{fig:visualize_25}. The results feature $12.5\%$ sampling rate.}
+    \label{fig:visualize_12}
+    \vspace{-.4cm}
+\end{figure}
+
+Turning now to Figure \ref{fig:recon_plot}, it is interesting first to discuss the policies obtained by LBCS and RL respectively. The LBCS policy is fixed for the reconstruction algorithm, so the first and third rows of Figures \ref{fig:recon_plot_a} and \ref{fig:recon_plot_b} will each feature the same policy. The adaptive RL policy, on the second and fourth rows seems to have central backbone of common frequency, but varies more around higher frequencies, as observed in the Figure 5 of the appendix of \citet{bakker2020experimental}. However, in both cases, these differences have very little quantitative impact, and the same is true visually: there is no clear visual difference between the reconstructed images at either stage.
+
+While this is not an exhaustive visual investigation, and does not directly assess the suitability of the different policies for various downstream tasks, this lack of visual difference could suggest that RL might not bring a significant improvement over simpler techniques such as LBCS in such cases. However, the question remains open in the case where the sampling policy would be tailored directly for the downstream task, rather than optimized for reconstruction quality, but this falls beyond the scope of the current work. 
+
+\begin{figure}[!ht]
+\begin{subfigure}[b]{0.6\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/plt_recon_full_53.pdf}
+    \caption{}\label{fig:recon_plot_a}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.6\textwidth}
+    \centering
+    \includegraphics[width=\linewidth]{../figures/simple_baselines/plt_recon_full_82.pdf}
+    \caption{}\label{fig:recon_plot_b}
+    \end{subfigure}
+    \centering
+    \caption{Visualization of reconstructed images at different sampling rates ($6\%$, $12.5\%$, $19\%$ and $25\%$) for two sampling policies (LBCS and RL) and two reconstruction algorithms (UNet and cResNet). The data are processed according to the \texttt{cvb} setting, i.e. cropped images, vertical undersampling and Bakker-type distribution of masks. The last row shows the ground truth (repeated), and each reconstruction has the corresponding SSIM displayed at the bottom right of the image. The rightmost column display the columns acquired during sampling (in white) as a function of the acquisition steps: starting on top with only center frequencies and progressively adding more and more lines to the sampling mask. The top plot (a) displays a proton density, fat saturated (PDFS) image, and the bottom plot displays a proton density (PD) image \citep{zbontarFastMRIOpenDataset2019}.}
+    \label{fig:recon_plot}
+    \vspace{-.4cm}
+\end{figure}
+
+\clearpage
+\FloatBarrier
+\section{Detail on the practical recommendations}\label{app:conclusions}
+In this appendix, we discuss the recommendations issued in the conclusion, and provide the supporting evidence from our results.
+
+\textbf{Focus on improvements in the reconstructor architecture, mask distribution and algorithms used for training the reconstructor.} 
+Our results and ablations on the setting of \citet{bakker2020experimental} consistently show that the improvements obtained by changing the reconstructor architecture or the mask distribution are orders of magnitude more impactful than moving from LBCS to RL. This is supported the results of both Section \ref{s:ablations_results} and Appendix \ref{app:bakker_ablation_full}, where we see that moving from a UNet to a cResNet typically brings a significantly larger improvement (typically $0.01$ SSIM) than what RL brings over LBCS in the best case (at most $0.0015$ SSIM).This trend is also seen in Appendix \ref{app:bakker_ablation_full} when moving from \texttt{cvb} in the short horizon setting to \texttt{cvz} in the long horizon setting. We refer the reader to this section for more details.
+
+
+\textbf{Compare against strong baselines, such as LBCS.} This point is established throughout our paper, where all results illustrate that, at best, RL methods bring moderate improvement over LBCS. This improvement often comes at the cost of prohibitive computational expense, even on higher end DGX-2 servers\footnote{The authors of \citep{pineda2020active} confirmed to us that it took more than 20 days to train their model.}, while training LBCS required at most a couple of hours (cf. Appendix \ref{ap:implementation}).
+
+\textbf{Show sampling curves and use AUC to aggregate your results instead of performance at the final sampling rate.}
+There is no consensus on how results should be aggregated from sampling curves. \citet{bakker2020experimental,van2021active} reported performance at the end of the acquisition, and \citet{pineda2020active} reported AUC curves computed on the acceleration factor. \citet{gozcu2018learning,yin2021end} reported performance at selected sampling rates, and for other works such as \citet{jin2019self}, it is not clear how results were aggregated.
+
+We believe that reporting the AUC on sampling rates, computed on the whole range of acquisition steps allows to most meaningfully quantify the performance of a policy on its whole trajectory. It does not require to select a sampling rate at which the result should be evaluated, and using sampling rates as opposed to acceleration factor allows to equally weight the contribution of each acquired line. 
+
+Table \ref{tab:pineda_auc} and Figure \ref{fig:pin_three} compellingly illustrate that reporting the policy at a given sampling rate is not representative of its performance throughout the acquisition procedure. 
+%Curves highlight indeed the weakness of selecting a single sampling rate, as 
+
+\textbf{Be mindful about preprocessing settings when evaluating a policy model. We recommend using the cropped+vertical setting with the data normalization implemented by \citet{zbontarFastMRIOpenDataset2019}.} We discussed in \Cref{sec:pipeline} that \citet{bakker2020experimental} used a data normalization that is, among other things, incompatible with data consistency, a commonly used building block for cascading networks \citep{schlemper2018deep,zhang2019reducing}. This can be prevented by using a normalization based on observation rather than ground truth statistics, as implemented in \citet{zbontarFastMRIOpenDataset2019}.
+
+Regarding the experimental setting, vertical masks have ubiquitously used on the fastMRI dataset \citep{zbontarFastMRIOpenDataset2019,huijben2020learning,bakker2020experimental,pineda2020active} and cropping has been the most common preprocessing to alleviate the computational burden of the large images ($640\times368$) used in the dataset \citep{bakker2020experimental,Huijben2020Deep,yin2021end}. Evaluating models on cropped data with vertical masks will then facilitate reproducibility among different works. We would additionally recommend to researchers to evaluate their models on the cropped+resized in addition to the cropped only setting, as the images display a significantly different field of view (cf. Figures \ref{fig:visualize_25} and \ref{fig:recon_plot}). 

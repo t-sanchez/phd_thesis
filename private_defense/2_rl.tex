@@ -1,0 +1,197 @@
+%!TEX root = thesis_presentation.tex
+
+ 
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \section{Deep reinforcement learning for mask optimization}
+    \addtocounter{framenumber}{-1}
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \begin{frame}{Reinforcement learning}
+        \begin{columns}
+            \column{0.58\linewidth}
+                \textbf{Reinforcement learning (RL) for MRI}
+                    \begin{itemize}
+                        \item Agent = Sampling policy
+                        \item Environment = MRI scanner
+                        \item State $s$ = current mask and observations
+                        \item Action $a$ = what location to acquire next
+                        \item Reward $r$ = performance gain (PSNR, SSIM)
+                    \end{itemize}
+        
+            \column{0.4\linewidth}
+            \centering
+            \includegraphics<1>[width=\linewidth]{RL_illustration}%
+        \end{columns}
+    \end{frame}
+    
+    \begin{frame}{RL for MRI mask design}{State-of-the-art overview}
+        %Show long-horizon planning and adaptivity on the masks above and then apply it to the methods mentioned below: These methods are there, etc.
+        \begin{itemize}
+            \item Double Deep Q-Networks (DDQN), Policy Gradient (PG): two different approaches to \textit{deep} RL
+        \end{itemize}
+        
+        \vfill
+
+        \begin{center}
+        \begin{tabular}{l|cc}
+          \toprule
+          \textbf{Sampling policy} & \textbf{Adaptive} & \textbf{Long horizon} \\
+          \midrule
+          sLBCS  & \xmark & \xmark\\
+          %AlphaGo \parencite{jin2019self} & \cmark& \cmark\\
+          DDQN \parencite{pineda2020active}  & \xmark~and~\cmark& \cmark\\
+          Policy Gradient \parencite{bakker2020experimental} & \cmark& \xmark~and~\cmark\\
+          \bottomrule
+      \end{tabular}
+        \end{center}
+
+        %\begin{itemize}
+            %\item DDQN, Policy Gradient: two different approaches to deep RL
+            %\visible<2->{\item Two variants of \cite{pineda2020active}
+            %\begin{itemize}
+            %    \item \textbf<4>{Dataset-Specific Double Deep Q-Network, (DS-DDQN): \textit{non-adaptive}}
+            %    \item Subject-Specific DDQN (SS-DDQN): \textit{adaptive}
+            %\end{itemize}}
+            %\visible<3->{\item \cite{bakker2020experimental} focus mostly on adaptive and \textbf<4>{\textit{greedy} policies (Greedy PG)}, but also evaluate non-greedy models (Non-greedy PG). }
+        %\end{itemize}
+        % Focus on DS-DDQN because it performs best!
+     \end{frame}
+
+    \begin{frame}{Paradoxical conclusions?}
+        \vspace{-.5cm}
+        \begin{minipage}{0.48\linewidth}
+            \visible<1->{\begin{mdframed}\centering
+                \textbf{Pineda et al. (2020)}\\
+                Adaptivity does not bring much\\
+                Long-term planning is what matters
+                $$\text{Non-adaptive DDQN} \approx \text{Adaptive DDQN}$$
+        \end{mdframed}}
+        \end{minipage}
+        \hfill
+        \begin{minipage}{0.48\linewidth}
+            \visible<2->{\begin{mdframed}\centering
+            \textbf{Bakker et al. (2020)}\\
+            Long-term planning does not bring much\\
+            Adaptivity is what matters
+            $$\text{Greedy PG} \approx \text{Non-greedy PG}$$\end{mdframed}
+            }
+        \end{minipage}
+        \vfill
+        \begin{center}
+            \begin{minipage}{0.6\linewidth}
+                \begin{center}
+                    \visible<3->{\textbf{Questions.}\\
+                        $\circ$ Which of them is right?\\}
+                        \visible<4->{$\circ$ How to test their claim?}
+                \end{center}
+                  
+                \vfill
+                \visible<5->{
+                \begin{block}{Our idea}
+                    Use sLBCS as a baseline. It is a non-adaptive, greedy policy. 
+                \end{block}}
+                \vfill
+                \visible<6->{
+                \begin{block}{A surprising result}
+                    sLBCS can perform as well as the SotA deep RL approaches of \cite{pineda2020active,bakker2020experimental}.
+                \end{block}}
+            \end{minipage}
+            \only<5->{
+            \blfootnote{TS$^{*}$, Krawczuk, I.$^{*}$ and Cevher, V. (2022). Deep RL has limited benefits in accelerated MRI sampling. \textit{Under review}.}}
+        \end{center}
+        
+
+        % Discuss the methodology that we used, the observations that we make.
+        % Highlight that this is not trivial.
+        % Highlight that it's not just an evaluation of putting LBCS in and reporting this. 
+        % We are at first *convinced* that RL must do better, and we are very surprised that it is not the case -> We first replicate the results of Bakker et al. 
+    \end{frame}
+
+\begin{frame}[t]{Small scale results \parencite{bakker2020experimental}}
+    
+    \begin{itemize}
+        \item \textbf{Different processing pipelines:} cropped \textsc{vs} cropped+resized, horizontal \textsc{vs} vertical masks
+        \only<2>{
+            \begin{minipage}{\linewidth}
+                \centering
+                \rotatebox{90}{\parbox{0.15\linewidth}{\centering Cropped}} \includegraphics[width=0.15\linewidth]{figs/image_cropped.pdf}
+                \hspace{1cm}
+                \rotatebox{90}{\parbox{0.15\linewidth}{\centering Cropped\\+\\resized}}
+                \includegraphics[width=0.15\linewidth]{figs/image_resized_cropped.pdf}%
+            \end{minipage}}
+    \visible<3->{
+        \item Long-horizon experiment: Start with $8$ center frequencies, acquire $24$ frequencies.
+        \item Final sampling rate performance ($25\%$).}
+    \end{itemize}
+    \vfill
+    \visible<3->{
+    \begin{center}
+    \resizebox{0.75\linewidth}{!}{
+        \begin{tabular}{lc<{\onslide<4->}c<{\onslide<5->}c<{\onslide<6->}c<{\onslide<8->}c<{\onslide}}
+            \toprule
+            \multirow{2}{*}{\textbf{Policy}}& \multicolumn{2}{c}{\texttt{Cropped, vertical}} & \multicolumn{2}{c}{\texttt{Cropped+resized, horizontal}} & \visible<8->{\multirow{2}{*}{\begin{tabular}{c}\textbf{Training}\\ \textbf{time [m]} \end{tabular}}}\\
+            \cmidrule(l){2-3} \cmidrule(l){4-5}
+            & UNet  & cResNet & UNet  & cResNet  & \\
+            \midrule
+            \textbf{Random}  &  $0.5249\pm 0.0001$  & $0.5432\pm 0.0004$ &$0.6567\pm 0.0003$&$0.6725\pm 0.0006$ & --\\
+            \textbf{LtH}  & $0.5832$                & $0.6197$ & $0.7325$ &$0.7714$  &--\\%
+            \only<7->{\textbf{sLBCS}  & $0.6294\pm0.0009$      & $\mathbf{0.6417\pm 0.0011}$& $\mathbf{0.7768\pm 0.0000}$ &$\mathbf{0.7941 \pm 0.0000}$ & $20$\\}%
+            \textbf{Greedy PG} & $\mathbf{0.6298\pm 0.0002}$        & $\mathbf{0.6415\pm 0.0002}$ & \alt<7->{$0.7761 \pm 0.0000$}{$\mathbf{0.7761 \pm 0.0000}$}&\alt<7->{$0.7935\pm 0.0001$}{$\mathbf{0.7935\pm 0.0001}$} & $1000$\\
+            \midrule
+            \textbf{NA Oracle}  & $0.6301$          & $0.6428$          & $0.7771$    &$0.7942$ & -- \\
+            \bottomrule
+       \end{tabular}
+    }
+    \end{center}}
+
+  \end{frame}
+
+
+
+    \begin{frame}[t]{Large scale results \parencite{pineda2020active}}
+
+        %\textbf{Larger scale setting}
+        %\begin{itemize}
+        %    \item FastMRI knee data \parencite{zbontarFastMRIOpenDataset2019}.
+        %    \item $640 \times 368$ images, vertical sampling
+        %    \item Start from $2$ lines, acquire up to $100$ lines. 
+        %\end{itemize}
+
+        \begin{columns}[totalwidth=\textwidth]
+            \column{0.6\linewidth}
+            \centering
+            \begin{itemize}
+                \vfill\item \textbf{Larger scale setting:} $640 \times 368$ images \textsc{vs} $128\times 128$ for \cite{bakker2020experimental}
+                \vfill\item Start from $2$ lines, acquire up to $100$ lines. 
+            \end{itemize}
+            \vskip 0pt plus 1filll
+
+            \begin{tabular}{lcc<{\onslide<3->}c<{\onslide}}
+                \toprule
+                \textbf{Policy}& \textbf{SSIM}& \textbf{PSNR} & \textbf{Train. time}\\
+                \midrule
+                \textbf{Random}&$0.6723$  &$28.962$ & --\\
+                \textbf{LtH}  &$0.6686$&$29.360$ & --\\
+                \only<2->{\textbf{sLBCS} &$\mathbf{0.6886}$& $\mathbf{30.211}$ & $30$ min\\}%
+                \textbf{DS-DDQN} &$0.6855$&$29.652$ & $20+$ days\footnotemark \\
+                \textbf{SS-DDQN} & \alt<2->{$0.6882$}{$\mathbf{0.6882}$} & \alt<2->{$29.929$}{$\mathbf{29.929}$} & $20+$ days\,\, \\
+                \midrule
+                \textbf{Adaptive Oracle}  &$0.7131$&$30.683$ & --\\
+                \bottomrule
+                \end{tabular}
+                
+            \column{0.4\linewidth}
+                \centering
+                \includegraphics[width=0.5\linewidth]{figs/large_scale_knee}
+        \end{columns}
+        \footnotetext<3->{From communication with the authors, using resources at the scale of Facebook AI research.}
+    \end{frame}
+
+    \begin{frame}[t]{Is it worth deploying deep RL for mask design?}{A summary of our results}
+            \begin{itemize}
+                \item<1-> Does not bring a \textit{consistent} improvement over sLBCS
+                \vfill\item<2-> At least $50\times$ slower to train than sLBCS
+                \vfill\item<3-> But also: Need to standardize aggregation metrics (AUC, final sampling rate, etc.).
+                \vfill\item<4->[$\Rightarrow$] Deep RL methods \textit{currently} do not bring a good return on investment for MRI.
+            \end{itemize}
+    \end{frame}

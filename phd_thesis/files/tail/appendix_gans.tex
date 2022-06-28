@@ -1,0 +1,223 @@
+%!TEX root = ../../thesis.tex
+\chapter{Appendix for Chapter \ref{ch:gans}}
+
+\section{Implementation details}\label{app:gan_implementation}
+
+\subsection{Knee experiments}
+The GAN experiment was carried out using a residual UNet (ResUNet) \citet{belghazi2019learning}, using the architecture described in  Table \ref{tab:resunet} below. The discriminator architecture is detailed in Table \ref{tab:ncresnet}. They consisted of respectively $1.2$ million and $19.5$ million parameters. 
+
+We also used the cascade of residual networks (cResNet) \citet{zhang2019reducing} as our reconstruction baselines, along with their evaluator. One block of the architecture is given in Table \ref{tab:cresnet}. The network was composed of $3$ such blocks. The evaluator architecture is detailed in \ref{tab:evaluator}. They amount to $29.5$ million and $97.7$ million parameters respectively. These numbers were obtained from the usage of \citet{zhang2019reducing} by \citet{pineda2020active}.
+
+
+
+\begin{table}[!ht]
+    \centering
+    \resizebox{.35\textwidth}{!}{\begin{tabular}{lc}
+\toprule
+ Type & Output size  \\
+ \midrule
+ Input &  $6 \times 128 \times 128$ \\
+ $\text{ResBlock}_1(3,2,1)$  &  $64 \times 64 \times 64$  \\
+$\text{ResBlock}_2(3,2,1)$  &  $128 \times 32 \times 32$  \\
+ $\text{ResBlock}_3(3,2,1)$  &  $256 \times 16 \times 16$  \\
+ $\text{ResBlock}_3(3,2,1)$  &  $512 \times 8 \times 8$  \\
+ $\text{ResBlock}_3(3,2,1)$  &  $1024 \times 4 \times 4$  \\
+ Global average pooling  &  $1024 \times 1 \times 1$ \\
+ $\text{Conv}(1,1,0)$  &  $1 \times 1 \times 1$ \\
+\bottomrule
+\end{tabular}}
+
+    \caption{Discriminator ResNet. This was inspired by the discriminator of \cite{belghazi2019learning}. The model used ReLU activations, and consisted of $19.5$ million parameters.}
+    \label{tab:ncresnet}
+\end{table}
+
+\begin{table}[!ht]
+    \centering
+\resizebox{.75\textwidth}{!}{\begin{tabular}{llcc}
+\toprule
+ & Type & Output size & Comments \\
+ \midrule
+ Input & -- &  $3 \times 128 \times 128$ &\\
+ \multirow{5}{*}{Encoder} & $\text{ResBlock}_1(3,1,1)$   &  $64 \times 128 \times 128$ & \\
+& Avg Pool +$\text{ResBlock}_2(3,1,1)$  &  $64 \times 64 \times 64$ & \\
+& Avg Pool +$\text{ResBlock}_3(3,1,1)$  &  $64 \times 32 \times 32$ & \\
+& Avg Pool +$\text{ResBlock}_4(3,1,1)$  &  $64 \times 16 \times 16$ & \\
+& Avg Pool +$\text{ResBlock}_5(3,1,1)$  &  $64 \times 8 \times 8$ & \\[2mm]
+Bottleneck & Avg Pool +$\text{ResBlock}_6(3,1,1)$ &  $64 \times 4 \times 4$ & \\[2mm]
+\multirow{5}{*}{Decoder} %&$\text{BilinearUpSampling}_1$ &  $64 \times 8\times 8$ & \\
+& $\text{Upsample}_1+\text{ResBlock}_7(3,1,1)$ &  $64 \times 8 \times 8$ & $\text{Cat}[\text{Upsample}_1,\text{ResBlock}_5]$\\
+%&$\text{BilinearUpSampling}_2$ &  $64 \times 16\times 16$ & \\
+& $\text{Upsample}_2+\text{ResBlock}_8(3,1,1)$ &  $64 \times 16 \times 16$ & $\text{Cat}[\text{Upsample}_2,\text{ResBlock}_4]$\\
+%&$\text{BilinearUpSampling}_3$ &  $64 \times 32\times 32$ & \\
+& $\text{Upsample}_3+\text{ResBlock}_9(3,1,1)$ &  $64 \times 32 \times 32$ & $\text{Cat}[\text{TrConv}_3,\text{ResBlock}_3]$\\
+%&$\text{BilinearUpSampling}_4$ &  $64 \times 64\times 64$ & \\
+& $\text{Upsample}_4+\text{ResBlock}_{10}(3,1,1)$ &  $64 \times 64 \times 64$ & $\text{Cat}[\text{TrConv}_4,\text{ResBlock}_2]$\\
+%&$\text{BilinearUpSampling}_5$ &  $64 \times 128\times 128$ & \\
+& $\text{Upsample}_5+\text{ResBlock}_{11}(3,1,1)$ &  $64 \times 128 \times 128$ & $\text{Cat}[\text{TrConv}_5,\text{ResBlock}_1]$\\[2mm]
+& $\text{Conv}(1,1,0) + \text{Sigmoid} + \text{DC}$ &  $2 \times 128 \times 128$ & \\
+\bottomrule
+\end{tabular}}
+
+    \caption{ResUNet architecture used in the experiments, inspired by the architecture in \cite{belghazi2019learning}. The activation used throughout is a LeakyReLu with slope $0.2$. We had $n_{\text{channels,in}}$ containing $2$ channels for the observation, plus $1$ channel for the noise.  $\text{ResBlock}(3,1,1)$ denotes a residual block with a $3\times 3$ kernel size, stride $1$ and padding $1$. This results in a model with $1.2$ million parameters. Bilinear upsampling is used. }
+    \label{tab:resunet}
+\end{table}
+
+
+
+
+\begin{table}[!ht]
+    \centering
+\resizebox{.75\textwidth}{!}{\begin{tabular}{llcc}
+\toprule
+ & Type & Output size & Comments \\
+ \midrule
+ Input & -- &  $2 \times 128 \times 128$ &\\
+ \multirow{3}{*}{Encoder} & $\text{Conv}_1(3,2,1)$   &  $32 \times 64 \times 64$ & \\
+& $\text{Conv}_2(3,2,1)$  &  $64 \times 32 \times 32$ & \\
+& $\text{Conv}_3(3,2,1)$  &  $128 \times 16 \times 16$ & \\[2mm]
+\multirow{3}{*}{Bottleneck}  & $\text{ResBlock}_1(3,1,1)$  &  $128 \times 16 \times 16$ & Skip-add from module $i-1$\\
+  & $\text{ResBlock}_i(3,1,1)$  &  $128 \times 16 \times 16$ & $i$ blocks (total of 6 ResBlocks)\\
+  & $\text{ResBlock}_6(3,1,1)$  &  $128 \times 16 \times 16$ &  Skip to module $i+1$\\[2mm]
+ \multirow{3}{*}{Decoder} & $\text{TrConv}_1(4,2,1)$   &  $64 \times 32 \times 32$ & \\
+& $\text{TrConv}_2(4,2,1)$  &  $32 \times 64 \times 64$ & \\
+& $\text{TrConv}_3(4,2,1)$  &  $16 \times 128 \times 128$ & \\[2mm]
+& $\text{Conv}(1,1,0) + \text{(Sigmoid)} + \text{DC}$ &  $3 \times 128 \times 128$ & Sigmoid only at the last block\\
+\bottomrule
+\end{tabular}}
+
+    \caption{One block of cResNet, used in \cite{zhang2019reducing}. The model used ReLu activations along with instance normalization.  In the paper, we used 3 blocks with $6$ residual blocks in the Bottleneck layer. We had $n_{\text{channels,in}}$ containing $2$ channel for the observation.  $n_{\text{channels,out}}=3$: $2$ channels for the reconstruction, and $1$ channel for the variance. The entire model consisted of three such blocks, for a total of $29.5$ million parameters.}
+    \label{tab:cresnet}
+\end{table}
+
+\begin{table}[!ht]
+\centering
+\resizebox{.75\textwidth}{!}{\begin{tabular}{llcc}
+    \toprule
+     & Type & Output size & Comments \\
+    \midrule 
+    Input spectral maps & $-$ & $128 \times 128 \times 128$ & \\ 
+    Input mask embedding & $\text{Conv}(1,1,1)$ & $6 \times 1 \times 1$ & Replicate \& concatenate \\
+    Input tensor & $-$ & $134 \times 128 \times 128$ & \\
+    & $\text{Conv}(4,2,1)_1$ & $256 \times 64 \times 64$ & \\
+    Evaluator & $\text{Conv}(4,2,1)_2$ & $512 \times 32 \times 32$ & \\
+    & $\text{Conv}(4,2,1)_3$ & $1024 \times 16 \times 16$ & \\
+    & $\text{Conv}(4,2,1)_4$ & $2048 \times 8 \times 8$ & \\
+    & GAP & $1024 \times 1 \times 1$ & \\
+    Output vector & Conv $(1,1,0)$ & $128 \times 1 \times 1$ & \\
+    \bottomrule
+    \end{tabular}}
+    \caption{Evaluator architecture \citep{zhang2019reducing}. First, spectral maps are created and concatenated with an embedded mask. Then, the data is processed through convolutional layers, using $\text{LeakyReLU}(0.2)$ and instance normalization. This results in a total of $97.7$ million parameters.}\label{tab:evaluator}
+\end{table}
+
+
+\clearpage
+\FloatBarrier
+\section{Extended results}
+We first provide additional knee results in Section \ref{ss:app_knee}, then evaluate our GAN model on a small MRI dataset of brain images in Section \ref{ss:app_brain} and finish with additional MNIST evaluations in Section \ref{app:s_mnist}.
+
+\subsection{Additional MRI knee results}\label{ss:app_knee}
+In Figure \ref{fig:knee_curve_psnr}, we find the PSNR counterpart of the SSIM plot of Figure \ref{fig:knee_curve_ssim}. It is interesting to see that there are noticeably different behaviors between the two models, and the results are overall consistent with the trends seen on the SSIM plot of Figure \ref{fig:knee_curve_ssim}. Note also that the scales are different in each plot.
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.48\textwidth]{../figures/gan/FAR_PSNR_50_SR.pdf}
+    \includegraphics[width=.48\textwidth]{../figures/gan/FZC_PSNR_50_SR.pdf}
+    \caption{PSNR plots of results shown in Table \ref{tab:comp_knee}, showing the different performance of the sampling methods. The left plot is the result of the evaluation on our GAN model, and the right plot is evaluated using the reconstructor of \citet{zhang2019reducing}. Although Table \ref{tab:comp_knee} computes the AUC until $25\%$, this table extends the evaluation until $50\%$ sampling rate.}\label{fig:knee_curve_psnr}
+\end{figure}
+
+
+\subsection{Brain experiment}\label{ss:app_brain}
+
+\subsubsection{Experimental setting}
+The dataset used in the first three experiments (subsections) below consists of a proprietary dataset of 2D T1-weighted brain scans. In our experiments, we use 100 slices of sizes $256\times 256$ from five such subjects, $20$ per subject. Three subjects ($60$ slices) were used for training the network, two subjects ($30$ slices) for testing. The data were then massively augmented with both rigid transformations and elastic deformations to counter overfitting as our dataset is very small, following the recommendations of \citet{ronneberger2015u,schlemper2017deep}. Namely, we apply both rigid transformations and elastic deformations. Specifically, at training time, each image was dynamically augmented with a randomly applied translation of $\pm 6$ pixels along $x$- and $y$-axes, rotations of $[0, 2\pi)$, reflection along the $x$-axis with $50\%$ probability. We also apply elastic deformations using the implementation in \citep{simard2003best}with $\alpha \in [0, 40]$ and $\sigma \in [5, 8]$. 
+
+Data from individual coils was processed via a complex linear combination, where coil sensitivities were estimated from an $8\times 8$ central calibration region of Fourier space \citep{bydder2002combination}. The acquisition used a field of view (FOV) of $220\times 220$ mm and a resolution of $0.9\times 0.7 $mm. The slice thickness was $4.0$mm. The imaging protocol comprised a flip angle of $70\deg$, a TR/TE of $250.0/2.46$ ms, with a scan time of 2 minutes and 10 seconds.
+
+The training conditions for the Brain experiment were the same as the Knee experiment. 
+
+\subsubsection{Results}
+We observe on Tables \ref{tab:comp_brain_psnr} and \ref{tab:comp_brain_ssim} results that are consistent with the ones on the knee dataset: LBCS outperforms both the Evaluator and the GAN, but it is interesting to observe that, in this setting, the GAN performance is quite close to the one of LBCS, especially in terms of SSIM. Note that in this context, the policy of \citet{bakker2020experimental} tends to perform worse than previously.
+
+
+\input{../figures/gan/tables/brain_sampling}
+
+\clearpage
+\FloatBarrier
+
+\subsection{Additional MNIST results}\label{app:s_mnist}
+In Figure \ref{fig:mnist_image2}, we provide additional reconstruction at different sampling rates for the different policies considered. Here  GAS refers to generative adaptive sampling and corresponds to our GAN policy. We also provide the PSNR, SSIM and Accuracy against sampling rate on Figure \ref{fig:plt_mnist_image}, which are the counterpart to Table \ref{tab:comp_mnist_im}. We see in particular that the strong performance of the GAN policy is due to the PSNR and SSIM reaching very high values around $5\%$ sampling, where the sampling pattern has really acquired almost all pixels relevant to the digit. As there is almost no background, the error decreases very quickly. We see nonetheless that in every case, the adaptive policy manages to bring a noticeable improvement over LBCS, which was not the case in Fourier image. 
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[valign=t,width=.8\linewidth]{../figures/gan/plot_sample_inr_baseline.jpg}
+    
+    \includegraphics[valign=t,width=.8\linewidth]{../figures/gan/plot_sample_inr_greedy.jpg}
+    
+    \includegraphics[width=.8\linewidth]{../figures/gan/plot_sample_inr_adaptive.jpg}
+\caption{Additional Image domain results for the MNIST experiment, featuring different sampling rates, using a NC ResUNet model for conditional sampling.}\label{fig:mnist_image2}
+\end{figure}
+
+\begin{figure}[!ht]
+\centering
+\includegraphics[valign=t,width=.5\linewidth]{../figures/gan/plot_results_image.pdf}
+\caption{Image domain plots for the MNIST experiment, showing PSNR, SSIM and Accuracy for some selected models. These results are presented compactly in Table \ref{tab:comp_mnist_im}.}\label{fig:plt_mnist_image}
+\end{figure}
+
+\clearpage
+\FloatBarrier
+
+
+\subsection{CIFAR10 experiment}\label{app:s_cifar}
+Finally, we provide results on CIFAR10, for which the pixelwise subsampling task is much more challenging. We chose to use grayscale versions of the images. 
+
+\textbf{Experiment setting.} For CIFAR10, we modified the training procedures slightly. For the WGAN we use ExtraAdam~\citep{gidel2018variational}, TTUR~\citep{heusel2017gans} with learning rates of $lr_G=10^{-4}$ and $lr_D=3\cdot 10^{-4}$, one sided gradient penalty~\citep{petzka2018on} and betas of $(0,0.9)$. Number of epochs was set to $200$ with the learning rates being halved every $50$ steps. Batchsize was set to $128$ and we used 8 GPUs in total, yielding an effective batch size of $1024$.  
+For the NC we retain batch size $128$ and the Adam settings, simply moving to 8 GPUs and increasing training time to 200 epochs. 
+
+\textbf{Results.} \Cref{fig:image_cifar10_1} and \cref{fig:image_cifar10_2} showcase GAS results using a WGAN and NC respectively. We evaluate VDS (variable-density sampling) and GAS (generative adaptive sampling, GAN policy) on a subset of the test set of CIFAR10 composed of $1000$ images and report the results on Table \ref{tab:comp_cifar}. The results are detailed in the plots of Figure \ref{fig:plt_cifar10}.
+
+%\input{../figures/gan/tables/cifar_baseline}
+
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[valign=t,width=0.8\linewidth]{../figures/gan/cifar/plot_sample_2_inc_baseline.jpg}
+    \includegraphics[valign=t,width=0.8\linewidth]{../figures/gan/cifar/plot_sample_2_inc_adaptive.jpg}
+\caption{CIFAR10 results, featuring different sampling rates, using a NC ResUNet model for conditional sampling. Observe that while the model saw only masks going from $0.5\%$ to $20\%$ during training, it generalizes well up to $30\%$, gaining $2.5$dB in the case of GAS.  GAS stands for Generative Adaptive Sampling (GAN policy), and VDS refers to variable-density sampling policies.}\label{fig:image_cifar10_1}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[valign=t,width=0.8\linewidth]{../figures/gan/cifar/plot_sample_2_iwr_baseline.jpg}
+    \includegraphics[valign=t,width=0.8\linewidth]{../figures/gan/cifar/plot_sample_2_iwr_adaptive.jpg}
+\caption{CIFAR10 results, featuring different sampling rates, using a WGAN ResUNet model for conditional sampling. Observe that while the model saw only masks going from $0.5\%$ to $20\%$ during training, it generalizes well up to $30\%$.  GAS stands for Generative Adaptive Sampling (GAN policy), and VDS refers to variable-density sampling policies.}\label{fig:image_cifar10_2}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[valign=t,width=0.5\linewidth]{../figures/gan/plot_results_cifar10.pdf}
+\caption{Image domain plots, showing PSNR, SSIM and Accuracy for some selected models. GAS stands for Generative Adaptive Sampling (GAN policy), and VDS refers to variable-density sampling policies.}\label{fig:plt_cifar10}
+\end{figure}
+
+\begin{table}[!ht]
+\centering
+\resizebox{0.8\textwidth}{!}{\begin{tabular}{lll|ccc}
+\toprule
+Algorithm & Model & Architecture & PSNR [dB]$~(\uparrow)$  &SSIM $(\uparrow)$& Accuracy  $ [\%]~(\uparrow)$\\
+\midrule
+\multirow{2}{*}{VDS} 
+& NC & ResUNet& $9.32\pm 0.70$  & $0.11\pm0.03$ & $0.10\pm 0.17$ \\
+& WGAN & ResUNet & $8.72\pm 0.62$  & $0.09\pm 0.03$ & $0.10\pm 0.17$ \\    
+\midrule
+\multirow{2}{*}{VDS}  & Recon. & ResUNet& $6.73\pm 0.51$  & $0.09\pm 0.02$ & $0.11\pm0.17$  \\
+ & Recon. & c-ResNet& $ 11.79 \pm 0.72$  & $0.13 \pm 0.03$& $0.10\pm0.16$ \\
+\midrule
+\multirow{2}{*}{\begin{minipage}{1cm}GAS (Ours)\end{minipage}}
+ & NC & ResUNet& $14.36 \pm 1.89$  & $0.55\pm 0.08$ & $\mathbf{0.27 \pm 0.22}$ \\
+ & WGAN & ResUNet& $\mathbf{15.26\pm 2.34}$  & $\mathbf{0.57 \pm 0.09}$ & $0.21 \pm 0.18$ \\
+\bottomrule
+\end{tabular}}
+\caption{Average test set AUC (one AUC per image) with standard deviation on CIFAR10, in image domain. This was computed on a subset of the test set.}\label{tab:comp_cifar}    
+\end{table}
+
+%MNIST ablations and cross-evaluations for different architectures.
+%\input{files/iclr/tables/mnist_comparison}

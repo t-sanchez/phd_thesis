@@ -1,0 +1,196 @@
+%!TEX root = thesis_presentation.tex
+\section{Scaling up data-driven mask optimization}
+\addtocounter{framenumber}{-1}
+
+\begin{frame}{An approximate combinatorial problem}
+    \begin{columns}        
+    \column{0.58\linewidth}
+    \begin{itemize}
+        \item Solve 
+        $$\max_{\omega: |\omega| \leq N} \frac{1}{m} \sum_{i=1}^m \eta(\vx_i, \vf_\theta(\vy_{\omega,i}; \omega)) \text{~s.t.~}\vy_{\omega,i} = \mAo\vx_i + \bepsilon$$
+        \\\vfill
+        \visible<5->{\item Naive approach: $O(m2^P)$ evaluations\\\vfill}
+        \visible<6->{\item Solution: Learning-based Compressive Sensing (LBCS) \parencite{gozcu2018learning}\\\vfill}
+        \begin{itemize}
+            \visible<6->{\item Greedy approach\\\vfill}
+            \visible<8->{\item Reduce the number of evaluations to $O(mP^2)$\\\vfill}
+            \visible<9->{\item SotA performance\\\vfill}
+        \end{itemize}
+    \end{itemize}
+
+    \column{0.37\linewidth}
+    \centering
+    \includegraphics<1>[width=0.75\linewidth]{figs/mask_flow_2}%
+    \includegraphics<2>[width=\linewidth]{figs/masks_1}%
+    \includegraphics<3>[width=\linewidth]{figs/masks_3}%
+    \includegraphics<4-5>[width=\linewidth]{figs/masks_2}%
+    %\includegraphics<6>[width=\linewidth]{figs/masks_4}%
+    \includegraphics<6>[width=\linewidth]{figs/masks_5}%
+    \includegraphics<7->[width=\linewidth]{figs/masks_6}%
+    %\includegraphics<8>[width=\linewidth]{figs/masks_6_1}%
+    \end{columns}
+\end{frame}
+
+
+\begin{frame}{Speeding up LBCS}
+    \begin{columns}        
+        \column{0.58\linewidth}
+            \begin{itemize}
+                \item $O(mP^2)$ evaluations can be too expensive for\\[3mm]
+                \begin{enumerate}
+                    \visible<2->{\item Large number of candidate locations\\[3mm]} %\textit{e.g. 3D MRI, dynamic MRI, etc.}}
+                    \visible<3->{\item Large datasets\\[3mm]}%\\ \textit{Impractical to evaluate the whole training set at each iteration}}
+                    \visible<4->{\item Slow reconstruction methods\\[3mm]}%\\ \textit{e.g. multi-coil MRI, 3D MRI, dynamic MRI, etc.}}
+                \end{enumerate}
+                \visible<5->{\item \textbf{Our solutions:}\\[3mm]
+                \begin{itemize}
+                    \item \hl<6->{\textit{Stochastic} LBCS: Use batches of candidate locations \textit{and} data points.}\\[3mm]%{\hl{\textit{Stochastic} LBCS: Use batches of candidate locations \textit{and} data points.}}
+                    \item \textit{Lazy} LBCS: Precompute a list of upper bounds and traverse it until a good enough candidate is reached.\\[3mm]
+                \end{itemize}}
+            \end{itemize}
+        \column{0.37\linewidth}
+        \centering
+        \includegraphics<1-6>[width=\linewidth]{figs/masks_6}%
+        %\includegraphics<6>[width=\linewidth]{figs/masks_6b}%
+        \includegraphics<7>[width=\linewidth]{figs/masks_6b_1}%
+        \includegraphics<8->[width=\linewidth]{figs/masks_6b_2}%
+    \end{columns}
+    \vspace{-0.5cm}
+    \blfootnote<5->{\textit{Lazy LBCS:} G{\"o}zc{\"u}, B., TS, and Cevher, V. (2019). In \textit{EUSIPCO}}
+    \blfootnote<5->{\textit{Stochastic LBCS:} TS, G{\"o}zc{\"u}, B., van Heeswijk, R. B., Eftekhari, A., Il{\i}cak, E., \c{C}ukur, T., and Cevher, V. (2020). Scalable learning-based sampling optimization for compressive dynamic MRI. In \textit{ICASSP 2020}.}
+\end{frame}
+
+
+
+
+
+    \begin{frame}[t]{From LBCS to stochastic LBCS}{Computational comparison on dynamic MRI}
+        \begin{minipage}{\linewidth}
+            \centering
+            \includegraphics[width=0.45\linewidth]{figs/n_recon_slbcs}
+            \includegraphics[width=0.37\linewidth]{figs/slbcs_v2}%
+        \end{minipage}
+
+        %\vspace{5mm}
+        \begin{itemize}
+        %\item \textbf{G-v1} = LBCS, \textbf{G-v2} = sLBCS (batch of training data $\mathcal{L}$), \textbf{SG-v1} = sLBCS (batch of candidate locations $\mathcal{S}_{iter}$), \textbf{SG-v2} = sLBCS (batch of candidate locations $\mathcal{S}_{iter}$ \textit{and} training data $\mathcal{L}$).\pause
+        \item  $|\mathcal{S}|=1\,576$, $m=3$
+        \vfill\item Scaling up with no loss of performance: redundancy of the computations is reduced.
+        %\item Scalability to large datasets such as fastMRI \parencite{zbontarFastMRIOpenDataset2019}.
+        \end{itemize}
+    \end{frame}
+
+    \begin{frame}{Results highlights: Mutli-coil dMRI}
+        \begin{itemize}
+            \item Average PSNR test set AUC.
+        \end{itemize}
+        \begin{center}
+        \begin{tabular}{lcc}
+            \toprule
+            %\midrule
+            \textbf{Policy} & \multicolumn{2}{c}{\textbf{Recon}}\\
+            \cmidrule{2-3}
+            & {KTSS}&{ALOHA}\\ 
+            \midrule  % to be updated
+            VDS &35.36&39.80\\
+            LB-VD & 39.72&41.20\\
+            \midrule
+            \midrule
+            sLBCS-KTSS& \textbf{40.58}&41.11\\
+            sLBCS-ALOHA&39.53&{\textbf{41.75}}\\
+            \bottomrule
+            \end{tabular}
+        \end{center}
+
+
+        % \begin{itemize}
+        %     \item \textbf{Baselines}
+        %     \begin{itemize}
+        %         \item Coherence \parencite{lustig2007sparse}: Untuned VDS, optimize for coherence. 
+        %         \item LB-VD \parencite{knoll2011adapted,chauffert2013variable}: Tune VDS parameters on training data.
+        %     \end{itemize}
+        % \end{itemize}
+        % \begin{columns}[totalwidth=\textwidth]
+        %     \column{0.35\linewidth}
+        %     \begin{itemize}
+        %         \item \textbf{Reconstruction methods:} KTSS \parencite{otazo2010combination}, ALOHA \parencite{jin2016general} = two CS-based algorithms for multi-coil dMRI.
+        %         \item Evaluation on Peak Signal-to-Noise Ratio (PSNR).
+        %     \end{itemize}
+        %     \column{0.6\linewidth}
+        %     \begin{table} 
+        %         \small
+        %         \resizebox*{\linewidth}{!}{
+        %         \begin{tabular}{lcccccc}
+        %         \toprule
+        %          Sampling rate & \multicolumn{2}{c}{$5\%$ sampling}  & \multicolumn{2}{c}{$15\%$ sampling} &\multicolumn{2}{c}{$25\%$ sampling}  \\ 
+        %          \cmidrule(r){2-3}\cmidrule(r){4-5}\cmidrule(r){6-7}
+        %         %\midrule
+        %         \backslashbox{\hspace{-1mm}Mask\hspace{-5mm}}{\hspace{-2mm}Recon. \hspace{-2mm} } &KTSS&ALOHA &\makebox[2em]{{KTSS}}&\makebox[2em]{ALOHA} &\makebox[2em]{{KTSS}}&\makebox[2em]{ALOHA} \\ 
+        %         \midrule  % to be updated
+        %         Coherence&28.36&31.93&33.48&38.21&37.51&42.03\\ 
+        %         LB-VD&\textbf{33.17}&36.97&38.45&41.11&41.34&42.22\\
+        %         \midrule
+        %         \midrule
+        %         sLBCS-KTSS&{{33.00}}&35.73&{\textbf{39.64}}&{41.34}&{\textbf{42.26}}&42.30\\
+        %         sLBCS-ALOHA&32.02&{\textbf{37.68}}&{38.23}&{\textbf{41.61}}&41.48&{\textbf{42.61}}\\
+        %         \bottomrule
+        %         \end{tabular}}
+                
+        %         %\caption{\label{tab:cross_recon} Cross performance of optimal single and multi-coil masks at 20\% subsampling rate. }
+        %         \end{table}
+        %         \column{0.05\linewidth}
+        % \end{columns}
+
+
+        \pause
+        \begin{itemize}
+            \item Consistent \textit{observation}, for static/dynamic, 2D/3D, single/multi-coil:
+            $$\overbrace{\text{VDS}}^{\text{Model-based, Model-driven}} < \overbrace{\text{LB-VD}}^{\text{Model-based, \textit{Data}-driven}}< \overbrace{\text{(Stochastic) LBCS}}^{\text{\textit{Learning}-based, Data-driven}}$$
+            \item Confirms the observed strong empirical performance of learning-based, data-driven methods \parencite{chauffert2013variable,zijlstra2016evaluation}.
+        \end{itemize}
+        
+        % TODO: 
+         
+        \end{frame}
+
+        
+
+        \begin{frame}{Conclusion}
+            \begin{columns}
+                \column{0.58\linewidth}
+                \begin{block}{Our contributions}
+                    \begin{itemize}
+                        \item Stochastic LBCS
+                        \begin{itemize}
+                            \item Significant computational gain \textit{without} loss of performance. 
+                            \item Applies to single and multi-coil dMRI, large datasets.  
+                            \item Validated on cardiac and vocal tract data.
+                        \end{itemize}
+                        \item Lazy LBCS
+                        \begin{itemize}
+                            \item Scaling up to 3D MRI, with 2D undersampling.
+                            \item Validated on multi-coil 2D and 3D MRI.
+                        \end{itemize}
+                    \end{itemize}
+                \end{block}
+                \begin{itemize}
+                   
+                    
+                    \visible<2->{\vfill\item How can we improve upon sLBCS?\\ \visible<3->{Two main avenues:
+                    \begin{itemize}
+                        \item Long-horizon planning
+                        \visible<5->{\item Dynamically adapt to different patients.}
+                    \end{itemize}}}
+                    \visible<6->{\vfill\item \textit{Deep reinforcement learning} can tackle these problems!}
+                \end{itemize}
+            
+                \column{0.4\linewidth}
+                \centering
+                \includegraphics<1-2>[width=\linewidth]{figs/masks_6b}%
+                \includegraphics<3>[width=\linewidth]{figs/masks_7}%
+                \includegraphics<4>[width=\linewidth]{figs/masks_8}%
+                \includegraphics<5->[width=\linewidth]{figs/masks_9}%
+            \end{columns}
+        \end{frame}
+    
+        

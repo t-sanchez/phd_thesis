@@ -1,0 +1,249 @@
+%!TEX root = thesis_presentation.tex
+
+\section{GAN results}
+
+
+\begin{frame}[t]{Generative Adversarial Networks (GANs)}{A very short introduction}
+    
+    $\circ$ Introduced in \cite{goodfellow2014generative}. Formally
+    $$\min_\theta \max_\phi \mathbb{E}_{\rvx \sim p_r(\rvx)}\left[ \log \left(d_\phi(\rvx)\right)\right] + \mathbb{E}_{\rvz \sim p(\rvz)}\left[\log\left(1 - d_\phi\left(\vg_\theta\left(\rvz\right)\right)\right)\right]$$
+    \only<3->{
+    $\circ$ \textit{Conditional} Wasserstein GAN\hfill \parencite{adler2018deep}
+    $$\min_\theta \max_{\phi:\|d_\phi\|_L\leq 1} \mathbb{E}_{\substack{(\rvx,\rvy) \sim p(\rvx,\rvy) \\ \rvz \sim p(\rvz)}} \left[ d_\phi(\rvx,\rvy)  - d_\phi(\vg_\theta(\rvz,\rvy),\rvy)\right]$$}
+
+    \only<1>{\vskip 0pt plus 1filll
+    {\centering \includegraphics[width=0.65\linewidth]{neurospin/figs/gan_example.png}\\}
+    \let\thefootnote\relax\footnote{\tiny  From: X. Yi, E. Walia, P. Babyn, ``Generative adversarial network in medical imaging: A review'', \textit{Medical Image Analysis}, 2019\\[3mm]}}
+    
+    \only<2>{\vskip 0pt plus 1filll
+    {\centering \includegraphics[width=0.35\linewidth]{neurospin/figs/gans.png}\\}
+    \let\thefootnote\relax\footnote{\tiny  From: T. Karras,  T. Aila, S. Laine, and J. Lehtinen, ``Progressive growing of gans for improved quality, stability, and variation'', \textit{ICLR}, 2018\\[3mm]}}
+    \only<3>{\vskip 0pt plus 1filll
+    {\centering
+    \begin{minipage}{0.8\linewidth}
+        \hspace{0.8cm}$\vy$\hspace{0.5cm} \hfill $g_\theta(\vz_1,\vy)$\hfill $g_\theta(\vz_2,\vy)$\hfill $g_\theta(\vz_3,\vy)$\hfill $g_\theta(\vz_4,\vy)$\hfill $g_\theta(\vz_5,\vy)$\hspace{0.3cm}
+        \vspace{0.1cm}
+    \end{minipage}
+     \includegraphics[width=0.8\linewidth]{figs/mnist_posterior}\\}}
+    \end{frame}
+
+
+\subsection{Knee experiment}
+\begin{frame}{Additional MRI knee results}{Performance against sampling rate}
+    \begin{columns}
+        \column{0.48\textwidth}
+        \centering
+        Evaluation with the GAN model
+        \includegraphics[width=\textwidth]{gan/FAR_SSIM_50_SR.pdf}
+        \column{0.48\textwidth}
+        \centering
+        Evaluation with the cResNet reconstructor
+        \includegraphics[width=\textwidth]{gan/FZC_SSIM_50_SR.pdf}
+    \end{columns}
+\end{frame}
+\begin{frame}{Additional MRI knee results}
+\begin{columns}
+    \column{0.48\textwidth}
+    \centering
+    Evaluation with the GAN model
+    \includegraphics[width=\textwidth]{gan/FAR_PSNR_50_SR.pdf}
+    \column{0.48\textwidth}parencite
+    \centering
+    Evaluation with the cResNet reconstructor
+    \includegraphics[width=\textwidth]{gan/FZC_PSNR_50_SR.pdf}
+\end{columns}
+\end{frame}
+
+
+\begin{frame}{Uncertainty quantification}{GAN model}
+    \begin{columns}
+        \column{0.39\textwidth}
+        \begin{itemize}
+            \item Uncertainty (empirical variance) against MSE, for the GAN model.
+            \item Each point: a test sample at a given sampling rate,
+            \item Red line: linear regression ($R^2=0.705$)
+            \item Black line: $\text{Uncertainty}=\text{MSE}$
+        \end{itemize}
+
+        \column{0.6\textwidth}
+        \includegraphics[width=\linewidth]{gan/uncertainty_plot_FAR.pdf}
+    \end{columns}
+\end{frame}
+
+
+
+\begin{frame}{Visual results}
+    \begin{columns}
+        \column{0.48\textwidth}
+            \includegraphics[width=\textwidth]{figs/plot_knee_GAN_1.pdf}%
+        \column{0.48\textwidth}
+            \includegraphics[width=\textwidth]{figs/plot_knee_GAN_2.pdf}
+    \end{columns}
+    %Visual illustration of the evaluator, GAN and LBCS policies evaluated at $12.5\%$ and $25\%$ on a slice of knee data, using the GAN model for reconstruction.
+\end{frame}
+
+\begin{frame}{Differences in the policies}
+    \begin{itemize}
+        \item Acquisition probability for each sampling location for sLBCS, the evaluator of \cite{zhang2019reducing} and our GAN policy.
+        \vfill\item Averaged on the testing set, at $25\%$ sampling rate.
+    \end{itemize}
+    \vfill
+    \begin{center}
+    \includegraphics[width=0.6\textwidth]{gan/mask_profiles_on_test_025_SR.pdf}
+    \end{center}
+\end{frame}
+
+\subsection{Brain experiment}
+\begin{frame}{Brain experiment}{Experimental setting}
+    \begin{itemize}
+        \item \textbf{Dataset}
+        \begin{itemize}
+            \item 2D T1-weighted brain scans, $256\times 256$ images. $5$ patients: $60$ slices for training, $40$ for testing.
+            \begin{itemize}
+                \item  Coil sensitivities estimated from an $8\times 8$ central calibration region of Fourier space \parencite{bydder2002combination} and combined.
+                \item FOV: $220\times 220$ mm; resolution: $0.9\times 0.7 $mm;  slice thickness: $4.0$mm. 
+                \item Flip angle: $70^{\circ}$; TR/TE: $250.0/2.46$ ms; scan time: 2 minutes and 10 seconds.
+            \end{itemize}
+            \item Massive data augmentation \parencite{ronneberger2015u,schlemper2017deep}
+            \begin{itemize}
+                \item Rigid transformations: randomly applied translation of $\pm 6$ pixels along $x$- and $y$-axes, rotations of $[0, 2\pi)$, reflection along the $x$-axis with $50\%$ probability.
+                \item Elastic deformations: using the implementation of \cite{simard2003best} with $\alpha \in [0, 40]$ and $\sigma \in [5, 8]$. 
+            \end{itemize} 
+        \end{itemize} 
+        \item Same training conditions as the Knee experiments.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Brain experiment}{Results}
+    \begin{itemize}
+        \item Consistent results with the knee dataset:
+        \begin{itemize}
+            \item LBCS $>$ Evaluator, LBCS $>$ GAN.
+            \item GAN quite close to LBCS.
+            \item Policy of \cite{bakker2020experimental} is worse than previously
+        \end{itemize}
+    \end{itemize}
+\vfill
+\begin{figure}[h]
+    \begin{minipage}[c]{0.48\textwidth}
+    \begin{center}
+        \begin{tabular}{lcc}
+         \toprule
+        \multirow{1}{*}{\textbf{Policy}}& \multicolumn{2}{c}{\textbf{Model}}\\
+        \cmidrule{2-3} & GAN & Recon\\
+        \midrule
+        \textbf{Gaussian NLL}  & - & $25.37$\\
+        \textbf{Evaluator} & $32.19$& $29.95$\\
+        \textbf{GAN} & $33.77$& $31.18$\\
+        \midrule
+        \textbf{LBCS} & $\mathbf{34.03}$& $\mathbf{32.03}$\\
+        \textbf{RL} & $31.45$& $28.23$ \\
+        \bottomrule
+        \end{tabular}
+        %\caption{Average PSNR test set AUC (one AUC per image) for the brain experiment.}\label{tab:comp_brain_psnr} 
+    \end{center}
+    \end{minipage}
+    \hfill
+    \begin{minipage}[c]{0.48\textwidth}
+    \begin{center}
+         \begin{tabular}{lcc}
+         \toprule
+        \multirow{1}{*}{\textbf{Policy}}& \multicolumn{2}{c}{\textbf{Model}}\\
+        \cmidrule{2-3} &GAN & Recon\\
+        \midrule
+        \textbf{Gaussian NLL} & - & $0.72$\\
+        \textbf{Evaluator} & $0.83$& $0.85$\\
+        \textbf{GAN} & $\mathbf{0.88}$ & $\mathbf{0.87}$\\
+        \midrule
+        \textbf{LBCS} &  $\mathbf{0.88}$& $0.84$\\
+        \textbf{RL} &$0.80$ & $0.80$\\
+        \bottomrule
+        \end{tabular}
+        %\caption{Average SSIM set AUC (one AUC per image) for the brain experiment.}\label{tab:comp_brain_ssim} 
+    \end{center}
+    \end{minipage}
+    \end{figure}
+\end{frame}
+
+\subsection{MNIST experiment}
+\begin{frame}{Image domain sampling}
+    \centering
+    \resizebox*{0.7\linewidth}{!}{
+\begin{tabular}{lll|ccc}
+\toprule
+Policy & Model & Architecture & PSNR  &SSIM& Accuracy\\
+\midrule
+\multirow{2}{*}{Random} 
+& NC & ResUNet& $17.10$  & $0.76$ & $0.67$ \\
+& WGAN & c-ResNet & $16.41$  & $0.76$ & $0.67$ \\    
+\midrule
+\multirow{4}{*}{LBCS}
+& NC &  ResUNet&$21.39$  & $0.90$ & $0.92$ \\
+& NC &  cResNet&$20.33$  & $0.88$ & $0.93$ \\
+& WGAN & ResUNet& $20.29$  & $0.89$ & $0.90$ \\
+& WGAN & cResNet& $20.48$  & $0.89$ & $0.92$\\
+%& NC &  ResUNet&$21.39 \pm 2.34$  & $0.90\pm 0.04$ & $0.92\pm 0.14$ \\
+%& NC &  cResNet&$20.33\pm 2.20$  & $0.88 \pm 0.04$ & $0.93 \pm 0.15$ \\
+%& WGAN & ResUNet& $20.29 \pm 2.09$  & $0.89 \pm 0.04$ & $0.90\pm 0.14$ \\
+%& WGAN & cResNet& $20.48 \pm 2.14$  & $0.89\pm 0.04$ & $0.92\pm 0.14$\\
+
+\midrule
+\multirow{4}{*}{\begin{minipage}{1cm}GAN (Ours)\end{minipage}}
+& NC & ResUNet& $\mathbf{40.15}$  & $\mathbf{0.94}$ & $0.91$ \\
+& NC & cResNet& $31.47$  & $0.93$ & $\mathbf{0.93}$ \\       
+& WGAN & ResUNet& $31.73$  & $0.92$ & $0.88$ \\
+& WGAN & cResNet& $\mathbf{35.81}$  & $\mathbf{0.96}$ & $\mathbf{0.95}$ \\    
+%& NC & ResUNet& $\mathbf{40.15 \pm 15.78}$  & $\mathbf{0.94\pm 0.04}$ & $0.91 \pm 0.15$ \\
+%& NC & cResNet& $31.47 \pm 6.69$  & $0.93\pm 0.03$ & $\mathbf{0.93 \pm 0.14}$ \\       
+%& WGAN & ResUNet& $31.73\pm 9.10$  & $0.92 \pm 0.06$ & $0.88 \pm 0.17$ \\
+%& WGAN & cResNet& $\mathbf{35.81 \pm 10.34}$  & $\mathbf{0.96\pm 0.03}$ & $\mathbf{0.95\pm 0.13}$ \\    
+
+
+\bottomrule
+\end{tabular}}    
+\end{frame}
+
+
+\begin{frame}{Image domain sampling}{Visual results}
+    \centering
+    \includegraphics[width=.65\linewidth]{gan/plot_sample_iwc_baseline.jpg}
+    \includegraphics[width=.65\linewidth]{gan/plot_sample_iwc_greedy.jpg}    
+    \includegraphics[width=.65\linewidth]{gan/plot_sample_iwc_adaptive.jpg}
+
+%Image domain illustration of the WGAN cResNet sampling using three different methods. The columns contain respectively: the ground truth image, the mask (with brighter color meaning that the location has been selected recently), the observation, several samples and the empirical posterior mean and variances. The first row shows the result obtained with $0.5\%$ and $2.5\%$ sampling respectively. Here, VDS is our random policy, LBC is LBCS and GAS stands for Generative Adaptive Sampling and is our GAN-based policy.
+\end{frame}
+
+\begin{frame}{Additional MNIST results}
+    $\circ$ Here, GAS (generative adaptive sampling) = our GAN policy
+    \vfill
+        \begin{center}
+            
+        
+        \includegraphics[width=.3\linewidth]{figs/gan_res_1}%
+        \hfill
+        \includegraphics[width=.3\linewidth]{figs/gan_res_2}%
+        \hfill
+        \includegraphics[width=.3\linewidth]{figs/gan_res_3}%        
+    \end{center}
+
+%\caption{Image domain plots for the MNIST experiment, showing PSNR, SSIM and Accuracy for some selected models. These results are presented compactly in Table \ref{tab:comp_mnist_im}.}\label{fig:plt_mnist_image}
+%\end{figure}
+\end{frame}
+
+\begin{frame}{Additional MNIST results}
+
+%In Figure \ref{fig:mnist_image2}, we provide additional reconstruction at different sampling rates for the different policies considered. Here  GAS refers to generative adaptive sampling and corresponds to our GAN policy. We also provide the PSNR, SSIM and Accuracy against sampling rate on Figure \ref{fig:plt_mnist_image}, which are the counterpart to Table \ref{tab:comp_mnist_im}. We see in particular that the strong performance of the GAN policy is due to the PSNR and SSIM reaching very high values around $5\%$ sampling, where the sampling pattern has really acquired almost all pixels relevant to the digit. As there is almost no background, the error decreases very quickly. We see nonetheless that in every case, the adaptive policy manages to bring a noticeable improvement over LBCS, which was not the case in Fourier image. 
+\begin{columns}
+    \column{0.48\textwidth}
+    \begin{itemize}
+        \item Here, GAS (generative adaptive sampling) = our GAN policy
+    \end{itemize}
+    \vfill
+    \includegraphics[width=\linewidth]{gan/plot_sample_inr_adaptive.jpg}
+    \column{0.48\textwidth}
+    \includegraphics[width=\linewidth]{gan/plot_sample_inr_baseline.jpg}
+    \includegraphics[width=\linewidth]{gan/plot_sample_inr_greedy.jpg}
+    
+\end{columns}
+\end{frame}
+

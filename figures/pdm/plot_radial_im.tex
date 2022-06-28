@@ -1,0 +1,388 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\begin{tikzpicture}[spy using outlines=
+	{circle, magnification=2, connect spies, every spy on node/.append style={thin}}]
+
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(0.0in,1.47in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries, yshift=9pt},
+title={Ground truth}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-1.png};
+\coordinate (spypointgt) at (axis cs:82,90);
+\coordinate (magnifyglassgt) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypointgt)
+   in node[fill=white] at (magnifyglassgt);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(1.4in,2.94in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ytick={0,50,100,150},
+yticklabels={\empty},
+ylabel style={font=\color{white!15!black}},
+ylabel={Optimised $\*x_{\text{radial},i}$},
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries, yshift=9pt},
+title={Sampling 0.05}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-2.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$29.62$};
+\coordinate (spypoint) at (axis cs:82,90);
+\coordinate (magnifyglass) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint)
+   in node[fill=white] at (magnifyglass);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(1.4in,1.47in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ylabel style={font=\color{white!15!black}},
+ylabel={Random},
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5]{figures/pdm/plot_radial_im/plot_radial_im-3.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$29.03$};
+\coordinate (spypoint2) at (axis cs:82,90);
+\coordinate (magnifyglass2) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint2)
+   in node[fill=white] at (magnifyglass2);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(1.4in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ytick={0,50,100,150},
+yticklabels={\empty},
+ylabel style={font=\color{white!15!black}},
+ylabel={Optimised $\*x_i$},
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5]  {figures/pdm/plot_radial_im/plot_radial_im-4.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$28.18$};
+\coordinate (spypoint3) at (axis cs:82,90);
+\coordinate (magnifyglass3) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint3)
+   in node[fill=white] at (magnifyglass3);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(2.7in,2.94in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+ytick={0,50,100,150},
+yticklabels={\empty},
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries, yshift=9pt},
+title={Sampling 0.1}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-5.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$33.12$};
+\coordinate (spypoint1) at (axis cs:82,90);
+\coordinate (magnifyglass1) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint1)
+   in node[fill=white] at (magnifyglass1);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(2.7in,1.47in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-6.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$32.02$};
+\coordinate (spypoint4) at (axis cs:82,90);
+\coordinate (magnifyglass4) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint4)
+   in node[fill=white] at (magnifyglass4);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(2.7in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-7.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$30.78$};
+\coordinate (spypoint5) at (axis cs:82,90);
+\coordinate (magnifyglass5) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint5)
+   in node[fill=white] at (magnifyglass5);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(4in,2.94in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries, yshift=9pt},
+title={Sampling 0.2}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-8.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$35.72$};
+\coordinate (spypoint7) at (axis cs:82,90);
+\coordinate (magnifyglass7) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint7)
+   in node[fill=white] at (magnifyglass7);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(4in,1.47in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-9.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$35.25$};
+\coordinate (spypoint8) at (axis cs:82,90);
+\coordinate (magnifyglass8) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint8)
+   in node[fill=white] at (magnifyglass8);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(4in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5]  {figures/pdm/plot_radial_im/plot_radial_im-10.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$35.49$};
+\coordinate (spypoint9) at (axis cs:82,90);
+\coordinate (magnifyglass9) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint9)
+   in node[fill=white] at (magnifyglass9);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(5.3in,2.94in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none,
+title style={font=\bfseries, yshift=9pt},
+title={Sampling 0.3}
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-11.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$37.02$};
+\coordinate (spypoint10) at (axis cs:82,90);
+\coordinate (magnifyglass10) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint10)
+   in node[fill=white] at (magnifyglass10);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(5.3in,1.47in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+xtick={50,100,150},
+xticklabels={\empty},
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-12.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$36.57$};
+\coordinate (spypoint11) at (axis cs:82,90);
+\coordinate (magnifyglass11) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint11)
+   in node[fill=white] at (magnifyglass11);
+%
+\begin{axis}[%
+width=1.2in,
+height=1.2in,
+at={(5.3in,0.0in)},
+scale only axis,
+point meta min=0,
+point meta max=1,
+axis on top,
+xmin=0.5,
+xmax=152.5,
+tick align=outside,
+y dir=reverse,
+ymin=0.5,
+ymax=152.5,
+axis line style={draw=none},
+ticks=none
+]
+\addplot [forget plot] graphics [xmin=0.5, xmax=152.5, ymin=0.5, ymax=152.5] {figures/pdm/plot_radial_im/plot_radial_im-13.png};
+\node[right, align=right, text=white, style={font=\small}]
+at (axis cs:95,20) {PSNR\\$36.93$}; 
+\coordinate (spypoint12) at (axis cs:82,90);
+\coordinate (magnifyglass12) at (axis cs:42,15);
+\end{axis}
+\spy [white, size=1.9cm] on (spypoint12)
+   in node[fill=white] at (magnifyglass12);
+%   
+\end{tikzpicture}%

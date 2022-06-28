@@ -1,0 +1,159 @@
+%!TEX root = ../../thesis.tex
+\chapter{Reconstruction methods}\label{chap:rec}
+
+In this chapter, we consider the solutions that have been explored to the problem of \textit{accelerated MRI} in the literature. We have defined this problem formally in Section \ref{s:acc_MRI}: we consider partial measurements $\yo$ obtained through the forward model of Equation \ref{eq:acquisition}, and aim at constructing an estimate $\hat{\vx}$ of the underlying, unknown ground truth $\vx$.  
+
+The difficulty of this problem resides in its ill-posedness: there exist infinitely many solutions consistent with the observations that are not physically meaningful. To counter it, it is necessary to impart additional information to the problem in order to reach a sensible solution. This was the approach taken in  Compressed Sensing (CS) applied to MRI \citep{lustig2008compressed}. The ill-posedness of the problem is alleviated by imposing additional \textit{structure} on it. All subsequent approaches rely on imposing some form of structure to estimate $\x$ from $\y$, but have relied on increasingly complex, data-driven approaches. 
+
+We will trace back the evolution from CS approaches, that used simple mathematical models to obtain structure, to recent deep learning-based approaches that construct their models from training data: we moved from model-driven approaches to data-driven approaches. A more exhaustive presentation of these approaches can be found in \citet{ravishankar2019image, doneva2020mathematical}.
+
+
+\section{Model-driven approaches}
+
+\subsection{Compressed Sensing} 
+It has been long known that a band-limited signal can be exactly reconstructed from a set of uniformly sampled frequencies, provided that their density if at least twice the highest frequency of the original signal. This result is famously known as the Nyquist-Shannon sampling theorem. However, sampling at the Nyquist rate can remain expensive, and there has been extensive research to achieve sub-Nyquist rate sampling and reconstruction. In their seminal works, \citet{donoho2006compressed,candes2006robust} introduced the formalism of Compressed Sensing (CS), where they proved that by leveraging the structure present in natural images, such as sparsity or low-rankness, one can perfectly reconstruct a signal sampled much below the Nyquist rate. Achieving this required using a non-linear reconstruction method, framed as the following prototypical problem
+\begin{equation}
+    \xh = \argmin_\x \frac{1}{2}\|\mAo \x - \yo\|_2^2 + \lambda \mathcal{R}(\x)\label{eq:cs}
+\end{equation}
+where the first term, known as \textit{data-fidelity}, enforces consistency with the measurement, and the second term, called \textit{regularization}, defines a statistical model, capturing the desired structure of the signal. In the literature, $\mathcal{R}(\x)$ has taken various forms, but typical models include sparsity in the wavelet domain, $\mathcal{R}(\x) = \|\mW \x\|_1$ \citep{candes2006robust,donoho2006compressed,lustig2007sparse}, or sparsity with Total Variation (TV) kind of constraints \citep{block2007undersampled,knoll2011second}. An alternative approach would rather impose a low-rank structure on the resulting image, typically using $\mathcal{R}(\x) = \|\x\|_*$ \citep{lingala2011accelerated}, or more sophisticated structures such as the Hankel matrix \citep{jin2016general}. The common trend in all of these methods is the idea that \textit{the structure of the signal implies a redundancy that can be exploited to represent the signal in a compact fashion} when transforming it appropriately. As expressing the structure in a mathematical fashion is not a straightforward task, these methods are the expression of various attempts to capture this idea.
+
+Note that all these approaches typically introduce a trade-off between acquisition speed (by lowering the number of k-space lines acquired) and reconstruction speed. Solving \Eqref{eq:cs} requires using an iterative method, and while the computation is carried out offline, the reconstruction can last up to hours for specific settings with large accelerations \citep{feng2016xd}.
+
+We note also for completeness that CS relies not only on leveraging additional structure in the image to be reconstructed, but also on incoherent sampling \citep{lustig2008compressed}. In practice, this often involves random-like sampling strategies, which enable the aliasing to be incoherent, i.e. to feature a noise-like structure, as illustrated on Figure \ref{fig:aliasing}. We will defer a more complete discussion of sampling to the next chapter. 
+
+
+\begin{figure}[ht!]
+    \centering
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pdm/maska.png}
+        \caption{}\label{fig:maska}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pdm/conva.png}
+        \caption{}\label{fig:conva}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pdm/phantoma.png}
+        \caption{}\label{fig:phantoma}
+    \end{subfigure}
+
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pdm/maskb.png}
+        \caption{}\label{fig:maskb}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pdm/convb.png}
+        \caption{}\label{fig:convb}
+    \end{subfigure}
+    \begin{subfigure}[b]{0.2\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{pdm/phantomb.png}
+        \caption{} \label{fig:phantomb}
+    \end{subfigure}
+    
+    \caption{Random \textit{(a)} and regular \textit{(d)} sampling masks, acquiring $25\%$ of the total locations, and their corresponding point spread functions (PSF) in \textit{(b)} and \textit{(e)}. The convolution of the PSF with the Shepp–Logan phantom is shown respectively in figures \textit{(c)} and \textit{(f)}. We see that the random undersampling produces incoherent or noise-like aliasing, which still allows us to distinguish the original image. On the other hand, the aliasing produced by regular, grid-based sampling (known as fold-over artifacts) yields a low-intensity result where the original image cannot be distinguished.} \label{fig:aliasing}
+\end{figure}
+
+Overall, it is clear that such approaches rely on \textit{statistical} models, constructed to implement the designer's assumptions, rather than being learned from data. While such methods enabled great progress in the last decade, the statistical models restrict the expressivity of the approach: they express abstract mathematical structures encoding our assumptions rather than focusing on the real data distribution expressed through the training set. This is why we will refer such approaches as \textit{model-driven}.
+
+
+%\todoi{Speak of random sampling as the main sampling pattern + its application to MRI with VDS. Random-like sampling strategies prevailed in MRI, but we will speak in greater detail of the optimization of sampling approaches in the next chapter.}
+\section{Data-driven approaches}
+Many approaches tried to learn their model directly from data, and in this Section, we survey a couple of the most significant representatives of data-driven methods.
+
+\subsection{Dictionary learning}
+Dictionary learning approaches rely on the assumption that an image can be represented as a sparse combination of atoms from a dictionary, i.e. $\vx =\mD\vz$ where $\mD$ is a dictionary and $\z$ the sparse coefficient vector. This is sometimes referred to as a synthesis formulation, as opposed to \ref{eq:cs}, which shows an analysis formulation. Synthesis models are often applied patch-wise to images, and they aim at simultaneously learning a reconstruction $\vx$, a dictionary $\mD$ and an encoding $\mZ$ \citep{ravishankar2011mr,caballero2014dictionary}
+\begin{equation}
+\begin{gathered}
+    \min _{\vx, \mD, \mZ} \frac{1}{2}\|\mAo\vx-\yo\|_{2}^{2}+\beta \sum_{j=1}^{N}\left\|\mP_j \vx-\mD \vz_{j}\right\|_{2}^{2} \\
+    \text { s.t. }\left\|\vz_{j}\right\|_{0} \leq s,\left\|\vd_{i}\right\|_{2}=1, \forall i, j
+\end{gathered}
+\end{equation}
+%\subsection{Deep learning approaches}
+\subsection{Unrolled neural networks}
+Unrolled neural networks are a data-driven, deep learning-based approach inspired by the iterative algorithms used to solve \Eqref{eq:cs}. This problem is known as a composite optimization problem, and can be solved by various approaches. A famous approach is known as the Iterative Soft-Thresholding Algorithm (ISTA) \citep{daubechies2004iterative}, or Proximal Gradient method \citep{combettes2011proximal}, solves the problem by iteratively computing 
+\begin{equation}
+    \vx^{t+1}=\text{prox}_{\lambda\mathcal{R}}\left(\vx^t-\alpha \mA^\dagger(\mA \x^t-\yo)\right).\label{eq:prox}
+\end{equation}
+The proximal operator is defined as $\text{prox}_{g}(\vx) \triangleq \argmin_\vv g(\vv) + \frac{1}{2}\|\vv-\vx\|_2^2$, and for some functions, can have a closed-form solution. This is typically the case when $\mathcal{R}(\vx) = \|\mW\vx\|_1$, where the proximal takes the form of a soft-thresholding operator, i.e. $\text{prox}_{
+\lambda\|\mW\cdot\|_1}(\vx) = \text{sign}(\mW\x)\odot \max(\mW\x-\lambda,0)$. 
+
+Motivated by the formulation of \Eqref{eq:prox}, unrolled neural networks parameterize the proximal operator with a neural network $\vf(\yo,\omega; \theta)$, and then train a model of the form
+\begin{equation}
+    \vx^{t+1} = \vf\left(\vx^t-\alpha \mA^\dagger(\mAo \x^t-\yo); \theta_{(t)}\right)
+\end{equation}
+for a fixed, small number of iterations $t=1,\ldots,T$. The output of the model is thus $\vf(\yo,\omega; \theta)=\vx^T$ where $\theta = \{\theta_1,\ldots,\theta_T\}$. As the proximal term capture the statistical properties of the signal that wish to recover, parametrizing it with a neural network enables to learn a model directly from data. The model being more flexible, it allows for improved reconstruction performance over methods using statistical models.
+
+A flurry of approaches has been motivated by unrolling iterative algorithms, and we highlight a few examples hereafter. A more complete discussion of unrolled neural networks can be found in \citet{liang2020deep}. In \citet{mardani2018neural}, the parameters of the proximal mapping can be shared across iterations, or different at each iteration \citep{schlemper2017deep}. The unrolling can leverage the structure of a different optimization algorithm, like the Alternating Direction Method of Multipliers (ADMM) in \citet{sun2016deep}, or the Primal-Dual Hybrid Gradient in \citet{adler2018learned}. In the noiseless case, it is also common to replace the inner step $\vx^t-\alpha \mA^\dagger(\mAo \x^t-\yo)$ with a step called \textit{Data Consistency} (DC) \citep{schlemper2017deep,zhang2019reducing}, that replaces the reconstruction with the exact values at observed locations. Essentially, the inner step becomes
+\begin{equation}
+    \text{DC}(\vx^t,\yo)=\mF^\dagger (\mP_{\omega^C}\mF \vx^t + \yo) = \mF^\dagger (\mP_{\omega^C}\mF \vx^t + \mP_{\omega}\mF\x).\label{eq:DC}
+\end{equation}
+We see that at the observed locations $\omega$, we simply keep the observation, while at the non-observed locations $\omega^C$. Note that here, $\mP_{\omega^c}=\mI-\Po$.
+
+These unrolled approaches require training the models $f_\theta$ on a dataset of reference images and observations $\{\vx_i,\vy_i\}_{i=1}^{m}$ by minimizing a loss $\ell(\cdot,\cdot)$:
+\begin{equation}
+    \theta^* = \argmin_\theta \frac{1}{m}\sum_{i=1}^m \ell(\vx_i,\vf(\y_i;\theta)).
+\end{equation}
+Various losses have been used in the literature. Initial works used $\ell_2$ loss \citep{schlemper2017deep,hammernik2018learning}, but lately practitioners have turned to using $\ell_1$ loss, SSIM or compounds of these \citet{muckleyStateoftheArtMachineLearning2020}. $\ell_1$ was indeed found to outperform $\ell_2$ on vision tasks \citet{zhao2016loss}. The structural similarity (SSIM) \citep{wang2004image} is a metric developed to match more closely the human perception, and recent work have proposed that a weighted sum between $\ell_1$ loss and the multiscale SSIM (MS-SSIM) as a compromise \citep{zhao2016loss}.
+
+%\todoi{Maybe include these? \citet{liang2020deep,sriram2020end}}
+
+Deep learning-based reconstruction methods further shift the burden of computation, compared to compressed sensing approaches. While these enabled faster acquisition at the cost of a slower, iterative reconstruction procedures, deep learning-based methods retain the benefit of enabling sub-Nyquist sampling, but also enable fast reconstruction, in the order of $10^{-1}$ second for a slice \citep{jin2017deep,hammernik2018learning}. However, the computational burden is only shifted an additional step: these methods need to be trained with large, fully-sampled\footnote{In their recent work, \citet{yaman2020self} proposed approaches to train only using undersampled data, but having access to a dataset of undersampled images is still required.} datasets \citep{zbontarFastMRIOpenDataset2019}. 
+
+\subsection{Deep image prior}
+In a spirit closer to dictionary learning and classical CS, \citet{ulyanov2018deep} have shown that untrained CNN can provide a sufficiently strong prior to enable image reconstruction, even without training data. Given an untrained CNN $\vf_\theta$ a single measurement instance $\yo$, the idea in deep image prior (DIP) is simply to minimize 
+\begin{equation}
+    \min_\theta \|\yo - \mAo \vf_\theta(\vz)\|_2^2
+\end{equation}
+where $\vz$ is a fixed, randomly sampled vector, and where the parameters $\theta$ are randomly initialized. Then, using an iterative optimization algorithm, fitting the weights to the observations enables the network to output a high-quality reconstructed image without supervision or training data. This method was successfully applied to MRI in  \citep{darestani2021accelerated,yoo2021time}. A common pitfall of DIP is that this flexibility comes at the price of an increase inference time: the network weights must be retrained for each individual image. In addition, DIP can suffer from overfitting and so heuristics such as early stopping are used to counteract this \citep{ulyanov2018deep,sun2021plug}. 
+
+\subsection{A Bayesian interpretation of reconstruction}\label{ss:bayesian_recon}
+So far, the discussion has been framed as moving from mathematically-defined to data-driven regularization in order to improve the recovery of Problem \ref{eq:cs}. However, this approach can also be framed from a Bayesian perspective, where the data consistency term $ \frac{1}{2}\|\mAo \x - \yo\|_2^2$ is viewed as a likelihood and the regularization $ \lambda \mathcal{R}(\x)$ as a prior. This was initially discussed by \citet{ji2008bayesian} for compressed sensing. The idea revolves around Bayes rule, where the posterior $p(\rvx|\rvy)$ can be expressed as
+\begin{equation}
+    p(\rvx|\rvy) = \frac{\overbrace{p(\rvy|\rvx)}^{\text{likelihood}}\overbrace{p(\rvx)}^{\text{prior}}}{\underbrace{p(\rvy)}_{\text{marginal}}} \propto p(\rvy|\rvx) p(\rvx).\label{eq:bayes}
+\end{equation}
+Under Gaussian noise, we can derive an explicit likelihood model for \Eqref{eq:acquisition}, where, assuming $\bepsilon \sim \mathcal{N}(0,\sigma^2\mI)$, i.e assuming additive Gaussian noise, we get $p(\rvy|\rvx) = \frac{1}{(2\pi\sigma^2)^{P/2}}\exp\left(-\frac{1}{2\sigma^2}\|\rvy - \mAo \x\|_2^2\right) \sim \mathcal{N}(\rvy;\Po \mF \x,\sigma^2\mI)$. The regularization term can then be viewed as a prior from which the ground truth $\rvx$ is sampled, in the case of classical CS, the prior can we specified as the Laplace density function $p(\rvx) = \left(\frac{\lambda}{2}\right)^P \exp\left(-\lambda\|\mW\rvx\|_1\right)$ \citep{ji2008bayesian}. Such an approach enables to view Problem \ref{eq:cs} as a maximum a posteriori (MAP) estimation, where one aims to find the reconstruction $\xh$ that maximizes posterior probability
+\begin{align*}
+    \xh &= \argmax_\rvx p(\rvx|\rvy) = \argmax_\rvx \frac{p(\rvy|\rvx) p(\rvx)}{p(\rvy)} && \text{by definition}\\
+        &=  \argmax_\rvx p(\rvy|\rvx) p(\rvx) && \text{as the optimization is indep. from } \rvy\\
+        &= \argmin_\rvx -\log\left(p(\rvy|\rvx) p(\rvx)\right)  && \text{by taking the} \log \text{ and negative of the problem}\\
+        &= \argmin_\rvx \frac{1}{2\sigma^2}\|\rvy - \mAo \x\|_2^2 +  \lambda\|\mW\rvx\|_1 && \text{explicit the functions and discard the constants}\\
+\end{align*}
+The Bayesian perspective gives a different interpretation of reconstruction and of the role of regularization as a prior, and lends itself naturally to an extension to data-driven models, which act as learned prior models. The Bayesian framing of Equation \ref{eq:cs} has also the advantage of naturally defining a criterion to acquire observations that have large uncertainty according to the model \citep{ji2008bayesian}. We will discuss these implications in greater depth in the next Chapter as well as in Chapter \ref{ch:gans}. For now, we turn to our last category of deep learning-based approaches which make use of this Bayesian insight and attempt to explicitly learn meaningful, data-driven priors. 
+
+\subsection{Generative approaches}\label{ss:generative}
+The role of the reconstruction methods can be seen as learning a data-driven prior which has proven to enable higher quality of reconstruction than mathematically motivated models. While reconstruction methods embed the full iterative resolution of Problem \ref{eq:cs} into a deep architecture, other approaches, relying on deep generative models, propose to explicitly parametrize the prior with a neural network \citep{bora2017compressed, jalal2021robust, patel2021gan}. This has the advantage of keeping the optimization procedure more transparent, as it will be about explicitly finding a sample from a deep generative prior that is consistent with the observation. The approach, proposed initially by \citet{bora2017compressed} relies on training a generative adversarial network (GAN) to capture the prior distribution. We first briefly introduce GANs.
+
+\textbf{Generative adversarial networks.} GANs \citep{goodfellow2014generative} are a specific type of deep learning models where a generator $\vg_\theta(\vz)$ and a discriminator $d_\phi(\vx)$ are trained in a competitive fashion: starting from random noise $\rvz \sim p(\rvz)$, the generator tries to construct samples that imitate a distribution of references images $p(\rvx)$ from which we are given a large set of samples $\{\vx_i\}_{i=1}^m$. The discriminator, on the other hand, tries to classify a sample based on how likely it is to originate from the reference distribution. The problem can formally be described as a game between the generator and the discriminator, where we solve
+\begin{equation}
+    \min_{\theta} \max_{\phi} \mathbb{E}_{p(\rvx)}\left[d_\phi(\rvx)\right] - \mathbb{E}_{p(\rvz)}\left[d_\phi(\vg_\theta(\rvz))\right].\label{eq:gan}
+\end{equation} 
+%\todoi{Speak about low-dimensional manifolds.}
+
+\textbf{Generative priors.} Given a trained generator $\vg_{\theta^*}(\rvz)$ approximating the image distribution of interest $p(\rvx)$, the approach of \citet{bora2017compressed}, applied also to MRI in \citet{patel2021gan}, aims at finding a sample from the generator consistent with the observations by solving 
+\begin{equation}
+    \min_\vz \|\mAo \vg_{\theta^*}(\vz)-\yo\|_2 \label{eq:generative_priors}
+\end{equation}
+While this approach does not enable to directly construct a maximum a posteriori (MAP) estimate, due to the GAN only yielding samples and no probabilities, the low-dimensionality of the latent space $\rvz$ enables to efficiently carry out Markov Chain Monte Carlo (MCMC) computations \citep{patel2021gan} to construct posterior samples.
+
+%\todoi{\citet{jalal2021robust} does score-based modeling + langevin dynamics to sample, this is still different from \citep{ramzi2020denoising} who work with reconstruction. }
+%While this approach suffers from not being able to quantify the probability the sample constructed, and only yields to a point estimate, the low-dimensionality of the noise allows for MCMC sampling to be performed efficiently on $\rvz$.
+%\todoi{Actually, this framework does not do MAP estimation: it simply finds a point in the manifold that matches the observation but does not speak about its probability.}
+
+\section{Trade-offs}
+While all the methods presented in this chapter enable reconstruction from sub-Nyquist sampling rates, they feature different advantages and drawbacks. % We highlight a couple of general trends hereafter.
+The state-of-the-art in terms of reconstruction performance is occupied by deep learning-based reconstruction methods, such as unrolled algorithms. They allow for the best quality and fastest inference among all methods presented here, but require large training datasets and are not robust to distribution shifts \citep{jalal2021robust,darestani2021measuring}. Generative priors also require large amounts of data to train the generative model, and generally perform less well than trained reconstruction networks, while also having a slower inference time \citep{darestani2021measuring}. They have the advantage however of being robust to some distribution shifts like change in the distribution of masks $\omega$ and their inference is more interpretable than deep learning methods, as the conditioning on the observations is explicitly computed from the prior, rather than through a black box like in an end-to-end reconstruction algorithm.
+
+Compressed sensing (CS), dictionary learning (DIL) and deep image prior (DIP) are generally slower at inference, as they all rely on iterative reconstruction, and require the optimization of increasingly large amounts of variable: from the image in CS to the image and dictionary in DIL to the parameters of a deep network in DIP. However, DIP is found to generally outperform CS-based approaches. The trade-offs between DIL, DIP and Generative priors is however less clear, as these methods have not been extensively compared in the literature. 
+
+Overall, this survey highlights a couple of the general trends observed in the literature and is not exhaustive. It shows however a clear trend where different methods try to exploit the redundancy due to the structure in the data. Earlier works attempted to explicitly embed this structure by compactly representing the signal in a variety of different bases, such as Wavelet domain \citep{lustig2007sparse}, or through representing the signal as low-rank  \citep{lingala2011accelerated}. Later, approaches aimed rather at \textit{learning} how to leverage this structure from data, and use the powerful tools of deep learning to represent the signal in complex ways, following a data-driven paradigm. All these methods rely however on the idea that the structure of the signal allows to alleviate the ill-posedness of the inverse problem, and retrieve a signal from undersampled observations, because of its underlying structure. 
+
+In the next chapter, we will detail the evolution in mask designs $\omega$ used to generate the observation and how they have been optimized in order to provide the most informative observations to enable the best reconstruction downstream.
+
+%Compressed sensing methods rely on mathematical models, and do 
+%There is clearly room to highlight trade-offs here: all of these methods enable reconstruction from sub-Nyquist sampling rates, but have different costs/benefits. CS-based have long reconstruction times and limited performance due to using generic mathematical models. Unrolled reconstruction methods have the best quality, fast reconstruction but require large training sets + long offline training time. DIP methods have a good quality, but long reconstruction times, but do not require training data. (Outperforms trained methods + CS \citep{darestani2021accelerated}). Generative priors have decently quick reconstruction times because inference on z is efficient, are maximally interpretable, but also require long training times and generally do not do as well as unrolled methods. 

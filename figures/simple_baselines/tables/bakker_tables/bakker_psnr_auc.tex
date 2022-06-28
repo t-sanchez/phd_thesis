@@ -1,0 +1,30 @@
+\begin{tabular}{lcccc|cccc}
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c|}{\texttt{c+rhz}} & \multicolumn{2}{c}{\texttt{cvb}} & \multicolumn{2}{c}{\texttt{c+rhz}} \\
+  \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c|}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} \\
+\midrule
+\textbf{Random}    & {24.206}            & {24.180}  & {27.641} & {28.365}  &  20.802 & 20.836 &22.375& 22.371\\
+\textbf{LtH}         & {24.486}            & 24.420         & 27.628      & 28.640   & 23.570   & 23.578&26.607 &27.317      \\
+\textbf{LBCS}        &\textbf{24.493}            & \textbf{24.517}           & \textbf{28.254} & \textbf{29.154} & 23.574& {23.635}&\textbf{27.220} &\textbf{27.802} \\
+\textbf{RL }         & {24.466}            & {24.506}   & {28.247} & 29.147 &\textbf{23.585} & \textbf{23.646} &{27.210}&{27.757} \\
+\midrule
+\textbf{NA Oracle}          & 24.510 & {24.521}  &28.257         & 29.152& 23.591 & 23.639  &27.222 &27.757\\[2mm]
+\bottomrule
+\toprule
+\multirow{3}{*}{\textbf{Policy}} & \multicolumn{4}{c|}{\textbf{Short Horizon}} & \multicolumn{4}{c}{\textbf{Long Horizon}} \\
+\cmidrule(l){2-5}\cmidrule(l){6-9}
+ & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c|}{\texttt{c+rvz}} & \multicolumn{2}{c}{\texttt{cvz}} & \multicolumn{2}{c}{\texttt{c+rvz}} \\
+ \cmidrule(l){2-3}\cmidrule(l){4-5}\cmidrule(l){6-7}\cmidrule(l){8-9}
+ & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c|}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} & \multicolumn{1}{c}{\textbf{UNet}} & \multicolumn{1}{c}{\textbf{CResNet}} \\
+ \midrule
+\textbf{Random } & {23.978} & 24.184 & 25.845 & 26.949 & 20.967 & 21.437 & 20.428 & 20.625 \\
+\textbf{LtH } & {24.108} & 24.396 & {25.641} & {27.048} & 23.441 & 23.703 & 24.487 & 25.510 \\
+\textbf{LBCS } & \textbf{24.269} & {24.490} & {26.515} & \textbf{27.870} & \textbf{23.600} & 23.846 & \textbf{25.307} & \textbf{26.316} \\
+\textbf{RL } & 24.226 & \textbf{24.498} & \textbf{26.530} & {27.861} & {23.581} & \textbf{23.858} & {25.240} & {26.246} \\
+\midrule
+\textbf{NA Oracle } & 24.271 & 24.513 & 26.528 & 27.856 & 23.603 & 23.848 & 25.309 & 26.250\\
+\bottomrule
+\end{tabular}

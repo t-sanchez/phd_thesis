@@ -1,0 +1,88 @@
+% This file was created by matlab2tikz.
+%
+%The latest updates can be retrieved from
+%  http://www.mathworks.com/matlabcentral/fileexchange/22022-matlab2tikz-matlab2tikz
+%where you can also make suggestions and rate matlab2tikz.
+%
+\begin{tikzpicture}
+
+\begin{axis}[%
+width=3.602in,
+height=1.566in,
+at={(0.772in,0.481in)},
+scale only axis,
+xmin=0,
+xmax=0.35,
+xlabel style={font=\color{white!15!black}},
+xlabel={Sampling rate},
+ymin=28,
+ymax=40,
+ytick={28,30,32,34,36,38,40},
+yticklabels={{28},{30},{32},{34},{36},{38},{40}},
+ylabel style={font=\color{white!15!black}},
+ylabel={PSNR},
+axis background/.style={fill=white},
+axis x line*=bottom,
+axis y line*=left,
+xmajorgrids,
+ymajorgrids,
+legend style={at={(0.487,0.161)}, anchor=south west, legend cell align=left, align=left, draw=white!15!black}
+]
+\addplot [color=red, dashed, mark=x, mark options={solid, red}]
+  table[row sep=crcr]{%
+0.025	28.758957629585\\
+0.05	30.7332633837627\\
+0.075	31.9020456788328\\
+0.1	32.5369333684189\\
+0.125	33.5370620306627\\
+0.15	34.3514992942402\\
+0.175	35.3491466873532\\
+0.2	36.01826059098\\
+0.225	36.5695006818467\\
+0.25	37.189290560141\\
+0.275	37.7977674273184\\
+0.3	38.5032183107666\\
+0.325	38.9681677203301\\
+};
+\addlegendentry{Full sampling}
+
+\addplot [color=blue, mark=*, mark options={solid, blue}]
+  table[row sep=crcr]{%
+0.025	29.0547538565358\\
+0.05	30.6418055222396\\
+0.075	31.8884033662683\\
+0.1	32.6811591120116\\
+0.125	33.6463821076169\\
+0.15	34.4002080329619\\
+0.175	35.3589612245391\\
+0.2	35.9286630522822\\
+0.225	36.4044090043086\\
+0.25	37.1661200554589\\
+0.275	37.7793561751387\\
+0.3	38.3456289113984\\
+0.325	38.8442128338692\\
+};
+\addlegendentry{One frame sampling}
+
+%\addplot [color=black, dashed]
+% plot [error bars/.cd, y dir = both, y explicit]
+% table[row sep=crcr, y error plus index=2, y error minus index=3]{%
+%0.025	22.3099953751335	1.19420610739687	1.19420610739687\\
+%0.05	26.238999682655	1.0374232206626	1.0374232206626\\
+%0.075	28.8038893981869	0.696804691776931	0.696804691776931\\
+%0.1	30.5235798624719	0.710714761967977	0.710714761967977\\
+%0.125	31.9136521322291	0.479844240555752	0.479844240555752\\
+%0.15	33.1301758438334	0.539061797421609	0.539061797421609\\
+%0.175	33.9850641998076	0.446496066170091	0.446496066170091\\
+%0.2	34.9257417322897	0.347681793919899	0.347681793919899\\
+%0.225	35.6427890328731	0.298847572215964	0.298847572215964\\
+%0.25	36.3327535505445	0.245995376452555	0.245995376452555\\
+%0.275	36.8851159962308	0.284722341105465	0.284722341105465\\
+%0.3	37.440431940291	0.253822478809673	0.253822478809673\\
+%0.325	37.9938770030797	0.218986305275023	0.218986305275023\\
+%0.35	38.4951963900708	0.243038513519083	0.243038513519083\\
+%};
+%\addlegendentry{Variable density}
+
+\end{axis}
+\end{tikzpicture}%

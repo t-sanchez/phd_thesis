@@ -1,0 +1,428 @@
+%!TEX root = ../../thesis.tex
+\chapter{Uncertainty driven adaptive sampling via GANs} \label{ch:gans}
+In the previous chapter, we considered methods to optimize sampling based on deep reinforcement learning, and showed that in their current state, they fail to deliver on their promises of improving performance by doing long-term planning and adapting to the patient. 
+
+In this chapter, we take a step back from the question of designing the best sampling policy, and primarily aim at exploring how conditional Generative Adversarial Networks (GANs) \citep{goodfellow2014generative,mirza2014conditional} can be used to model inverse problems in a Bayesian fashion. We are particularly interested on how they can be used to learn  the posterior $p(\rvx|\yo)$, namely the distribution of ground truth images given observations. 
+
+In the context of inverse problems, GANs have mainly been used either as reconstruction models \citep{yang_dagan_2018,chen2022ai} or as generative priors \citep{bora2017compressed,jalal2021robust}, as discussed in Section \ref{ss:generative}. However, the work of \citet{adler2018deep} showed that GANs trained to approximate the posterior can learn to act as reconstructors and simultaneously provide uncertainty quantification (UQ). 
+
+We argue that there is even more that they can do when trained to approximate $p(\rvx|\yo)$. In this work, we show how conditional GANs naturally provide a criterion for adaptive sampling. Indeed, by sequentially observation the location with the largest posterior variance in the measurement domain, the GAN provides an adaptive sampling policy \textit{without ever being trained for it}.  In addition, our GAN-based sampling policy can easily be adapted to provide sampling in other measurement domains, contrarily to competing methods that are designed with Fourier sampling explicitly in mind \citep{zhang2019reducing}.
+
+In particular, we show that when considering image domain sampling, our GAN-based policy can strongly outperform the non-adaptive greedy policy from sLBCS. However, in Fourier domain, the GAN-based policy does not match the performance of sLBCS. Indeed, in image domain, it seems that there is a greater variability in the location of the structure of interest, and as a result, adaptivity becomes ever more important. On the other side, in the previous chapter, we saw that adaptivity does not necessarily bring much in the Fourier domain. Nonetheless, we provide a more comprehensive explanation to the underperformance of our policy in Fourier, rooted in the concept of the \textit{information horizon} used to make a decision at each step. We show that our model uses \textit{less} information than LBCS to design its policy, and argue that this is the reason leading to its inferior performance.
+%\todoi{Add in results the MSE oracle and see if it confirms the trend (cf. p.188 BBNB)}
+However, when compared to models that use the same amount of information to inform their policy, such as \citet{zhang2019reducing}, our model shines and largely outperforms its competition.
+
+Overall, this work proposes an all-in-one approach for reconstruction, uncertainty quantification (UQ) and sampling, and shows the importance of incorporating relevant \textit{information} into the policy for it to achieve a strong empirical performance.
+
+The plan of this chapter is the following. In Section \ref{s:GANs_posterior}, we will first provide an introduction about GANs, and show how they can be used to model the posterior of inverse problems (Section \ref{ss:gan_posterior_modeling}). We will then show in Section \ref{ss:gan_sampling} how this posterior can be used to perform adaptive sampling; this is our main contribution. We will then briefly discuss the paper of \citet{zhang2019reducing} in Section \ref{ss:gan_zhang}, as they are the most conceptually similar work to ours, before moving to our experiments in Section \ref{sec:gan_experiment}. There, we validate that using the maximum posterior variance as a policy, GANs can be used to perform adaptive sampling in Fourier as well as image domains. We then briefly review relevant literature (Section \ref{ss:gans_rel}), discuss our results (Section \ref{sec:gans_discussion}) before concluding (Section  \ref{sec:gans_conclusion})\footnote{The work in this chapter is based on the following preprint and workshop paper:\\
+Sanchez, T., Krawczuk I., Sun, Z. and Cevher V. (2019). Closed loop deep Bayesian inversion: Uncertainty driven acquisition for fast MRI. \textit{Preprint available at} \url{https://openreview.net/pdf?id=BJlPOlBKDB}.\\
+Sanchez, T., Krawczuk, I., Sun, Z. and Cevher V. (2020). Uncertainty-Driven Adaptive Sampling via GANs. In \textit{NeurIPS 2020 Workshop on Deep Learning and Inverse Problems}. Available at \url{https://openreview.net/pdf?id=lWLYCQmtvW}.}.
+
+%In this chapter, we take a different approach to the problem of mask design, relying on learning the posterior, the distribution of ground truth images given observations, namely $p(\rvx|\yo)$ with conditional Generative Adversarial Networks (GANs) \citep{goodfellow2014generative,mirza2014conditional}. This posterior can then be used to adaptively design sampling masks, by simply sequentially observing the location with the largest posterior variance, i.e. the location about which the model is maximally uncertain. Such an approach is attractive for several reasons. First, it lies at the intersection of Optimal Experiment Design (OED) \citep{chaloner1995bayesian}, Bayesian modeling of inverse problems \citep{ji2008bayesian,seeger2010optimization}, and deep generative models \citep{adler2018deep,edupuganti2020uncertainty}. Secondly, a \textit{single} trained conditional GAN is able to provide reconstruction, uncertainty and perform adaptive sampling, a feat that competing approaches based on reinforcement learning \citep{pineda2020active,bakker2020experimental} or adversarial training \citep{zhang2019reducing} are not able to achieve. 
+
+%Our contribution lies in the observation that such models can easily be extended to the task of adaptive sampling, and that maximal posterior variance in the observation domain is an effective way to guide adaptive sampling in both Fourier (MRI) and image (inpainting) domains. 
+
+%However, in Fourier domain, using LBCS as a policy outperforms this adaptive policy. We propose an explanation for this based on the \textit{information} horizon used to make the decision at each step, and show that our model uses \textit{less} information than LBCS to design its policy, leading to an inferior performance. However, when compared to models that use the same amount of information to inform their policy, such as \citet{zhang2019reducing}, our model shines and largely outperforms its competition. Interestingly, in image domain, our GAN-based policy strongly outperforms LBCS.
+
+
+
+\section{Generative adversarial networks (GANs) for posterior modeling}\label{s:GANs_posterior}
+
+\subsection{Generative adversarial networks (GANs)}
+We will begin by describing what GANs are and how they work. GANs are \textit{generative models}: given training data $\{\vx_1,\ldots, \vx_m\} \sim p(\rvx)$, they aim at learning to generate new samples that look like they have been generated by the distribution $p(\rvx)$. Several deep learning approaches have been explored to tackle the problem of generation, which we will discuss in \Cref{ss:gans_rel}, and GANs have shined in particular by their ability to handle multi-modal outputs \citep{goodfellow2016nips}.
+
+GANs tackle the problem of generation as a two-player game, where two networks have opposite goals. The \textit{generator} tries to generate candidate samples that resemble the true distribution $p(\rvx)$, whereas the \textit{discriminator} aims at distinguishing real samples from generated ones. The generator network learns to map data from a latent space to the data distribution, and is described as $\vg_\theta: \mathbb{R}^L \to \mathbb{R}^P$. The discriminator performs a classification task, receiving a sample and outputting the probability that it has to be real, and so is described as  $d_\phi: \mathbb{R}^P \to \mathbb{R}$. 
+
+The two-player game can then be formally framed as \citep{goodfellow2014generative}:
+\begin{equation}
+    \min_\theta \max_\phi \mathbb{E}_{\rvx \sim p(\rvx)}\left[ \log \left(d_\phi(\rvx)\right)\right] + \mathbb{E}_{\rvz \sim p(\rvz)}\left[\log\left(1 - d_\phi\left(\vg_\theta\left(\rvz\right)\right)\right)\right]\label{eq:gan_objective}
+\end{equation}
+where $\rvz \sim p(\rvz)$ is a random variable in the latent space follow a simple distribution such as a multivariate Gaussian $p(\rvz) = \mathcal{N}(\rvz;\mathbf{0},\mI)$. The objective is simply a cross-entropy term for binary classification. The model is called \textit{adversarial} because $\vg_\theta$ and $d_\phi$ aim at achieving opposite goals, they are adversaries in the game. %For a fixed generator $\vg_\theta$, the optimal discriminator becomes simply $$d^*(\vx) = \frac{p(\rvx)}{p(\rvx)+p_{\vg_\theta}(\rvx)},$$ where $p_{\vg_\theta}(\rvx)$ is the distribution of samples $\vg_\theta(\rvz)$ obtained with $\rvz \sim p(\rvz)$. This expression shows that the optimal discriminator computes a \textit{ratio} of probabilities between the real data and the generated one. 
+
+In practice, the models are trained by minimizing \Eqref{eq:gan_objective} in an alternating fashion, where $d_\phi$ is optimized for $k$ steps and then $\vg_\theta$ is optimized for a single step. This is due to the fact that the maximization over $\phi$ happens in the inner problem, and in theory, this would imply that each time that $\vg_\theta$ change, $d_\phi$ should be trained until convergence. As this would incur prohibitive costs, the optimization is done over $k$ steps only. 
+
+GANs have had tremendous practical success, and manage to generate photorealistic images \citep{karras2019style} or transfer artistic styles \citep{isola2017image} among other things. But their application are extremely widespread \citep{goodfellow2016nips,pan2019recent,kazeminia2020gans}.
+
+\subsection{Conditional GANs}
+However, in the present case, we are not interested in \textit{unconditional} generation, where the model directly learns to generate samples from the data distribution $p(\rvx)$. We rather want to be able to approximate \textit{conditional} distributions of the form $p(\rvx|\vy)$, where we want to condition the data distribution on some specific observation $\vy$. 
+
+The first conditional GANs aimed at doing class-conditional generation \citep{mirza2014conditional}, where the model should learn to generate images from the data distribution that are consistent with the class given as input. For instance, if the model aimed at learning to represent cats and dogs, conditional generation would be the ability to integrate class information in the generative model in order to obtain samples from different classes on demand, i.e. have a generator of the form $\vg_\theta(\vz, c)$, where $c$ is the label of the class of interest. 
+
+However, in the case of MRI and inverse problems, we are more interested in image-conditional generation, where the generator is conditioned on a partial observation, and aims at generating a full image that is both consistent with the partial observation and likely to originate from the data distribution $p(\rvx)$. This was explored later in tasks such as multimodal image-to-image translation, where a model aims at translating a same image between two domain (e.g. between a sketch and a realistic picture) \citep{zhu2017multimodal}. Particularly relevant to us is the work of \citet{adler2018deep}, which explicitly shows that learning a conditional Wasserstein GANs (WGANs) \citep{arjovsky2017wasserstein} in an inverse problem amounts to approximating the posterior $p(\rvx|\rvy)$. We discuss this work in greater depth as they were, until recently \citep{kovachki2020conditional}, the only work that formally connected conditional WGANs to learning the posterior in the context of inverse problems. 
+Similarly, \citep{belghazi2019learning} show that a conditional GAN can serve to learn an exponential amount of conditionals, although without explicitly connecting it to learning a posterior distribution.
+
+\subsubsection{Conditional Wasserstein GANs}
+The Wasserstein distance, also known as the Earth-Mover distance, is defined as a distance between two probability distributions $p$ and $q$
+\begin{equation}
+    \mathcal{W}(p,q) \triangleq \inf_{\gamma \in \Pi(p,q)}\mathbb{E}_{(\rvx,\rvy) \sim \gamma} \left[\|\rvx-\rvy\|\right]\label{eq:w1}
+\end{equation}
+where $\Pi(p,q)$ denotes the set of all joint distributions $\gamma(\rvx,\rvy)$ that respectively marginalize to $p$ and $q$. In Wasserstein GANs (WGANs), one aims to find the distribution $\vg_\theta$ that minimizes the Wasserstein distance with the reference distribution $p$. Although \Eqref{eq:w1} does not look like a two-player game at first glance, it can be expressed in a minmax form by leveraging the Kantorovich-Rubinstein duality  \citep[Remark 6.5 on p.~95]{villani2008optimal}, which states that
+\begin{equation}
+    \mathcal{W}(p, q) = \sup_{d: \|d\|_L \leq 1} \mathbb{E}_{\rvx\sim p}\left[d(\rvx)\right] -  \mathbb{E}_{\rvz\sim q}[d(\rvz)]\label{eq:kr}
+\end{equation}
+where $\|d\|_L \leq 1$ refers to functions with a Lipschitz constant smaller or equal to $1$. This results in the objective
+\begin{equation}
+    \min_\theta \mathcal{W}(p(\rvx),\vg_\theta) = \min_\theta \max_{\phi: \|d_\phi\|_L \leq 1} \mathbb{E}_{\rvx\sim p(\rvx)}\left[d_\phi(\rvx)\right] -  \mathbb{E}_{\rvz\sim p(\rvz)}[d_\phi(\vg_\theta(\rvz))]\label{eq:wgan_obj}
+\end{equation}
+where similarly to Equation \ref{eq:gan_objective}, we aim at training a generator to produce samples that resemble $p(\rvx)$, with the discriminator output being large for \textit{real} samples and small for \textit{generated} ones. Note that there are important differences in the objective, as we see that \Eqref{eq:wgan_obj} has no logarithms in the objective, and imposes a constraint on the Lipschitz constant of the discriminator. This has been enforced various ways, but the most common approach relies on regularizing the objective with a term called gradient penalty \citep{gulrajani2017improved} that penalizes large Lipschitz constants. One of the original motivations of WGANs is to reduce the mode collapse behavior observed in GANs \citep{arjovsky2017wasserstein}. Mode collapse is an issue where a GAN does not learn all modes of the distribution, but remains stuck on a single mode.
+
+
+\subsection{Conditional GANs for posterior modeling}\label{ss:gan_posterior_modeling}
+Most significant to this present work is however the extension of \Eqref{eq:wgan_obj} to an image conditional setting and the connection with a Bayesian modeling approach. In their work, \citet{adler2018deep} show that we can learn the posterior distribution $p(\rvx|\rvy)$ using WGANs, and using Kantorovich-Rubinstein duality, they show that the problem of learning the posterior by minimizing
+$$\min_\theta \mathbb{E}_{\rvy \sim p(\rvy)}\left[\mathcal{W}(p(\rvx|\rvy),\vg_\theta(\cdot,\rvy))\right]$$ 
+can be framed as
+\begin{equation}
+     \min_\theta \max_{\phi:\|d_\phi\|_L\leq 1} \mathbb{E}_{\substack{(\rvx,\rvy) \sim p(\rvx,\rvy) \\ \rvz \sim p(\rvz)}} \left[ d_\phi(\rvx,\rvy)  - d_\phi(\vg_\theta(\rvz,\rvy),\rvy)\right]\label{eq:wgan_objective}
+\end{equation}
+where $p(\rvx,\rvy)$ is the joint distribution of reference images and observations. We see that the main difference with \Eqref{eq:wgan_obj} lies in the fact that the generator and discriminator both take two inputs instead of one, and that we use a pair of samples from the joint distribution in order to learn the posterior. Note that it is easy to obtain samples from the joint distribution, as given a ground truth image $\rvx$, the corresponding observation can be obtained by applying the forward model of \Eqref{eq:acquisition} to it, with any mask $\omega$. 
+
+Using such a model applied to Computed Tomography (CT), \citet{adler2018deep} show that the learned model can perform both reconstruction and UQ, by taking the empirical mean and variance using samples $\{\vg_\theta(\vz_i,\vy)\}_{i=1}^{n_s}$. 
+
+\subsubsection{Deep Bayesian Inversion}
+In their work, \citet{adler2018deep} take an additional step from Equation \ref{eq:wgan_obj}, in order to further prevent the issue of  \textit{mode collapse}. To tackle the issue \citet{adler2018deep}, propose to use a conditional mini-batch discriminator approach, inspired from \citet{karras2017progressive,salimans2016improved}. Their idea is to have the discriminator distinguish between pairs of conditional samples that can contain the original image or generated ones. Their objective becomes:
+\begin{equation}
+    \begin{split}
+        \min_\theta \max_{\phi:\|d_\phi\|_L\leq 1} \mathbb{E}_{\substack{(\rvx,\rvy) \sim p(\rvx,\rvy) \\ \rvz_1, \rvz_2 \sim p(\rvz)}} \bigg[ &\frac{1}{2}\bigg(d_\phi\big(\big(\rvx,\vg_\theta(\rvz_2,\rvy)\big),\rvy\big)+d_\phi\big(\big(\vg_\theta(\rvz_1,\rvy),\rvx\big),\rvy\big)\bigg)\\
+        &  - d_\phi\big(\big(\vg_\theta(\rvz_1,\rvy),\vg_\theta(\rvz_2,\rvy)\big),\rvy\big)\bigg]
+    \end{split}
+    \label{eq:ao_objective}
+\end{equation}
+
+
+\subsubsection{Neural Conditioner \citep{belghazi2019learning}}
+Although not framed as a Bayesian approach, the work of \citet{belghazi2019learning} shows how to use a regular conditional GAN to learn an exponential amount of conditional distributions, which in the bottom line is the same task as learning the posterior distribution for various conditionals $\rvy$. As they are learning conditionals, their generator is called a \textit{neural conditioner}. Contrarily to \citet{adler2018deep}, \citet{belghazi2019learning} focus on the problem of inpainting, where an image $\rvx \in \mathbb{R}^P$ is divided between \textit{available} features indexed by the mask $\omega_a$ and \textit{requested} features that are not observed, and are indexed with the mask $\omega_r$. Their task then is to train a model to approximate the distribution $p(\vx_{\omega_r} | \vx_{\omega_a})$. This corresponds to an inverse problem where the observation is described as $\rvy = \rvx_{\omega_a} = \mP_{\omega_a} \rvx$. In the sequel, for compactness, we write $\mP_{\omega_a} \rvx$ as $a \cdot \rvx$. Overall, their objective reads
+\begin{equation}
+    \resizebox*{.9\linewidth}{!}{$\displaystyle \min_\theta \max_\phi \mathbb{E}_{\rvx, a, r}\left[ \log \left(d_\phi(r \cdot \rvx, a\cdot \rvx, a, r)\right)\right] + \mathbb{E}_{\rvx,a,r,\rvz}\left[\log\left(1 - d_\phi\left(\vg_\theta\left(a\cdot \rvx, a, r, \rvz\right) \cdot r, a\cdot \rvx, a, r\right)\right)\right]$}.\label{eq:nc_objective}
+\end{equation}
+Here, the discriminator and generator embed directly the mask information $a$ and $r$, and as in the conditional model of \Eqref{eq:ao_objective}, the generator takes the observation $a \cdot \rvx$ and the noise $\rvz$, and the discriminator takes as input both the candidate sample $r \cdot \rvx$ or $r \cdot \vg_\theta\left(a\cdot \rvx, a, r, \rvz\right)$ along with the observation $a \cdot \rvx$.
+
+\subsection{Learning the posterior or learning moments}\label{ss:learning_moments}
+If one is primarily interested in using the posterior to compute its mean and variance for reconstruction and uncertainty quantification, then alternative approaches exist that rely on supervised learning instead of adversarial training. Indeed, adversarial training can often be unstable, whereas training in a supervised fashion is often easier. 
+
+The idea, used in particular by \citet{zhang2019reducing} for MRI and proposed initially in \citet{kendall2017uncertainties}, assumes that the data is distributed normally around a mean $\boldsymbol{\mu}\in \mathbb{R}^P$ and a diagonal covariance $\text{diag}(\boldsymbol{\sigma})$, $\boldsymbol{\sigma} \in \mathbb{R}^P$, $\sigma_i \geq 0$. As discussed in Section \ref{ss:bayesian_recon}, minimizing the reconstruction error $\|\vy_\omega-\mA_\omega \hat{\vx}\|_2^2$ can be viewed as maximizing the likelihood of a Gaussian distribution with unit diagonal covariance. However, it is possible to model the uncertainty at a given pixel as a Gaussian centered at the reconstruction mean $\hat{\vx}_\theta$ with variance $\hat{\boldsymbol{\sigma}}^2_\theta$. Both the reconstruction mean and variance can be output of two heads of a model with shared parameters, i.e. $(\hat{\vx}_\theta, \hat{\boldsymbol{\sigma}}_\theta^2) = \vf_\theta(\vy_\omega)$. And they can be learned through minimizing the conditional negative log-likelihood (NLL) 
+\begin{equation}
+    \min_\theta \ell_{\text{NLL}}(\theta) = \min_\theta \frac{1}{mP} \sum_{i=1}^m \sum_{j=1}^P \frac{(\vx_{i,j} - \hat{\vx}_{\theta,i,j})^2}{2\hat{\boldsymbol{\sigma}}_{\theta,i,j}^2} + \frac{1}{2} \log\left(2\pi\hat{\boldsymbol{\sigma}}_{\theta,i,j}^2\right)\label{eq:zhang_objective}
+\end{equation}
+where $\vx_{i,j}$ denotes the $j$-th pixel of the $i$-th data point for a training set of size $m$. Such an approach of aiming at solving $\min_\theta -\log(p_\theta(\rvx|\rvy))$ is referred to as a \textit{negative log-likelihood} in the machine learning (ML) literature, but in our context of inverse problems, \Eqref{eq:zhang_objective} amounts to assuming that the \textit{posterior} takes the shape of a Gaussian distribution, and that we learn its moments by minimizing the parameters of the neural network $\vf_\theta(\vy_\omega)$.
+
+\begin{remark}
+    There is here a considerable overlap with the terminology used in Bayesian Neural Networks \citep{kendall2017uncertainties}, where the aim is to learn a posterior distribution over \textit{weights}, 
+    $$p(\theta|\rvx,\rvy) = \frac{p(\rvy|\rvx,\theta) p(\theta)}{p(\rvy|\rvx)}.$$
+    We see that in our case, the notation is inverted compared to classical ML literature, as they denote the label or reference as $\rvy$ and the data as $\rvx$, whereas in our case, the reference image is denoted $\rvx$, and the data (i.e. the observation) is denoted as $\rvy$. This is because in standard ML, we do not consider an inverse problem where we aim at retrieving the data from partial observations obtained through a forward model, but rather assume that $\rvy$ contains some high-level structure (e.g. a class) that is hidden in some raw data $\rvx$.
+
+    We see then that $p(\rvy|\rvx,\theta)$ in the ML notation corresponds to $p_\theta(\rvx|\rvy)$ in our notation, and serves in the ML case the role of likelihood, hence Equation \ref{eq:zhang_objective} describing $p_\theta(\rvx|\rvy)$ as a negative log-\textit{likelihood}. However, in an inverse problem, $p_\theta(\rvx|\rvy)$ plays the role of \textit{posterior}, as seen in Section \ref{ss:bayesian_recon}. We have
+    $$p_\theta(\rvx|\rvy) = \frac{p(\rvy|\rvx)p(\rvx)}{p(\rvy)}.$$
+    In the case of an inverse problem, $p(\rvy|\rvx)$ is the likelihood defined by the forward model of \Eqref{eq:acquisition}, $p(\rvx)$ the prior defined by the ground truth data and $p(\rvy)$ is the marginal. As computing probabilities from a discrete set of training data is difficult and marginalization is computationally prohibitive on such problems, \citet{zhang2019reducing} circumvent the problem by directly assuming that the posterior is a Gaussian distribution, and simply train a model to learn its moments from data. However, as we will see in the sequel, such modeling simplifications incur a cost, as this reductive assumption does not allow the posterior to model multi-modal distributions.
+\end{remark}
+%\todoi{ I think that this would require refinement.}
+
+
+\section{GAN based adaptive sampling}\label{ss:gan_sampling}
+%From the 2nd version
+The initial motivation of this work was a belief that the benefits of generative methods have not been fully exploited in the Compressed Sensing (CS) setting. Although GANs have been used as priors \citep{bora2017compressed,narnhofer2019inverse}, as reconstructors \citep{yang_dagan_2018} and approximate posteriors for UQ \citep{adler2018deep}, their ability to naturally provide an adaptive policy has not been explored.
+
+Although this connection between modeling the posterior and adaptive sampling was explored in the context of classical CS \citep{ji2008bayesian,seeger2010optimization}, this has not been exploited in the context of GANs, even though they provide a very flexible, learning-based model of the posterior distribution. 
+
+This is precisely out approach, which is in some sense very natural. Given an observation $\vy_\omega = \mP_\omega \mA \vx +\boldsymbol{\epsilon}$ and a trained conditional GAN $\vg_{\theta^*}(\cdot, \vy_\omega)$ approximating the posterior $p(\rvx|\vy_\omega)$, we can compute the estimated conditional pixel-wise variance in the transformed domain $\text{Var}[\mA\rvx|\vy_\omega]$ by taking several samples from the generator, transforming them to the observation domain $\mA$, and acquiring the location with the largest posterior variance, i.e. 
+\begin{equation}
+    v_t = \argmax_{v: v\in [P]} \mathbf{P}_{v} \text{Var}[\mA \rvx | \rvy_{\omega_t}]. \label{eq:gudacs} 
+\end{equation}
+Departing from the idea of explicitly training a policy to guide adaptive sampling \citep{jin2019self, zhang2019reducing,pineda2020active,bakker2020experimental}, our approach simply minimizes the variance of an approximate posterior. This turns out to yield a strong sampling policy \textit{despite the networks involved being trained solely for conditional generation}.
+
+\begin{remark}
+    In order to perform adaptive sampling using Equation \ref{eq:gudacs}, the model must fulfill some requirements. First of all, one must be able to \textit{sample} for the model, and secondly, sampling must be efficient. 
+
+    Although these requirements are readily filled by our approach, this is not the case of all models. In particular, this disqualifies methods that only learn the mean and pixel-wise variance of the posterior, by minimizing for instance the NLL (Equation \ref{eq:zhang_objective}). Such statistics do not capture the complex, multi-modal distributions that arise inverse problem, and sampling from the Gaussian distribution resulting of minimizing Equation \ref{eq:zhang_objective} will not work in practice, as the samples will not originate from the true posterior, which can be multi-modal, but rather from the Gaussian that simplifies the underlying distribution. We confirm in our experiments that sampling from the NLL, transforming the samples into Fourier and taking the maximum variance to guide the acquisition does not work.
+
+    In addition, if one wishes to deploy such adaptive sampling in a clinical setting, the inference time must be shorter than the repetition time (TR), which is typically in the order of $10^2$-$10^3$ ms. While our approach and the one of \citet{zhang2019reducing} satisfy this constraint, this is not the case for all generative approaches. In particular, autoregressive models \citep{van2016pixel} or score-based sampling approaches suffer from long inference times \citep{song2021solving}. 
+\end{remark}
+
+An important distinction between our current approach and the ones that were discussed previously is the \textit{information horizon} used by the different policies. The information horizon refers to how far ahead rollouts occur in order to train a given policy, and is described on Table \ref{tab:axes_2} for different policy models. While it is clear that policies that integrate long horizon planning leverage $N$-step information, other methods can make use of $0$-step or $1$-step information.
+
+\begin{table}[ht]
+    \centering
+    \resizebox{\linewidth}{!}{\begin{tabular}{l|ccc}
+      \toprule
+      \textbf{Sampling policy} & \textbf{Adaptive} & \textbf{Long horizon} & \textbf{Information horizon}\\
+      \midrule
+      LBCS \citep{gozcu2018learning} & \xmark & \xmark & $1$-step\\
+      AlphaGo \citep{jin2019self} & \cmark& \cmark & $N$-step\\
+      DDQN \citep{pineda2020active}  & \xmark {\tiny(\cmark)}& \cmark & $N$-step\\
+      Policy Gradient \citep{bakker2020experimental} & \cmark& \xmark {\tiny(\cmark)} & $1$-step\\
+      \midrule
+      Evaluator \citep{zhang2019reducing} & \cmark &  \xmark & $0$-step \\
+      GAN (Ours) & \cmark &  \xmark & $0$-step \\
+      \bottomrule
+  \end{tabular}}
+  \vspace{1mm}
+  \captionof{table}{Methods that will be considered in the paper. This table extends the perspective given in Table \ref{tab:axes}. Different methods make use of $0$/$1$/$N$-step information in their sampling policy.}\label{tab:axes_2}
+\end{table}
+
+The distinction lies in the fact that our GAN-based approach and the one of \citet{zhang2019reducing} make their choice based on the location with the maximum error at the current step, while LBCS or the Policy Gradient approach \citep{bakker2020experimental} integrate the actual error that remains when adding a location in the mask. Formally, given a test image $\vx$, greedily trained $1$-step policies aim at acquiring the location which yield to the best performance at the next step
+\begin{equation}
+    v_{t+1} = \argmax_{v\in[P]} \eta(\vx,\hat{\vx}_{\omega_{t}\cup v}).\label{eq:1step}
+\end{equation}
+Evaluating this for a given point requires \textit{computing a reconstruction for each candidate $v$}, in order to compute the \textit{actual} performance gain that would be achieved by adding $v$ to the mask $\omega_t$. $0$-step information methods rely instead on acquiring the location feature the largest \textit{current} error
+\begin{equation}
+    v_{t+1} = \argmax_{v\in[P]} \| \mP_v \mF\left(\vx- \hat{\vx}_{\omega_t}\right) \|.\label{eq:0step}
+\end{equation}
+Evaluating Equation \ref{eq:1step} requires only a \textit{single reconstruction}, and then selection is performed by masking in the Fourier space in order to find the location with the largest current error. 
+
+As we will see in the results, $0$-step methods do not outperform $1$-step methods, and we hypothesize that this is because they do not incorporate any feedback in the design of their policy, contrarily to $1$-step methods. $0$-step methods simply they pick the location with the largest current error, but do not incorporate the \textit{a posteriori} information on how good their action \textit{actually} was. This is mainly because $0$-step approaches use a heuristic that was not explicitly trained to be a policy, but to perform a surrogate task, such as estimating the variance of the posterior distribution in Fourier (in our case), or estimating the line-wise Fourier MSE \citep{zhang2019reducing}.
+%A $0$-step policy does not receive feedback to learn how good There is no feedback loop in the training of the $0$-step policy, where the model would be confronted with what would have been a better choice. 
+
+\section{Comparison with \citet{zhang2019reducing}}\label{ss:gan_zhang}
+We have mentioned several times until now the conceptual similarities with the approach of \citet{zhang2019reducing} with our approach. We have shown in Section \ref{ss:learning_moments} that their approach is \textit{not} generative, but aims at learning the mean and variance of the posterior distribution by minimizing a NLL (Equation \ref{eq:zhang_objective}). These statistics do not allow to directly perform adaptive sampling, as we show in Appendix \ref{ss:app_brain}. 
+
+This is why, in order to perform adaptive sampling, \citet{zhang2019reducing} also train with their reconstructor an additional model, called an \textit{evaluator} $\ve_\phi(\hat{x},\omega)$, that tries to predict the line-wise error in Fourier domain. The role of the evaluator is not only to provide guidance for adaptive sampling, similarly to the variance in Fourier space in our case, but it also helps to refine the reconstruction, by adding an adversary that aims at discriminate between real reconstructed lines and reconstructed ones.
+
+The idea of the evaluator is to provide an individual prediction of whether a line in k-space is likely to be real or reconstructed. Consider the $k$-th $v_k \in [P]$\footnote{For simplicity, we simply rewrite here the set of all pixels $\{1,\ldots,P\}$, as the argument is the same whether pixels or lines are considered.}, and a reconstruction $\hat{\vx}$. \citet{zhang2019reducing} define the $k$-th \textit{spectral map} as $\vm^k(\hat{\vx}) = \mF^{-1}(\mP_{v_k} \mF \hat{\vx})$, $\vm_i$ represents the inverse Fourier transform of a single k-space line, and has dimension $\vm_i \in \mathbb{C}^P$. The evaluator then aims at fitting target scores using the following kernel 
+\begin{equation}
+    t(\hat{\vx},\vx)_k = \exp \left(-\gamma \| \vm^k(\hat{\x}) - \vm^k(\vx)\|_2^2\right)
+\end{equation}
+where $\gamma$ is a scalar hyperparameter. Note that $t(\hat{\vx},\vx) \in [0,1]$, where it is $1$ when the spectral maps of $\hat{\vx}$ and $\vx$ perfectly match. The evaluator $\ve_\phi(\hat{x},\omega)$ is then trained to minimize 
+\begin{equation}
+    \min_\phi \ell_{\text{E}}^{\text{E}}(\phi) = \min_\phi \frac{1}{m} \sum_{i=1}^m\sum_{k=1}^P |e_\phi(\hat{\vx}_i,\omega)_k - t(\hat{\vx}_i,\vx_i)_k |^2.\label{eq:zhang_e}
+\end{equation}
+The intuition is simple, the evaluator tries to match the prediction of the kernel $t$. The evaluator is also added to the objective of the reconstruction method, contributing as
+\begin{equation}
+    \ell_{\text{E}}^{\text{R}}(\theta) = \frac{1}{m} \sum_{i=1}^m \sum_{k=1}^P |e_\phi(\hat{\vx}_{\theta,i},\omega)_k - 1 |^2
+\end{equation}
+where we see that it acts as an adversary: the evaluator is trained to predict how closely a reconstructed $\hat{\vx}$ matches a reference image $\vx$, while the reconstructor aims at reconstructing images that look realistic to the evaluator. The updated objective of Equation \ref{eq:zhang_objective} then becomes 
+\begin{equation}
+\min_\theta \ell_{\text{R}}(\theta) = \min_\theta \ell_{\text{NLL}}(\theta) + \beta \ell_{\text{E}}^{\text{R}}(\theta)\label{eq:zhang_r}
+\end{equation}
+The model is then trained by alternating updates between Equation \ref{eq:zhang_e} and Equation \ref{eq:zhang_r}. Although the model is inspired by the adversarial training employed in GANs, significant differences remains, especially regarding the learning of a distribution in a GAN against point estimates in \citet{zhang2019reducing}, and the construction of an evaluator that matches a kernel rather than some more general distance such as a KL-divergence \citep{goodfellow2014generative} or a Wasserstein distance \citep{arjovsky2017wasserstein}.
+
+\section{Experiments}\label{sec:gan_experiment}
+We first consider MRI adaptive sampling, and the move to image domain sampling on MNIST. 
+\subsection{MRI adaptive sampling}\label{ss:mri_gan}
+
+\subsubsection{Experimental setting}
+We carried out experiments on Fourier sampling with the same conditions as outlined in Section \ref{s:re_examining} 
+
+\textbf{Dataset.} We used again the fastMRI \citep{zbontarFastMRIOpenDataset2019} single-coil knee dataset for the experiments, using complex data and the same data normalization as previously. We cropped the data to $256\times 256$ before resizing them to $128\times 128$. We used horizontal sampling masks, and experimented among other things with the mask distribution of \citet{zhang2019reducing}. This corresponds to the \texttt{c+rhz} setting in the previous chapter. 
+Recall that for the mask distribution, the setting of \citet{zhang2019reducing} meaning the model was trained with 10 center frequencies always selected and between 3 and 37 randomly selected elements. The data were postprocessed to have the magnitude of the ground truth in the range $[0,1]$.
+
+
+
+\textbf{Reconstruction models.}
+For this MRI experiment, we used two types of reconstruction models. The first one is the c-ResNet of \citet{zhang2019reducing} that was trained to minimize the negative log-likelihood of \Eqref{eq:zhang_objective} along the adversarial contribution of the evaluator. The model was trained using Adam \citep{kingma2014adam} with $\beta=(0.5,0.999)$, $lr=6\cdot 10^{-4}$ over $100$ epochs. The learning rate was linearly decayed starting at $50$ epochs until it reached $0$ at the end of training.
+
+The second type of model that we considered are different GAN versions. We observed that for Fourier-based conditional generation, the training of the Neural Conditioner (NC) \citep{belghazi2019learning} was generally unstable and generally did not lead to good performance, although it did very well in the image setting. We observed that the model proposed by \citet{adler2018deep} generally performed better than a standard conditional WGAN, and this is the one that we used in our experiments. We refer to it as the \textbf{AO} or \textbf{GAN} model. For the generator, we used the residual UNet (ResUNet) of \citet{belghazi2019learning}, and used also their ResNet-like architecture as discriminator. In the GAN case, the reconstruction was estimated by computing the empirical mean from a set of samples. In our experiments, we observed that merely $2$ samples managed to provide an informative mean and variance, although averaging on more samples led to an increase in overall image quality.
+
+For the WGAN we use Adam \citep{kingma2014adam}, $\beta =(0,0.9)$, TTUR \citep{heusel2017gans} with learning rates of $lr_G=10^{-4}$ and $lr_D=3\cdot 10^{-4}$. The training is done over $100$ epochs, and the learning rate was halved at $50$ epochs. We used the gradient penalty \citep{gulrajani2017improved} with a weight of $10$, following  \citet{adler2018deep} along with a drift penalty with a weight of $10^{-3}$. The output of the generator was followed by a data-consistency layer \citep{schlemper2018deep, mardani2018neural}, which has the role of replacing the generated data with the observed ones at the last layer, and a sigmoid to keep the range of the data in $[0,1]$. Further details on the architecture and on the training are given in Appendix \ref{app:gan_implementation}.
+
+\textbf{Sampling methods.}
+Similarly to what we did in the previous Chapter (Section \ref{s:re_examining}), we evaluated the models on different policies, that we detail below.
+\vspace{-2mm}
+\begin{itemize}
+    \item Random sampling (\textbf{Random}): Acquire a fixed proportion of low-frequency lines in Fourier and then randomly sample the remaining lines.\\[-.5cm]
+    \item \textbf{Evaluator}: \citet{zhang2019reducing} proposed to train an evaluator that tries to estimate the current mean-squared error for each line in k-space. \\[-.5cm]
+    \item (Stochastic) Learning-based Compressive Sampling (\textbf{LBCS}) \citep{gozcu2018learning, sanchez2019scalable}\\[-.5cm]
+    \item Policy Gradient model (\textbf{RL}): The greedy, adaptive deep reinforcement learning method of \citet{bakker2020experimental}.\\[-.5cm]
+    \item \textbf{GAN} (ours): We take samples from the conditional GAN posterior, transform them to Fourier and compute their empirical variance to guide the decision of what location to observe next.\\[-.5cm]
+    \item \textbf{MSE oracle}: An adaptive oracle acquiring at each step the line with the largest mean squared error.\\[-.5cm]
+\end{itemize}
+
+For all the policies considered, we initialized the mask with $8$ low-frequency lines, and then carried out sequential sampling until a rate of $50\%$ sampling. Note however that the deep RL policy of \citet{bakker2020experimental} was trained only until $25\%$ sampling rate for computational reasons, and to provide a fair comparison, the aggregated results will be computed up to $25\%$ sampling.
+%\todoi{Discuss LBCS parameters?}
+
+
+\subsubsection{Results}
+The results of our experiment are presented in Table \ref{tab:comp_knee} and Figure \ref{fig:knee_curve_ssim}.
+
+Similar trends can be observed on PSNR (provided in Appendix \ref{fig:knee_curve_psnr}) and SSIM, where the $1$-step information policies (LBCS and RL) generally outperform the $0$-step information provided by the Evaluator and the GAN. On the GAN model, the GAN policy largely outperform the Evaluator, and on the reconstructor, the opposite is true, although the gap is smaller. However, the trend is \textit{not} the same if one goes until $50\%$ sampling, as shown on Figure \ref{fig:knee_curve_ssim}. Indeed, one sees that as the sampling horizon increases, the performance of the evaluator significantly worsens, whereas the GAN model matches the performance achieved by LBCS. Note that the Evaluator policy in this case is really the direct translation of the policy used in the case of \citet{zhang2019reducing}, but then reconstruction is carried out through the GAN. We see also that the RL policy is weaker on the reconstructor. This is due to the policy being trained on the GAN reconstruction model and then evaluated on the reconstructor. In addition, the results illustrate the inefficiency of sampling from the Gaussian NLL and transforming the samples into Fourier in order to sample: such a policy can perform even \textit{worse} than random sampling. %This can be explained by the fact that such a sampling policy can acquire clusters of locations that are suboptimal, and results in masks not evenly distributed in k-space. 
+
+We see also that while the MSE oracle provides an upper bound on the performance of our GAN policy, it is outperformed by LBCS. This further highlights the value of using $1$-step information horizon over $0$-step information horizon, as an adaptive $0$-step oracle can be outperformed by a $1$-step non-adaptive baseline. 
+
+ 
+
+We observe also interesting trade-offs. The evaluator shows a very good performance at low sampling rates ($<10\%$) matching and even outperforming $1$-step information methods, but its performance deteriorates at later stages. On the other hand, our GAN method is weaker at very early stages but stays much more consistent throughout the whole range of sampling rates. 
+
+We note also that using more than $2$ samples can boost the overall performance of the GAN reconstruction. For instance, using $5$ samples for the GAN reconstruction can boost the overall performance on the method: paired with the GAN policy, it reaches up to $31.43$ dB and $0.759$ SSIM, and on LBCS, it goes up to $32.10$ dB and $0.773$ PSNR. This amounts to an improvement of $0.8$ to $1$ dB and between $0.03$ to $0.04$ SSIM. However, averaging on increasingly many samples has a diminishing return, and in our experiments, a plateau is reached around $20$ samples. 
+
+We also tried to perform sampling from the Gaussian NLL of \citet{zhang2019reducing}, and as expected, the policy performed just like random sampling, as the NLL does not capture the complexity of the posterior distribution.
+
+\begin{table}[!ht]
+    \centering
+    \input{../figures/gan/tables/knee_table.tex}
+    \caption{Average PSNR and SSIM test set AUC (one AUC per image) on knee data in the \texttt{c+rh} setting. The AUC is computed between the $8$ initial lines and $25\%$ sampling rate.}\label{tab:comp_knee} 
+\end{table}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.48\textwidth]{../figures/gan/FAR_SSIM_50_SR.pdf}
+    \includegraphics[width=.48\textwidth]{../figures/gan/FZC_SSIM_50_SR.pdf}
+    \caption{SSIM plots of results shown in Table \ref{tab:comp_knee}, showing the different performance of the policies. The left plot is the result of the evaluation on our GAN model, and the right plot is evaluated using the reconstructor of \citet{zhang2019reducing}. Although Table \ref{tab:comp_knee} computes the AUC until $25\%$, this table extends the evaluation until $50\%$ sampling rate.}\label{fig:knee_curve_ssim}
+\end{figure}
+
+\textbf{Policy distribution.} Turning now to Figure \ref{fig:policy_dist}, we can see how different the policy looks through the testing set for LBCS, the evaluator and our GAN. The probabilities are computed as average of the masks that are observed at sampling rate $25\%$ of the testing set, and we see very different behaviors. First, as LBCS is a fixed policy, it is clear that the same locations are acquired for all images, and as a result, the policy is either $0$ or $1$. Then the GAN policy is quite concentrated around low frequencies, and spans a range that is consistent with the locations acquired by LBCS. On the contrary, the evaluator tends to acquire a lot of high frequencies, and it is hard to discern much structure in the acquisition.
+
+Note that the GAN policy might suffer from acquiring less often some very central frequencies. It might fail to do so due to the uncertainty on these locations being quite small, although the error remains non-negligible. 
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=0.5\textwidth]{../figures/gan/mask_profiles_on_test_025_SR.pdf}
+    \caption{Acquisition probability of sampling locations by LBCS, our method and the evaluator of \citet{zhang2019reducing}, evaluated on the testing set at $25\%$ sampling rate, using the GAN model for reconstruction.}\label{fig:policy_dist}
+\end{figure}
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=.7\linewidth]{../figures/gan/uncertainty_plot_FAR.pdf}
+    \caption{Uncertainty (empirical variance) against MSE for the GAN model. Each point represents a given test sample at a given sampling rate. For clarity, not all data points are represented. The red line is the result of performing a linear regression on the data points, and has $R^2=0.705$. The black line corresponds to $\text{Uncertainty}=\text{MSE}$}\label{fig:calibration}
+    \end{figure}
+
+\textbf{Uncertainty calibration.} We might also wonder how good is the uncertainty (aggregated empirical variance) at predicting the mean squared error. This is shown for our GAN model on Figure \ref{fig:calibration}, where we see that overall estimation is quite good, but has some limitations still. At high errors, the model tends to be over-confident, and show a large variability in its uncertainty values, whereas at lower errors, it becomes slightly underconfident, although the uncertainty tends to have a lower variance.
+
+However, note that this result is based on aggregating the uncertainty over the whole image, and might not reflect the ability of the model to predict good pixel-wise MSE. Nonetheless, the results suggest that the aggregated empirical variance of our model correlates well with MSE.
+
+
+
+\begin{figure}[!ht]
+    \centering
+    \includegraphics[width=\textwidth]{../figures/gan/plot_GAN_knee.pdf}
+    \caption{Visual illustration of the evaluator, GAN and LBCS policies evaluated at $12.5\%$ and $25\%$ on a slice of knee data, using the GAN model for reconstruction.}\label{fig:knee_visual}
+\end{figure}
+
+\subsection{Beyond Fourier sampling: image-domain conditional sampling}
+Although our method was motivated by Fourier sampling, the work of \citet{belghazi2019learning} proposed a similar, GAN-based approach for inpainting tasks. This motivated us to consider the problem of adaptive sampling in image domain as well. 
+
+
+
+
+\subsubsection{Experimental setting}
+We carried out our experiments on the MNIST dataset. The training set contains 60\,000 handwritten digits of size $28\times 28$. We held out 10\,000 digits for validation purposes. The test set consists of 10\,000 digits. We zero-padded all images to $32\times 32$ for convenience.
+
+We evaluated the NC approach of \citet{belghazi2019learning} using their discriminator architecture, as well as the ResUNet and cResNet as two generators, and we compared it to a conditional Wasserstein GAN. 
+
+Similarly to the MRI case, the models were trained with gradient penalty \citep{gulrajani2017improved} and the generators are followed with a data consistency layer as well as a sigmoid. All models were trained using Adam \cite{kingma2014adam} with learning rate $10^{-4}$, $\beta=(0.5, 0.999)$ and weight decay $10^{-4}$. All models were trained for $300$ epochs. The images were undersampled using masks that were either drawn at random or drawn with a probability decaying away from the center.
+
+The Neural Conditioner (NC) \cite{belghazi2019learning} generator and discriminator were updated every other round. In the WGAN case, we optimized the generator once, followed by four updates of the discriminator, as done in \cite{adler2018deep}.
+
+\begin{remark}
+    Similarly to \cite{belghazi2019learning}, we found gradient regularization of the discriminator to be essential. However, we obtained very poor training results using the authors proposed gradient penalty, and observed that the gradient penalty of \cite{gulrajani2017improved} led to a stable training. 
+    
+    Also, \citet{belghazi2019learning} aim at controlling the encoder's Lipschitz constant by using spectral-normalization on the encoding part of the generator. However, we did not observe any effect of doing this, and did not retain it in our model.
+    %Also, contrarily to \cite{belghazi2019learning}, we did not observe any particular effect of spectral normalization of the encoder part of the generator.    
+\end{remark}
+
+After training, we carried out several rounds of evaluation for different types of sampling as reported in Table \ref{tab:comp_mnist_im}. We found that $2$ samples were sufficient for the adaptive sampling with GAS to yield good results. We also observed that more samples $20$ to $100$ made little improvement in the sampling quality or image quality, except that it suppressed the noise of the empirical posterior mean and variance a bit more efficiently.
+
+Regarding the stochastic LBCS approach \citep{sanchez2019scalable}, there are two parameters to be adjusted, namely the number of training samples to be used at each stage of the greedy mask optimization, and the size of candidate locations to be used. We set these to $64$ and $256$ respectively. We used the negative MSE as the performance metric.
+
+In this experiment, as we have smaller images in image domain, we performed pixel-wise masking rather than line-wise masking like in MRI. This greatly increases the number of candidate locations that the policy can sample. We used for training a mixture of random masks and masks that sample more frequently locations near the center of the image. 
+
+Note also that the approach of \citet{zhang2019reducing} is \textit{not} applicable here, as it is not clear how to train their evaluator in image domain, due to their introduction of spectral maps. Also, even if it were adapted, their approach scales very poorly to pixel-wise sampling, as this would require the computation of a spectral map for each individual pixel, all of which are fed at once as input of the evaluator. 
+%Our GAN policy used $5$ samples from the generator to compute the empirical mean and variance, and the location with the largest empirical variance was selected at each round.
+
+\subsubsection{Results}
+Our main results are presented on Table \ref{tab:comp_mnist_im}, which provides the AUC for PSNR, SSIM, as well as the downstream classification accuracy. This was computed using a simple convolutional network that was pretrained on MNIST without any undersampling. A visual assessment of different policies is shown on Figure \ref{fig:mnist_image}.
+
+Focusing first on Table \ref{tab:comp_mnist_im}, we see a very different picture than on the MRI case (Table \ref{tab:comp_knee}). Here, our $0$-step adaptive GAN policy very largely outperforms the $1$-step fixed LBCS policy across all metrics. This highlights a fundamentally different paradigm between image domain and Fourier domain sampling. In image domain, it seems that adaptivity matters much more than in Fourier. This makes intuitive sense, and is well illustrated in the case of MNIST, where the sampling pattern focuses on areas that are ambiguous, which can be very different for different images: this is illustrated more clearly on Figure \ref{fig:mnist_image2} in Appendix \ref{app:s_mnist}. This is also consistent with results on CIFAR10 shown in Appendix \ref{app:s_cifar}.
+
+\begin{table}[!ht]
+\centering
+    \begin{tabular}{lll|ccc}
+\toprule
+Policy & Model & Architecture & PSNR  &SSIM& Accuracy\\
+\midrule
+\multirow{2}{*}{Random} 
+& NC & ResUNet& $17.10$  & $0.76$ & $0.67$ \\
+& WGAN & c-ResNet & $16.41$  & $0.76$ & $0.67$ \\    
+\midrule
+\multirow{4}{*}{LBCS}
+& NC &  ResUNet&$21.39$  & $0.90$ & $0.92$ \\
+& NC &  cResNet&$20.33$  & $0.88$ & $0.93$ \\
+& WGAN & ResUNet& $20.29$  & $0.89$ & $0.90$ \\
+& WGAN & cResNet& $20.48$  & $0.89$ & $0.92$\\
+ %& NC &  ResUNet&$21.39 \pm 2.34$  & $0.90\pm 0.04$ & $0.92\pm 0.14$ \\
+ %& NC &  cResNet&$20.33\pm 2.20$  & $0.88 \pm 0.04$ & $0.93 \pm 0.15$ \\
+ %& WGAN & ResUNet& $20.29 \pm 2.09$  & $0.89 \pm 0.04$ & $0.90\pm 0.14$ \\
+ %& WGAN & cResNet& $20.48 \pm 2.14$  & $0.89\pm 0.04$ & $0.92\pm 0.14$\\
+ 
+\midrule
+\multirow{4}{*}{\begin{minipage}{1cm}GAN (Ours)\end{minipage}}
+ & NC & ResUNet& $\mathbf{40.15}$  & $\mathbf{0.94}$ & $0.91$ \\
+ & NC & cResNet& $31.47$  & $0.93$ & $\mathbf{0.93}$ \\       
+ & WGAN & ResUNet& $31.73$  & $0.92$ & $0.88$ \\
+ & WGAN & cResNet& $\mathbf{35.81}$  & $\mathbf{0.96}$ & $\mathbf{0.95}$ \\    
+ %& NC & ResUNet& $\mathbf{40.15 \pm 15.78}$  & $\mathbf{0.94\pm 0.04}$ & $0.91 \pm 0.15$ \\
+ %& NC & cResNet& $31.47 \pm 6.69$  & $0.93\pm 0.03$ & $\mathbf{0.93 \pm 0.14}$ \\       
+ %& WGAN & ResUNet& $31.73\pm 9.10$  & $0.92 \pm 0.06$ & $0.88 \pm 0.17$ \\
+ %& WGAN & cResNet& $\mathbf{35.81 \pm 10.34}$  & $\mathbf{0.96\pm 0.03}$ & $\mathbf{0.95\pm 0.13}$ \\    
+ 
+ 
+\bottomrule
+\end{tabular}
+\caption{Average test set AUC (one AUC per image) on MNIST, in image domain.}\label{tab:comp_mnist_im}    
+\end{table}
+
+
+It is surprising to see that, although the different generator architectures have roughly the same number of parameters, they can lead to very different performance when used as policies. The ResUNet performs significantly better with the NC and the cResNet shows a much better performance on the WGAN. However, there is not a significant difference on the performance with the LBCS policy. Although this is beyond the scope of this work, it would be interesting to form a better understanding of why such a discrepancy occurs.
+
+Figure \ref{fig:mnist_image} features also an impressive ability of conditional GANs: although the model was only trained on pairs of data $(\vx,\vy)$ from a \textit{given} mode of the distribution, the model successfully produces varied conditional outcomes $\{\vx_i\}$ that span \textit{multiple modes} of the conditional distribution. Figure \ref{fig:mnist_image} also shows an issue that our GAN policy can encounter: sometimes, the model can be confidently wrong: at $0.5\%$ percent, the model thinks the digit should be a seven, which is incorrect\footnote{For other generative models such as variational autoencoders, it has been shown that these models can frequently be overconfident \citep{nalisnick2018deep}. Although evaluating the likelihood in GANs is an open problem, it is not unlikely that a similar behavior should be found in GANs.}. However, adding more samples allows it to converge to the correct digit. Note that in this case, it shows a level of uncertainty that is generally low, as opposed to the random policy (VDS) and LBCS, which feature a higher level of uncertainty.
+
+%
+\begin{figure}[!ht]
+    \centering
+
+    \includegraphics[valign=t,width=.9\linewidth]{../figures/gan/plot_sample_iwc_baseline.jpg}
+    
+    \includegraphics[width=.9\linewidth]{../figures/gan/plot_sample_iwc_greedy.jpg}
+    
+    \includegraphics[width=.9\linewidth]{../figures/gan/plot_sample_iwc_adaptive.jpg}
+
+\caption{Image domain illustration of the WGAN cResNet sampling using three different methods. The columns contain respectively: the ground truth image, the mask (with brighter color meaning that the location has been selected recently), the observation, several samples and the empirical posterior mean and variances. The first row shows the result obtained with $0.5\%$ and $2.5\%$ sampling respectively. Here, VDS is our random policy, LBC is LBCS and GAS stands for Generative Adaptive Sampling and is our GAN-based policy.}\label{fig:mnist_image}
+\end{figure}
+
+
+
+\section{Related works}\label{ss:gans_rel}
+In this work, we have investigated how GANs can be used for inverse problems to perform reconstruction, uncertainty quantification and adaptive sampling. A flurry of different approaches have been proposed to tackle these problems in the literature, and we briefly discuss a few particularly relevant works now.
+
+Although we have used GANs as the generative model in this work, many other approaches have been explored in the context of inverse problems. Variational Autoencoders (VAEs) \citep{rezende2014stochastic,kingma2013auto} have been applied to inverse problems \citep{tonolini2019variational,zhang2021conditional} as well as the task of learning conditional distributions \citep{ivanov2018variational}. But other approaches such as autoregressive models 
+\citep{oord2016conditional,van2016pixel} or conditional normalizing flows \citep{papamakarios2019normalizing,sun2020deep,denker2021conditional} have also been explored. Lately, score-based approaches, based on the idea of learning to sample by learning the score of the distribution, have gained popularity \citep{ramzi2020denoising,song2021solving}.
+
+Although all of these methods can provide reconstruction and uncertainty quantification, autoregressive models and score-based distribution suffer from slow inference times, limiting their potential use in a setting of adaptive acquisition in MRI, where the inference should take at most the same time as a readout. This can in principle be achieved by our model, which has an inference time in the order of milliseconds. 
+
+In the vein of the Neural Conditioner (NC) \citep{belghazi2019learning}, we mention the works of \citet{douglas2017universal,gautam2020masking} and a very recent energy based approach \citep{strauss2021arbitrary}. However, these approaches focus on missing data imputation or inpainting, and are not designed for settings where the acquisition does not happen in image domain. Other approaches train a conditional embedder produce a noise distribution which will subsequently enable conditional sampling \citep{whang2020approximate}, or motivate a conditional generator based on approximately triangular transport maps \citep{kovachki2020conditional}.
+
+Generative adversarial networks have also been used in the context of inverse problems, and several works used unconditional GANs as priors \citep{bora2017compressed, anirudh2018unsupervised, latorre2019fast, narnhofer2019inverse,jalali2019solving, hussein2020image} and subsequently performed optimization in the latent space. Another approach has been to directly train GANs for reconstruction along additional losses in order to increase the quality of the reconstruction \citep{yang_dagan_2018}. In such settings, the noise channel of the generator is often discarded at test time as the aim is to obtain the best image quality.
+
+There has also been some recent interest into quantifying the uncertainty in the reconstruction. This notably motivated the negative log-likelihood in \citet{zhang2019reducing}, where the level of uncertainty can be used as a criterion to decide when sampling can be stopped. A recent work, based on Stein's unbiased risk estimator, studied the calibration of the uncertainty for variational autoencoders \citep{edupuganti_uncertainty_2020}. Score-matching is also very promising for UQ, although it suffers from long inference times \citep{ramzi2020denoising,song2021solving}.
+
+As discussed, \citet{zhang2019reducing} is the work more conceptually similar to ours. %The authors took a unique approach where a model is trained to directly estimate the mean-squared error in Fourier space and sampling is performed by selecting the line with the largest estimated error.
+Their model aims at doing reconstruction and uncertainty quantification, while also providing adaptive sampling through their evaluator. It is also trained in an adversarial fashion, although it is not a GAN. However, their approach is \textit{not} generative, and only yields point estimates of the mean and the variance by minimizing a multivariate Gaussian negative log likelihood. Their approach supposes the pixel-wise uncertainty to be independent random variables normally distributed around the mean, an assumption not required in \citet{adler2018deep, belghazi2019learning}. This assumption also implies that sampling from this distribution to estimate the Fourier variance is not possible, as this would require access to the full covariance matrix, and our results confirm this. 
+
+We note also that the optimization of the sampling pattern is not restricted to MRI, but has also been applied on the standard compressed sensing setting, notably motivated by early work on Bayesian Compressive Sensing \citep{ji2008bayesian,wu2019deep,wu2019learning}. 
+%\todoi{Maybe move it somewhere else to discuss it in depth?}
+
+Finally, our methodology relies on the idea of sequentially acquiring the most uncertain measurement at each round, a concept which has first been proposed and leveraged in the context of optimal experimental design \citep{lindley1956measure, chaloner1995bayesian, vanlier2012bayesian}. While until recently, most approaches in this realm relied on a statistical prior model as well as expensive MCMC sampling \citep{vanlier2012bayesian,pauwels2014bayesian}, but variational approaches have also been explored \citep{foster2019variational}. However, most of these approaches do not scale up to very high-dimensional problems. On the contrary, GANs are naturally fit to deal with high-dimensional problems, and provide with a natural way of empirically quantifying the uncertainty in this acquisition.  
+
+\section{Discussion}\label{sec:gans_discussion}
+%\todot{Potential for better adaptive sampling policy: incorporate the longer-horizon policy in the discriminator: stack with current image, imagined next image (maybe follow some policy) and compare it against ground truth + imagined ground truth (e.g. conditional sampling when adding the line that has max variance to the conditional generation?) -> But there seems to be an issue. It seems hurtful to make the model generate samples based on the maximally uncertain line given that it's \textit{unsure} about it. \\ Importance of 1-step information: from 0 to 1 step -> big performance gap. Less importance about moving from 1 step to N-steps}
+
+Our results show the potential of conditional GANs in tackling inverse problems, as they offer a good reconstruction, uncertainty quantification and adaptive sampling at once, by only training in a standard adversarial fashion. Nonetheless, several points are worth discussing
+
+\textbf{Generically trained generative reconstruction method.} The current generative model was trained in a generic fashion and \emph{not} specifically to optimize the quality of masks designed through it. The ability for designing masks stems purely from training it as a rigorous Bayesian modeling of the continuum of inverse problems. This allows the posterior to be conditioned on incrementally collected information in a closed loop fashion. However, one could imagine ways to improve the quality of the policy, by explicitly training the model to not only provide good samples, but simulate a \textit{rollout} of samples. The discriminator could be then trained to distinguish not between samples but \textit{sequences} of samples. 
+
+Alternatively, our method could easily be incorporated in a reinforcement learning-based framework aimed at jointly training reconstruction and sampling such as \citet{jin2019self}. This could give the best of both worlds, giving principled uncertainty estimates to the RL sampler, moving beyond greedy sampling and possibly speeding up the training of the reconstruction method by focusing on regions with less reliable variance estimates instead of using masks sampled from parametric distributions as in this work.
+
+\textbf{Limitations of the model.} While our approach and the one of \citet{belghazi2019learning} are successfully producing conditioned samples on unseen masks shapes, we observe that they nonetheless depend on the type of masks used throughout training. For instance, our method, being trained on pixel-wise undersampling for MNIST, would not be as good in the inpainting of large holes. Hand-crafting the type of masks that we want to condition on in the future remains an important step towards obtaining good generalization performance, and further work needs to be done to have a method able to truly condition on arbitrarily structured observations.
+
+We also observed an expected trade-off in performance between models trained on a single type of masks and a single sampling rate and models trained on varying types of masks and sampling rates. In this sense, adaptive sampling comes at a cost: a small drop in performance compared to a method \textit{specialized} on a more restricted setting. Quantifying precisely this trade-off is beyond the scope of this work and should be further studied.
+
+\textbf{Impact of data consistency.} We found the data-consistency layer to be a fundamental piece in all settings, as it forces the model to incorporate observed data into the output image, and the model is then much less prone to hallucinating unlikely features as more observations are being acquired. In addition, this ensures the fact that the input will never be discarded by the generator, and prevents the model from collapsing into a mode that is inconsistent with observations.
+
+\textbf{Limitations of the posterior estimation.} We leveraged the approach of \citep{adler2018deep}, which is the first of its kind to allow to construct a posterior estimator from samples of the joint distribution. While it works well empirically, the authors did not provide any analysis or guarantees on how well the generator captures the tails of the posterior distribution. Our observations suggest that unusual images, that far away from the mean of the learned distribution, might not be accurately captured, i.e. the estimated variance is lower than expected. This could be due to the limited training data available, but might also an artifact of the cWGAN approach which tends to struggle with capturing weaker modes of their distributions. Specifically, the problematic examples might be an indication that while the loss shown in Equation \ref{eq:ao_objective} avoids mode collapse, there might still be some modes that are underrepresented.
+
+\textbf{Adaptivity in image domain.} Contrarily to our conclusions in Chapter \ref{ch:rl_mri} and Section \ref{ss:mri_gan}, adaptive sampling seems to be greatly beneficial in image domain sampling. In particular, in a simple task such as MNIST, one can clearly see the benefit of adaptive policies, that tailor the sampling pattern to the relevant locations of the image (in the case of MNIST, the digit itself). This is also concurrent with our results on CIFAR10 (Appendix \ref{app:s_cifar}). This raises the question of predicting \textit{when} adaptive sampling would be beneficial over fixed sampling. Does it depend on the structure of the sampling domain itself, or would the distribution of images considered impact this as well? Does the adaptivity of the model depend on the distribution of masks used for training? All of these questions should be further investigated. 
+
+\section{Conclusion}\label{sec:gans_conclusion}
+
+We presented a novel approach for reconstruction and adaptive sampling, rooted in Bayesian modeling. We showed that, in line with recent advances \citep{belghazi2019learning,adler2018deep}, GANs perform well at this task and yield useful posteriors for Fourier domain reconstruction as well as image domain, allowing both high quality reconstructions and derivation of a sampling heuristic. This natural sampling heuristic achieved surprisingly strong sampling results, without ever training to act as a policy, and is competitive with the state-of-the-art on the fronts of reconstruction, uncertainty quantification and adaptive sampling.
+
+
+\section*{Bibliographic note}
+Zhaodong Sun provided initial results in the work. Igor Krawczuk helped with the code, implemented and provided the results for the methods of \citet{zhang2019reducing} and \citet{bakker2020experimental}, and carried out the CIFAR10 experiments. Volkan Cevher provided the initial motivation to look into the Deep Bayesian Inversion approach of \citet{adler2018deep} which started this project.
