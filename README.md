@@ -40,10 +40,7 @@ Overall, our results suggest that methods like stochastic LBCS offer promising a
 6. On the benefits of deep RL in accelerated MRI sampling
 7. Uncertainty driven adaptive sampling via GANs 
 8. Conclusion and future works 
-A. Appendix for Chapter 6 
-B. Appendix for Chapter 7 
-C. Bibliography 
-D. Curriculum Vitae
+
 
 ## Organization of the repository
 The repository contains 4 main folders.
