@@ -61,7 +61,7 @@ latexmk -pdf thesis.tex/thesis_presentation.tex
 ```
 
 ## About the repository
-The repo uses git large file system, check that it is installed on your machine. If not, you can install it (check [this link](https://git-lfs.github.com/), and if you already clone the repository, you will need to initalize it in locally using `git lfs install`. You can then obtain the large files with `git lfs pull`.
+The repo uses git large file system, check that it is installed on your machine. If not, you can install it (check [this link](https://git-lfs.github.com/)), and if you've already cloned the repository, you will need to initalize it in locally using `git lfs install`. You can then obtain the large files with `git lfs pull`.
 
 ## Source
 This thesis is based of the [unofficial EPFL thesis template](https://github.com/glederrey/EPFL_thesis_template).
