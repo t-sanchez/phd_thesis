@@ -49,7 +49,7 @@ D. Curriculum Vitae
 The repository contains 4 main folders.
 
 - `figures`: contains the figures used in the manuscripts as well as presentation.
-- `phd_thesis`: contains the source file of the PhD manuscript (`thesis.tex`), as well as the compiled version (`thesis.pdf`)
+- `phd_thesis`: contains the source file of the PhD manuscript (`thesis.tex`). The compiled version is freely available on [infoscience](https://infoscience.epfl.ch/record/294077/files/EPFL_TH9981.pdf?ln=en).
 - `private_defense`: contains the source file of the slides used in the private defense (`thesis_presentation.tex`), as well as the compiled version (`thesis_presentation.pdf`).
 - `public defense`: contains the pdf exported version of the slides used in the public defense originally done in Keynote.
 
